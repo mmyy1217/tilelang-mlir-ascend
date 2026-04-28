@@ -1644,27 +1644,22 @@ llvm::SmallVector<int64_t>
 CodeGenTileLangNPUIRDEV::ComputeUBAllocShapeFromDstRange(
     mlir::RankedTensorType dst_tensor_type_ori,
     llvm::ArrayRef<mlir::OpFoldResult> dstR_sizes) {
+  // Same-rank policy: the UB alloc preserves the dst tensor's rank, including
+  // any natively size-1 dims. Compacting size-1 dims here would force a
+  // rank-reducing tensor.insert_slice downstream, which the HIVM pipeline
+  // cannot trace back to a root alloc (see Debugs/copy-codegen-rank-reduce-aggressive).
   int64_t rank = dst_tensor_type_ori.getRank();
   ICHECK((int64_t)dstR_sizes.size() == rank);
 
-  llvm::SmallVector<int64_t> full_shape;
-  full_shape.reserve(rank);
-  for (int64_t i = 0; i < rank; ++i) {
-    if (auto attr = dstR_sizes[i].dyn_cast<mlir::Attribute>()) {
-      full_shape.push_back(attr.cast<mlir::IntegerAttr>().getInt());
-    } else {
-      full_shape.push_back(dst_tensor_type_ori.getDimSize(i));
-    }
-  }
-
   llvm::SmallVector<int64_t> ub_alloc_shape;
   ub_alloc_shape.reserve(rank);
-  // UB alloc should be compact: drop ALL static-1 dims.
-  for (int64_t d : full_shape) {
-    if (d == 1) continue;
-    ub_alloc_shape.push_back(d);
+  for (int64_t i = 0; i < rank; ++i) {
+    if (auto attr = dstR_sizes[i].dyn_cast<mlir::Attribute>()) {
+      ub_alloc_shape.push_back(attr.cast<mlir::IntegerAttr>().getInt());
+    } else {
+      ub_alloc_shape.push_back(dst_tensor_type_ori.getDimSize(i));
+    }
   }
-  if (ub_alloc_shape.empty()) ub_alloc_shape.push_back(1);
   return ub_alloc_shape;
 }
 
@@ -1676,21 +1671,17 @@ void CodeGenTileLangNPUIRDEV::EmitCopyMemrefToTensor(
   auto dst_tensor_type_ori = dst.getType().cast<mlir::RankedTensorType>();
   auto src_memref_type_ori = src.getType().cast<mlir::MemRefType>();
 
-  // 1) Canonicalize copy rank: drop static-1 dims using src_sizes
+  // Same-rank policy: src memref, ub alloc, ub view, to_tensor result, and the
+  // final insert_slice all preserve dst tensor's rank. Compacting size-1 dims
+  // here would force a rank-reducing tensor.insert_slice that the downstream
+  // HIVM pipeline cannot handle.
+  ICHECK_EQ(src_memref_type_ori.getRank(), dst_tensor_type_ori.getRank())
+      << "EmitCopyMemrefToTensor expects src memref rank to equal dst tensor rank";
+
+  // 1) UB alloc shape: same rank as dst tensor.
   llvm::SmallVector<int64_t> ub_alloc_shape =
       ComputeUBAllocShapeFromDstRange(dst_tensor_type_ori, dstR.sizes);
-  CollapsedDims srcC = CollapseStaticOneDims(
-      srcR.sizes,
-      static_cast<int64_t>(ub_alloc_shape.size()));
-  llvm::ArrayRef<mlir::OpFoldResult> copy_sizes = srcC.sizes;
-  llvm::ArrayRef<int64_t> copy_projected = srcC.projected;
 
-  // 2) Build src_view as rank-reduced subview to copy rank
-  mlir::Value src_view = CreateRankReducedSubviewFromBaseRank(
-    src, srcR.offs, srcR.sizes, srcR.strides, copy_projected, loc);
-
-  // 3) Alloc UB from dst_range. kDynamic appears only when dst type has a dynamic dim;
-  //    dst_range dynamic + dst static => static alloc (dst dim as bound), dynamic subview.
   bool has_dynamic = false;
   for (int64_t d : ub_alloc_shape) {
     if (mlir::ShapedType::isDynamic(d)) {
@@ -1700,43 +1691,33 @@ void CodeGenTileLangNPUIRDEV::EmitCopyMemrefToTensor(
   }
   ICHECK(!has_dynamic) << "dst with dynamic dimension(s) not supported for UB alloc";
 
+  // 2) Build src_view at full src rank (no rank reduction).
+  llvm::SmallVector<int64_t> src_projected;
+  src_projected.reserve(srcR.sizes.size());
+  for (const auto& ofr : srcR.sizes) {
+    if (auto attr = ofr.dyn_cast<mlir::Attribute>()) {
+      src_projected.push_back(attr.cast<mlir::IntegerAttr>().getInt());
+    } else {
+      src_projected.push_back(mlir::ShapedType::kDynamic);
+    }
+  }
+  mlir::Value src_view = CreateRankReducedSubviewFromBaseRank(
+      src, srcR.offs, srcR.sizes, srcR.strides, src_projected, loc);
+
+  // 3) Alloc UB.
   mlir::Value base_ub = CreateStaticLocalUB(
       ub_alloc_shape, dst_tensor_type_ori.getElementType(), loc);
 
-  // 4) Create ub_view matching copy rank
-  mlir::Value ub_view;
+  // 4) ub_view has the same rank as the alloc; only narrow with a subview when
+  //    the slice sizes are dynamic and don't match the static alloc shape.
   auto ubTy = base_ub.getType().cast<mlir::MemRefType>();
-
-  if ((int64_t)copy_sizes.size() == ubTy.getRank()) {
-    // When shape is static and matches alloc shape (offsets are 0), skip subview
-    if (OpFoldResultsEqualStaticShape(copy_sizes, ub_alloc_shape)) {
-      ub_view = base_ub;
-    } else {
-      ub_view = CreateSameRankDynamicSubview(base_ub, copy_sizes, loc);
-    }
+  ICHECK_EQ((int64_t)srcR.sizes.size(), ubTy.getRank())
+      << "src slice rank must match UB alloc rank under same-rank policy";
+  mlir::Value ub_view;
+  if (OpFoldResultsEqualStaticShape(srcR.sizes, ub_alloc_shape)) {
+    ub_view = base_ub;
   } else {
-    CollapsedDims dstC = CollapseStaticOneDims(
-        dstR.sizes,
-        static_cast<int64_t>(ubTy.getRank()));
-
-    llvm::SmallVector<mlir::OpFoldResult> fullOffsets(ubTy.getRank(), builder.getIndexAttr(0));
-    llvm::SmallVector<mlir::OpFoldResult> fullStrides(ubTy.getRank(), builder.getIndexAttr(1));
-    llvm::SmallVector<mlir::OpFoldResult> fullSizes(ubTy.getRank(), builder.getIndexAttr(1));
-
-    if ((int64_t)dstC.keptIdx.size() == (int64_t)copy_sizes.size() &&
-        (int64_t)dstC.keptIdx.size() <= ubTy.getRank()) {
-      for (unsigned k = 0; k < dstC.keptIdx.size(); ++k) {
-        unsigned idx = dstC.keptIdx[k];
-        if (idx < (unsigned)ubTy.getRank()) fullSizes[idx] = copy_sizes[k];
-      }
-    } else {
-      for (unsigned k = 0; k < copy_sizes.size() && k < (unsigned)ubTy.getRank(); ++k) {
-        fullSizes[k] = copy_sizes[k];
-      }
-    }
-
-    ub_view = CreateRankReducedSubviewFromBaseRank(
-        base_ub, fullOffsets, fullSizes, fullStrides, copy_projected, loc);
+    ub_view = CreateSameRankDynamicSubview(base_ub, srcR.sizes, loc);
   }
 
   // 5) Copy
@@ -1746,12 +1727,10 @@ void CodeGenTileLangNPUIRDEV::EmitCopyMemrefToTensor(
   mlir::Value loaded_tensor = builder.create<mlir::bufferization::ToTensorOp>(
       loc, ub_view, /*restrict=*/true, /*writable=*/false);
 
-  // 7) Type Cast (skip reshape - let InsertSlice handle rank difference to avoid
-  //    expand_shape failures on strided memrefs from subview)
+  // 7) Type Cast (rank already matches dst under same-rank policy).
   mlir::Value casted_tensor = CreateCastIfTypeMismatch(loaded_tensor, dst);
 
-  // 8) InsertSlice - tensor.insert_slice can handle source rank < dest rank,
-  //    using dstR.sizes to specify the slice shape in the destination.
+  // 8) InsertSlice - same-rank, downstream HIVM can trace the root alloc.
   mlir::Value result = InsertSlice(
       casted_tensor, dst,
       const_cast<llvm::SmallVector<mlir::OpFoldResult>&>(dstR.offs),
