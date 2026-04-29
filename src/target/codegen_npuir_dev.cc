@@ -1731,11 +1731,21 @@ void CodeGenTileLangNPUIRDEV::EmitCopyMemrefToTensor(
   mlir::Value casted_tensor = CreateCastIfTypeMismatch(loaded_tensor, dst);
 
   // 8) InsertSlice - same-rank, downstream HIVM can trace the root alloc.
-  mlir::Value result = InsertSlice(
-      casted_tensor, dst,
-      const_cast<llvm::SmallVector<mlir::OpFoldResult>&>(dstR.offs),
-      const_cast<llvm::SmallVector<mlir::OpFoldResult>&>(dstR.sizes),
-      const_cast<llvm::SmallVector<mlir::OpFoldResult>&>(dstR.strides));
+  //    Skip when dst is fully overwritten (offs all zero, sizes match dst
+  //    shape, types match) — bind directly to the to_tensor result so the
+  //    placeholder tensor.empty() and a no-op insert_slice are not emitted.
+  mlir::Value result;
+  if (OpFoldResultsAllZero(dstR.offs) &&
+      OpFoldResultsEqualStaticShape(dstR.sizes, dst_tensor_type_ori.getShape()) &&
+      casted_tensor.getType() == dst.getType()) {
+    result = casted_tensor;
+  } else {
+    result = InsertSlice(
+        casted_tensor, dst,
+        const_cast<llvm::SmallVector<mlir::OpFoldResult>&>(dstR.offs),
+        const_cast<llvm::SmallVector<mlir::OpFoldResult>&>(dstR.sizes),
+        const_cast<llvm::SmallVector<mlir::OpFoldResult>&>(dstR.strides));
+  }
 
   // 9) SetVarValue
   SetVarValue(npuirop.dst, result);
