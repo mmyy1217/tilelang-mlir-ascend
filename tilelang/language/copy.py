@@ -160,12 +160,29 @@ def copy(
             else:
                 extent.append(se)
 
+    def _align_extent_to_ndim(ext, ndim):
+        # Drop statically-1 dims first; fall back to trailing slice.
+        if len(ext) <= ndim:
+            return list(ext)
+        result = list(ext)
+        i = 0
+        while len(result) > ndim and i < len(result):
+            cur = result[i]
+            val = getattr(cur, "value", cur)
+            if isinstance(val, int) and val == 1:
+                result.pop(i)
+            else:
+                i += 1
+        if len(result) > ndim:
+            result = result[-ndim:]
+        return result
+
     def _to_region(data, access_type):
         if isinstance(data, tir.Var) and T.has_let_value(data):
             data = T.get_let_value(data)
         if isinstance(data, tir.Buffer):
             ndim = len(data.shape)
-            trailing = extent[-ndim:] if len(extent) >= ndim else extent
+            trailing = _align_extent_to_ndim(extent, ndim) if len(extent) >= ndim else extent
             return buffer_load_to_tile_region(
                 T.BufferLoad(data, [0] * ndim), access_type, trailing)
         elif isinstance(data, tir.BufferRegion):
@@ -173,7 +190,7 @@ def copy(
                 data, access_type, [x.extent for x in data.region])
         else:
             ndim = len(data.buffer.shape)
-            trailing = extent[-ndim:] if len(extent) >= ndim else extent
+            trailing = _align_extent_to_ndim(extent, ndim) if len(extent) >= ndim else extent
             return buffer_load_to_tile_region(data, access_type, trailing)
 
     src = _to_region(src, "r")
