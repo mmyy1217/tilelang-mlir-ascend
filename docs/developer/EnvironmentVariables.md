@@ -26,3 +26,4 @@ export TILELANG_DUMP_IR=TRUE
 | Variable | Default | Description | Valid Values |
 |----------|---------|-------------|--------------|
 | `TILELANG_ASCEND_MODE` | Expert | Set the TileLang Mode; currently, Expert mode and Developer mode are supported | `Expert`: Expert Mode<br>`Developer`: Developer Mode |
+| `TILELANG_ENABLE_SIMT` | `1` | Control whether the TVM/TIR pipeline runs A5 SIMT lowering before SIMD vectorization | True values: `1`, `true`, `t`, `yes`, `y`, `on`<br>False values: `0`, `false`, `f`, `no`, `n`, `off` |

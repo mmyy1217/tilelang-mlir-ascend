@@ -96,3 +96,9 @@ tilelang/jit/adapter/cython/.cycache
 
 # unit test output files
 unittest/npuir/output/
+
+# local SIMT profiling output
+examples/simt/profile_runs/
+
+# workspace
+.workspace/
