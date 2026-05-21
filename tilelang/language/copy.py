@@ -111,12 +111,11 @@ def copy(
 
 
     Raises:
-        TypeError: If copy extents cannot be deduced from arguments
+        ValueError: If copy extents cannot be deduced from arguments
 
     Returns:
         tir.Call: A handle to the copy operation
     """
-
     def get_extent(data):
         if isinstance(data, tir.Var) and T.has_let_value(data):
             data = T.get_let_value(data)
@@ -152,12 +151,12 @@ def copy(
             return list(data.shape)
         if isinstance(data, tir.BufferRegion):
             return [x.extent for x in data.region]
-        # BufferLoad only carries a starting point, so when size=... is absent
-        # it has to borrow extents from the opposite operand.
-        assert peer_extent is not None, (
-            "T.copy cannot deduce copy extents from two BufferLoad operands; "
-            "use slice syntax on one side or pass size=[...]."
-        )
+        # BufferLoad only carries a starting point, so borrow peer extents when needed.
+        if peer_extent is None:
+            raise ValueError(
+                "T.copy cannot deduce copy extents from two BufferLoad operands; "
+                "use slice syntax on one side or pass size=[...]."
+            )
         return list(peer_extent)
 
     def _to_region(data, access_type, peer_extent, peer_is_slice):
@@ -165,12 +164,7 @@ def copy(
             data = T.get_let_value(data)
         if isinstance(data, tir.Buffer):
             if not has_explicit_size:
-                # When a plain buffer is paired with an explicit slice of the
-                # same rank, reuse the peer extents so tail-tile copies like
-                # T.copy(A[bx:..., by:...], UB) and T.copy(UB, C[bx:..., by:...])
-                # keep matching logical shapes. For rank-mismatch singleton
-                # cases, preserve whole-buffer semantics and let the backend
-                # perform shape alignment.
+                # Reuse same-rank slice extents so tail-tile copies keep matching logical shapes.
                 if (
                     peer_is_slice
                     and peer_extent is not None
