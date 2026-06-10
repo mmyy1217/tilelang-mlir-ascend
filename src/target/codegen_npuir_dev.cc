@@ -1894,9 +1894,9 @@ void CodeGenTileLangNPUIRDEV::EmitCopyTensorToMemref(
     return;
   }
 
-  // 1) Canonicalize copy rank: drop static-1 dims
-  int64_t maxRank = std::min<int64_t>(srcTy.getRank(), dstTy.getRank());
-  CollapsedDims srcC = CollapseStaticOneDims(srcR.sizes, maxRank);
+  // 1) Canonicalize copy rank: drop ALL static-1 dims; GM subviews keeping
+  // unit dims crash bishengir HFusionFoldUnitDims (partial rank-reduce).
+  CollapsedDims srcC = CollapseStaticOneDims(srcR.sizes, /*maxRank=*/-1);
   llvm::ArrayRef<mlir::OpFoldResult> copy_sizes = srcC.sizes;
   llvm::ArrayRef<int64_t> copy_projected = srcC.projected;
 
