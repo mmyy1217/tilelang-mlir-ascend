@@ -7,6 +7,9 @@ from tilelang import language as T
 from tvm import tir
 
 
+ACCESS_TYPE_MAP = {"r": 1, "w": 2, "rw": 3}
+
+
 def region(buffer: tir.BufferLoad, access_type: str, *args: tir.PrimExpr):
     """Create a memory region descriptor for tile operations.
 
@@ -18,7 +21,7 @@ def region(buffer: tir.BufferLoad, access_type: str, *args: tir.PrimExpr):
     Returns:
         tir.Call: A region descriptor for tile operations
     """
-    access_type = {"r": 1, "w": 2, "rw": 3}[access_type]
+    access_type = ACCESS_TYPE_MAP[access_type]
     return tir.call_intrin(
         "handle", tir.op.Op.get("tl.region"), buffer, access_type, *args
     )
@@ -54,8 +57,6 @@ def buffer_load_to_tile_region(
     """
     indices = load.indices
     if len(indices) > len(extents):
-        # (f"mismatch between indices and extents for buffer load {load}: indices = {indices}, extents = {extents}, "
-        # f"region will be expanded in the last 2 dimensions")
         new_extents = []
         for _ in range(len(indices) - len(extents)):
             new_extents.append(1)
