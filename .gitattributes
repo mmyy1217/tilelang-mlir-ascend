@@ -6,5 +6,6 @@
 *.jpeg binary
 *.png binary
 *.gif binary
+*.xlsx binary
 
 *.h linguist-language=C++

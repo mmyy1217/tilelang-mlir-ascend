@@ -165,6 +165,144 @@ EXPERT_TOKENS = (
     "T.subblock_barrier",
 )
 
+NPU_ONLY_NAMES = {
+    "alloc_L0A",
+    "alloc_L0B",
+    "alloc_L0C",
+    "alloc_L1",
+    "alloc_ub",
+    "load_nd2nz",
+    "store_fixpipe",
+    "store_nz2nd",
+    "Scope",
+    "set_flag",
+    "wait_flag",
+    "pipe_barrier",
+    "sync_block_set",
+    "sync_block_wait",
+    "block_barrier",
+    "subblock_barrier",
+    "rs",
+    "ascend_copy",
+}
+
+GPU_ONLY_NAMES = {
+    "GemmWarpPolicy",
+    "ptx_mma",
+    "ptx_ldmatrix",
+    "tma_load",
+    "create_tma_descriptor",
+    "create_list_of_mbarrier",
+    "get_mbarrier",
+    "mbarrier_wait_parity",
+    "mbarrier_arrive",
+    "mbarrier_expect_tx",
+    "fence_proxy_async",
+    "set_max_nreg",
+    "nreg_",
+    "use_swizzle",
+    "swizzle",
+    "dp4a",
+    "tvm_mfma",
+    "sync_threads",
+    "boxDim",
+    "globalAddress",
+    "globalDim",
+    "globalStride",
+    "elementStrides",
+    "tensorRank",
+    "l2Promotion",
+    "oobFill",
+    "pixelBoxLowerCorner",
+    "pixelBoxUpperCorner",
+    "ToDebugString",
+}
+
+COMMON_LANGUAGE_NAMES = EXTERNAL | {
+    "Add",
+    "Sub",
+    "Mul",
+    "Div",
+    "Mod",
+    "FloorDiv",
+    "FloorMod",
+    "Min",
+    "Max",
+    "EQ",
+    "LT",
+    "LE",
+    "GE",
+    "GT",
+    "NE",
+    "And",
+    "Or",
+    "Cast",
+    "Var",
+    "PrimFunc",
+    "Ptr",
+    "Optional",
+    "Assert",
+    "assert_",
+    "If",
+    "Then",
+    "Else",
+    "While",
+    "Kernel",
+    "KernelLaunchFrame",
+    "Parallel",
+    "Pipelined",
+    "Layout",
+    "Fragment",
+    "FragmentBuffer",
+    "SharedBuffer",
+    "LocalBuffer",
+    "ptr",
+    "make_tensor",
+    "copy",
+    "clear",
+    "fill",
+    "gemm",
+    "alloc_shared",
+    "alloc_fragment",
+    "alloc_local",
+    "alloc_var",
+    "atomic_add",
+    "atomic_addx4",
+    "reduce",
+    "reduce_max",
+    "reduce_min",
+    "reduce_sum",
+    "reduce_abssum",
+    "reduce_absmax",
+    "cumsum",
+    "reshape",
+    "view",
+    "arange",
+    "concat",
+    "pad",
+    "flip",
+    "gather",
+    "interleave",
+    "deinterleave",
+    "transpose",
+    "print",
+    "sigmoid",
+    "clamp",
+    "any",
+    "all_of",
+    "any_of",
+    "annotate_layout",
+    "annotate_padding",
+    "region",
+    "macro",
+    "symbolic",
+    "thread_var",
+    "thread_bounds",
+    "target",
+    "type_annotation",
+    "layout_map",
+}
+
 
 def rel(root: Path, path: Path) -> str:
     return path.relative_to(root).as_posix()
@@ -267,6 +405,103 @@ def line_modes(path_rel: str, text: str, line: str, kind: str, *, tdot: bool = F
     return modes
 
 
+def platform_tags_for_file(path_rel: str, text: str, line: str = "") -> set[str]:
+    lower_path = path_rel.lower()
+    lower_text = text.lower()
+    lower_line = line.lower()
+    tags = set()
+
+    npu_markers = (
+        "target=\"npuir\"",
+        "target='npuir'",
+        "is_npu=true",
+        "torch.npu",
+        ".npu(",
+        "tilelang_ascend_mode",
+        "ascendarch",
+        "bishengir",
+        "hivm",
+    )
+    if (
+        "npuir" in lower_path
+        or "customize_npuir" in lower_path
+        or "codegen_npuir" in lower_path
+        or "npu_loop_vectorize" in lower_path
+        or "legalize_npuir" in lower_path
+        or any(marker in lower_text for marker in npu_markers)
+        or any(marker in lower_line for marker in npu_markers)
+    ):
+        tags.add("NPU")
+
+    gpu_markers = (
+        "target=\"cuda\"",
+        "target='cuda'",
+        "target=\"hip\"",
+        "target='hip'",
+        "torch.cuda",
+        ".cuda(",
+        "cuda",
+        "hip",
+        "rocm",
+        "ptx",
+        "tma",
+        "mbarrier",
+        "hopper",
+        "warp_specialized",
+        "mfma",
+    )
+    if (
+        "codegen_cuda" in lower_path
+        or "codegen_hip" in lower_path
+        or "codegen_webgpu" in lower_path
+        or "tl_templates/cuda" in lower_path
+        or "tl_templates/hip" in lower_path
+        or "testing/python/amd" in lower_path
+        or "tilelang/intrinsics" in lower_path
+        or "mma_macro_generator" in lower_path
+        or "mfma_macro_generator" in lower_path
+        or any(marker in lower_text for marker in gpu_markers)
+        or any(marker in lower_line for marker in gpu_markers)
+    ):
+        tags.add("GPU")
+
+    if not tags and path_rel.startswith("benchmark/"):
+        tags.add("GPU")
+    if not tags and path_rel.startswith("testing/python/"):
+        tags.add("COMMON")
+    if not tags and path_rel.startswith("examples/"):
+        tags.add("GPU")
+    if not tags and path_rel.startswith(("src/op/", "src/transform/")):
+        tags.add("COMMON")
+    return tags
+
+
+def platform_tags_for_definition(api_name: str, loc: str, signature: str = "", source: str = "") -> set[str]:
+    name = aname(api_name)
+    path_rel = loc.split(":", 1)[0]
+    source_text = str(source or "")
+    tags = platform_tags_for_file(path_rel, f"{signature} {source}")
+    source_is_npuir = source_text.startswith("npuir_") or "npuir_" in signature
+    if api_name in {"cid", "subid"} or name.startswith("npuir_") or name in NPU_ONLY_NAMES or source_is_npuir:
+        tags.add("NPU")
+    if name in GPU_ONLY_NAMES:
+        tags.add("GPU")
+    if name in COMMON_LANGUAGE_NAMES:
+        tags.add("COMMON")
+    if path_rel.startswith("tilelang/language/customize_npuir.py"):
+        tags.add("NPU")
+    elif (
+        path_rel.startswith("tilelang/language/")
+        and name not in GPU_ONLY_NAMES
+        and name not in NPU_ONLY_NAMES
+        and not source_is_npuir
+    ):
+        tags.add("COMMON")
+    if "from tvm.script.parser.tir import *" in signature:
+        tags.add("COMMON")
+    return tags
+
+
 def sig_at(lines: list[str], idx: int) -> str:
     signature = lines[idx].strip()
     balance = signature.count("(") - signature.count(")")
@@ -289,6 +524,7 @@ def empty_branch():
         "evidence": set(),
         "mode_evidence": defaultdict(set),
         "mode_paths": defaultdict(set),
+        "platform_paths": defaultdict(set),
         "definition_paths": set(),
         "use_paths": set(),
         "comment_only_uses": set(),
@@ -314,6 +550,7 @@ def add(
     signature=None,
     note=None,
     modes=None,
+    platforms=None,
     internal=None,
     comment=False,
 ):
@@ -336,6 +573,8 @@ def add(
     for mode in modes or []:
         data["mode_evidence"][mode].add(evidence)
         data["mode_paths"][mode].add(loc)
+    for platform in platforms or []:
+        data["platform_paths"][platform].add(loc)
 
 
 def truncate(items, max_items=14, max_chars=2600):
@@ -370,6 +609,7 @@ def scan_branch(branch: str, root: Path):
                 continue
             public = alias.asname or alias.name
             source = alias.name
+            signature = "export " + source + (f" as {public}" if public != source else "")
             source_by_public[public] = source
             publics_by_source[source].add(public)
             loc = f"tilelang/language/__init__.py:{getattr(alias, 'lineno', getattr(node, 'lineno', 1))}"
@@ -379,8 +619,9 @@ def scan_branch(branch: str, root: Path):
                 loc,
                 "python-export",
                 definition=True,
-                signature="export " + source + (f" as {public}" if public != source else ""),
+                signature=signature,
                 note="由 tilelang.language.__init__ 导出到 T 命名空间",
+                platforms=platform_tags_for_definition(api(public), loc, signature, source),
             )
 
     for path in (root / "tilelang/language").rglob("*.py"):
@@ -407,21 +648,54 @@ def scan_branch(branch: str, root: Path):
 
     for public, source in source_by_public.items():
         for loc, signature in pydefs.get(source, []):
-            add(branch, api(public), loc, "python-def", definition=True, signature=signature)
+            add(
+                branch,
+                api(public),
+                loc,
+                "python-def",
+                definition=True,
+                signature=signature,
+                platforms=platform_tags_for_definition(api(public), loc, signature, source),
+            )
         if public != source:
             for loc, signature in pydefs.get(public, []):
-                add(branch, api(public), loc, "python-def", definition=True, signature=signature)
+                add(
+                    branch,
+                    api(public),
+                    loc,
+                    "python-def",
+                    definition=True,
+                    signature=signature,
+                    platforms=platform_tags_for_definition(api(public), loc, signature, public),
+                )
     for source, publics in publics_by_source.items():
         for loc, signature in pydefs.get(source, []):
             for public in publics | {source}:
-                add(branch, api(public), loc, "python-def", definition=True, signature=signature)
+                add(
+                    branch,
+                    api(public),
+                    loc,
+                    "python-def",
+                    definition=True,
+                    signature=signature,
+                    platforms=platform_tags_for_definition(api(public), loc, signature, source),
+                )
 
     docs_root = root / "docs/Tilelang.language"
     for path in docs_root.rglob("T.*.md"):
         path_rel = rel(root, path)
         fname = path.name[2:-3]
         lines = read(path).splitlines()
-        add(branch, api(fname), f"{path_rel}:1", "doc-file", definition=True, note="docs/Tilelang.language API 文档文件")
+        doc_text = "\n".join(lines[:160])
+        add(
+            branch,
+            api(fname),
+            f"{path_rel}:1",
+            "doc-file",
+            definition=True,
+            note="docs/Tilelang.language API 文档文件",
+            platforms=platform_tags_for_file(path_rel, doc_text),
+        )
         sig_names = []
         for i, line in enumerate(lines[:70], 1):
             if re.match(r"^##\s*2", line.strip()):
@@ -442,6 +716,7 @@ def scan_branch(branch: str, root: Path):
                         signature=stripped,
                         modes=doc_modes(stripped),
                         note="docs/Tilelang.language OP 概述签名",
+                        platforms=platform_tags_for_file(path_rel, doc_text, stripped),
                     )
         if sig_names and fname not in sig_names:
             add(
@@ -451,6 +726,7 @@ def scan_branch(branch: str, root: Path):
                 "doc-file",
                 definition=True,
                 note=f"文档文件名 T.{fname} 与概述签名 {', '.join('T.' + x for x in sorted(set(sig_names)))} 不一致",
+                platforms=platform_tags_for_file(path_rel, doc_text),
             )
 
     observed_t = set()
@@ -484,6 +760,7 @@ def scan_branch(branch: str, root: Path):
                     evidence,
                     use=True,
                     modes=line_modes(path_rel, text, line, kind, tdot=True, context=context),
+                    platforms=platform_tags_for_file(path_rel, text, line),
                     note="注释中的出现" if comment else None,
                     comment=comment,
                 )
@@ -509,20 +786,55 @@ def scan_branch(branch: str, root: Path):
                         definition=definition,
                         use=not definition,
                         modes=modes,
+                        platforms={"NPU"},
                         internal=internal,
                         note=f"映射/引用内部 {internal}",
                     )
             if re.search(r"\bcid\b", line):
-                add(branch, "cid", loc, "kernel-binding", use=True, modes=file_mode_set, note="Kernel launch block id 变量名出现")
+                add(
+                    branch,
+                    "cid",
+                    loc,
+                    "kernel-binding",
+                    use=True,
+                    modes=file_mode_set,
+                    platforms=platform_tags_for_file(path_rel, text, line),
+                    note="Kernel launch block id 变量名出现",
+                )
             if re.search(r"\bsubid\b", line):
-                add(branch, "subid", loc, "kernel-binding", use=True, modes=file_mode_set, note="Kernel launch sub-block id 变量名出现")
+                add(
+                    branch,
+                    "subid",
+                    loc,
+                    "kernel-binding",
+                    use=True,
+                    modes=file_mode_set,
+                    platforms=platform_tags_for_file(path_rel, text, line),
+                    note="Kernel launch sub-block id 变量名出现",
+                )
 
     for name in observed_t:
         for loc, signature in pydefs.get(name, []):
-            add(branch, api(name), loc, "python-def", definition=True, signature=signature)
+            add(
+                branch,
+                api(name),
+                loc,
+                "python-def",
+                definition=True,
+                signature=signature,
+                platforms=platform_tags_for_definition(api(name), loc, signature, name),
+            )
         source = source_by_public.get(name)
         for loc, signature in pydefs.get(source, []):
-            add(branch, api(name), loc, "python-def", definition=True, signature=signature)
+            add(
+                branch,
+                api(name),
+                loc,
+                "python-def",
+                definition=True,
+                signature=signature,
+                platforms=platform_tags_for_definition(api(name), loc, signature, source),
+            )
         if name in EXTERNAL and has_tvm_star:
             add(
                 branch,
@@ -532,15 +844,32 @@ def scan_branch(branch: str, root: Path):
                 definition=True,
                 signature="from tvm.script.parser.tir import *",
                 note="通过 TVM TIR script star import 暴露；本仓库内主要是转导/使用",
+                platforms={"COMMON"},
             )
 
     for name, definitions in pydefs.items():
         if name in source_by_public or name in publics_by_source or name in observed_t:
             for loc, signature in definitions:
-                add(branch, api(name), loc, "python-def", definition=True, signature=signature)
+                add(
+                    branch,
+                    api(name),
+                    loc,
+                    "python-def",
+                    definition=True,
+                    signature=signature,
+                    platforms=platform_tags_for_definition(api(name), loc, signature, name),
+                )
 
     if api("cumsum") in apis:
-        add(branch, api("cumsum"), "docs/Tilelang.language/排序操作/T.vcumsum.md:1", "doc-note", definition=True, note=LEGACY_NOTES["vcumsum"])
+        add(
+            branch,
+            api("cumsum"),
+            "docs/Tilelang.language/排序操作/T.vcumsum.md:1",
+            "doc-note",
+            definition=True,
+            note=LEGACY_NOTES["vcumsum"],
+            platforms={"NPU"},
+        )
 
 
 def has_any(data, keys) -> bool:
@@ -604,6 +933,53 @@ def mode_status(data, mode: str) -> str:
     if overall in {"仅用例/引用", "仅注释引用"}:
         return overall
     return "无"
+
+
+def platform_category(api_name: str, a3, a5) -> str:
+    name = aname(api_name)
+    if api_name in {"cid", "subid"} or name.startswith("npuir_") or name in NPU_ONLY_NAMES:
+        return "NPU特有"
+    if name in GPU_ONLY_NAMES:
+        return "GPU特有"
+
+    tags = set()
+    for data in (a3, a5):
+        tags.update(platform for platform, paths in data["platform_paths"].items() if paths)
+
+    if "COMMON" in tags or name in COMMON_LANGUAGE_NAMES:
+        return "NPU/GPU通用"
+    if "NPU" in tags and "GPU" in tags:
+        return "NPU/GPU通用"
+    if "NPU" in tags:
+        return "NPU特有"
+    if "GPU" in tags:
+        return "GPU特有"
+    return "不清楚"
+
+
+def platform_reason(api_name: str, a3, a5) -> str:
+    name = aname(api_name)
+    category = platform_category(api_name, a3, a5)
+    if api_name in {"cid", "subid"}:
+        return "Kernel block/sub-block 变量名主要来自 NPUIR 用例"
+    if name.startswith("npuir_"):
+        return "npuir_* legacy/internal 名称"
+    if name in NPU_ONLY_NAMES:
+        return "Ascend/NPUIR 专属内存、同步或 Expert API"
+    if name in GPU_ONLY_NAMES:
+        return "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段"
+    tags = set()
+    for data in (a3, a5):
+        tags.update(platform for platform, paths in data["platform_paths"].items() if paths)
+    if category == "NPU/GPU通用":
+        return "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据"
+    if category == "NPU特有":
+        return "只看到 NPUIR/Ascend 侧定义、文档或用例证据"
+    if category == "GPU特有":
+        return "只看到 GPU/普通 TileLang 侧证据，未见 NPUIR 侧证据"
+    if tags:
+        return "平台标签=" + ",".join(sorted(tags))
+    return "证据不足，未强行归类"
 
 
 def group_of(api_name):
@@ -710,6 +1086,7 @@ def build_rows():
         rows.append(
             {
                 "API": name,
+                "平台归类": platform_category(name, a3, a5),
                 "分组": group_of(name),
                 "A3 总体": branch_overall(a3),
                 "A3 Expert": mode_status(a3, "Expert"),
@@ -727,6 +1104,7 @@ def build_rows():
                 "A5 Expert依据": truncate(a5["mode_paths"].get("Expert", set()), 8, 1600),
                 "A5 Developer依据": truncate(a5["mode_paths"].get("Developer", set()), 8, 1600),
                 "简单说明": explain(name, a3, a5),
+                "平台归类说明": platform_reason(name, a3, a5),
                 "证据类型": ",".join(sorted(a3["evidence"] | a5["evidence"])),
             }
         )
@@ -747,6 +1125,8 @@ def stats_and_notes(rows):
         stats.append([col_name + " 非无", sum(1 for row in rows if active(row[col_name]))])
     for group, count in Counter(row["分组"] for row in rows).most_common():
         stats.append(["分组: " + group, count])
+    for category, count in Counter(row["平台归类"] for row in rows).most_common():
+        stats.append(["平台归类: " + category, count])
     a5_only = [row["API"] for row in rows if row["A3 总体"] == "无证据" and row["A5 总体"] != "无证据"]
     a3_only = [row["API"] for row in rows if row["A5 总体"] == "无证据" and row["A3 总体"] != "无证据"]
     stats.append(["仅 A5 有证据 API", ", ".join(a5_only[:100]) + (f" ... 共{len(a5_only)}" if len(a5_only) > 100 else f" (共{len(a5_only)})")])
@@ -755,6 +1135,11 @@ def stats_and_notes(rows):
     notes = [
         ["说明项", "内容"],
         ["本版变化", "v2 不再把没有 codegen 的 API 简单标成“通用/出现”。Python export/def、docs OP 概述签名、模式化测试/示例都参与支持判定。"],
+        ["平台归类", "新增第二列：GPU特有、NPU/GPU通用、NPU特有、不清楚。归类来自 API 名称、定义路径、文档、codegen、测试/示例路径和文件内 target/device 标记。"],
+        ["GPU特有", "CUDA/HIP/PTX/TMA、GPU runtime 字段，或只在 GPU/普通 TileLang 路径看到证据且不是通用 TIR/TileLang API。"],
+        ["NPU/GPU通用", "通用 TileLang/TIR API，或同时有 GPU/普通路径和 NPUIR/Ascend 路径证据；不代表逐项硬件运行验收。"],
+        ["NPU特有", "npuir_* legacy/internal 名称，或 Ascend/NPUIR 专属内存、同步、Expert API，或只看到 NPU 侧证据。"],
+        ["不清楚", "证据不足或只出现零散引用，未强行归到三类。"],
         ["明确支持(codegen)", "在 codegen_npuir_api.cc 或 codegen_npuir_dev.cc 看到 tl.npuir_* backend 映射。"],
         ["明确支持(文档+定义+用例)", "同一分支有 API 文档、Python 公开定义/导出，并且测试或示例中有实际调用。"],
         ["支持(文档+定义)", "有 docs/Tilelang.language API 文档和 Python 公开定义/导出，但没找到对应测试/示例或无法归模式。"],
@@ -818,6 +1203,7 @@ def sheet_xml(data, widths, freeze=True, autofilter=True):
 def write_xlsx(rows, stats, notes):
     headers = [
         "API",
+        "平台归类",
         "分组",
         "A3 总体",
         "A3 Expert",
@@ -858,7 +1244,7 @@ def write_xlsx(rows, stats, notes):
         archive.writestr("xl/styles.xml", styles)
         archive.writestr(
             "xl/worksheets/sheet1.xml",
-            sheet_xml(api_sheet, [24, 20, 26, 30, 30, 26, 30, 30, 46, 58, 58, 58, 58, 42, 42, 42, 42, 70, 36]),
+            sheet_xml(api_sheet, [24, 18, 20, 26, 30, 30, 26, 30, 30, 46, 58, 58, 58, 58, 42, 42, 42, 42, 70, 36]),
         )
         archive.writestr("xl/worksheets/sheet2.xml", sheet_xml(stats_sheet, [30, 130]))
         archive.writestr("xl/worksheets/sheet3.xml", sheet_xml(notes_sheet, [30, 130]))
@@ -874,6 +1260,7 @@ def main():
     print(f"WROTE {OUT_XLSX}")
     print(f"ROWS {len(rows)}")
     print("GROUPS", dict(Counter(row["分组"] for row in rows)))
+    print("PLATFORMS", dict(Counter(row["平台归类"] for row in rows)))
     print("A5_DEV", Counter(row["A5 Developer"] for row in rows).most_common(12))
 
 

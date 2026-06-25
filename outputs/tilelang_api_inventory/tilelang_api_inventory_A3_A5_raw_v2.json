@@ -2,6 +2,7 @@
   "rows": [
     {
       "API": "cid",
+      "平台归类": "NPU特有",
       "分组": "Kernel变量",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "模式用例出现",
@@ -19,10 +20,12 @@
       "A5 Expert依据": "examples/engram/engram_bwd_exp.py:176；examples/engram/engram_bwd_exp.py:177；examples/engram/engram_bwd_exp.py:178；examples/engram/engram_bwd_exp.py:293；examples/engram/engram_bwd_exp.py:294；examples/engram/engram_bwd_exp.py:295；examples/engram/engram_bwd_exp.py:41；examples/engram/engram_bwd_exp.py:42；...（共 104 处）",
       "A5 Developer依据": "examples/elementwise/atomic_add_dev.py:50；examples/elementwise/atomic_add_dev.py:51；examples/elementwise/atomic_add_dev.py:52；examples/elementwise/example_elementwise_add.py:21；examples/elementwise/example_elementwise_add.py:22；examples/elementwise/example_elementwise_add.py:23；examples/elementwise/vec_add_auto_brc.py:21；examples/elementwise/vec_add_auto_brc.py:22；...（共 365 处）",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "Kernel block/sub-block 变量名主要来自 NPUIR 用例",
       "证据类型": "kernel-binding"
     },
     {
       "API": "subid",
+      "平台归类": "NPU特有",
       "分组": "Kernel变量",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "模式用例出现",
@@ -40,10 +43,12 @@
       "A5 Expert依据": "testing/autotune/anneal/flash_attention_exp_anneal.py:111；testing/autotune/anneal/flash_attention_exp_anneal.py:230；testing/autotune/anneal/flash_attention_exp_anneal.py:231",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "Kernel block/sub-block 变量名主要来自 NPUIR 用例",
       "证据类型": "kernel-binding"
     },
     {
       "API": "T.npuir_abs",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -61,10 +66,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2623",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4403；src/target/codegen_npuir_dev.cc:5259；testing/npuir/compiler_hint_ops/test_pipelined.py:271",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_add",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -82,10 +89,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2611；testing/npuir/arith_ops/test_vadd_scalar_exp.py:37；testing/npuir/arith_ops/test_vadd_scalar_exp.py:67；testing/npuir/arith_ops/test_vadd_scalar_exp.py:92；testing/npuir/sync_ops/test_vec_add_manual_sync_exp.py:44；unittest/npuir/test_vec_add_manual_sync_exp.py:44",
       "A5 Developer依据": "examples/simt/adc_tilelang_npu.py:71；src/target/codegen_npuir_dev.cc:3625；src/target/codegen_npuir_dev.cc:4386；src/target/codegen_npuir_dev.cc:5215；testing/npuir/arith_ops/test_binary_arith_op_dev.py:43；testing/npuir/arith_ops/test_binary_arith_op_dev.py:80；testing/npuir/arith_ops/test_cumadd_slice_dev.py:41；testing/npuir/arith_ops/test_tensor_extract_dev.py:33；...（共 24 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-comment,use-example,use-test"
     },
     {
       "API": "T.npuir_and",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -103,10 +112,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2655",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3633；src/target/codegen_npuir_dev.cc:4443；src/target/codegen_npuir_dev.cc:5222；testing/npuir/arith_ops/test_binary_arith_op_dev.py:115；testing/npuir/arith_ops/test_binary_arith_op_dev.py:146；testing/npuir/bit_ops/test_binary_bit_op_dev.py:40；testing/npuir/bit_ops/test_binary_bit_op_dev.py:80",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_arange",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -124,10 +135,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2689；testing/npuir/creation_ops/test_arange.py:59",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3286；src/target/codegen_npuir_dev.cc:4477；testing/npuir/creation_ops/test_arange.py:35",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.npuir_atomic_add",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -145,10 +158,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:1637；src/target/codegen_npuir_api.cc:2675；testing/npuir/atomic_ops/test_atomic_add.py:36；testing/npuir/atomic_ops/test_atomic_add.py:68；unittest/npuir/test_atomic_add_1d_exp.py:35；unittest/npuir/test_atomic_add_2d_exp.py:38",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:2934；src/target/codegen_npuir_dev.cc:4463；testing/npuir/atomic_ops/test_atomic_add_dev.py:36；testing/npuir/atomic_ops/test_atomic_add_dev.py:68；testing/npuir/atomic_ops/test_atomic_add_with_slice_reshape_dev.py:31；unittest/npuir/test_atomic_add_1d_dev.py:32；unittest/npuir/test_atomic_add_2d_dev.py:38",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.npuir_atomic_addx4",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -166,10 +181,12 @@
       "A5 Expert依据": "testing/npuir/atomic_ops/test_atomic_addx4.py:46；unittest/npuir/test_atomic_addx4_exp.py:40",
       "A5 Developer依据": "testing/npuir/atomic_ops/test_atomic_addx4_dev.py:46；unittest/npuir/test_atomic_addx4_dev.py:40",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_bitcast",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -187,10 +204,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2641",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4423；testing/npuir/bit_ops/test_bitcast_dev.py:36",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_brc",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -208,10 +227,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2665；testing/npuir/broken/test_reduce_size_exp.py:37；testing/npuir/reduction_ops/test_reduce_slice_exp.py:37；testing/npuir/shape_manipulation_ops/test_brc_exp.py:38；testing/npuir/shape_manipulation_ops/test_brc_fill_dyn_exp.py:44；unittest/npuir/test_brc_exp.py:42",
       "A5 Developer依据": "examples/simt/adc_tilelang_npu.py:57；examples/simt/adc_tilelang_npu.py:58；examples/simt/indirect_load_vadd.py:44；examples/simt/indirect_load_vadd.py:45；src/target/codegen_npuir_dev.cc:2453；src/target/codegen_npuir_dev.cc:4455；testing/npuir/arith_ops/test_cumadd_slice_dev.py:29；testing/npuir/compiler_hint_ops/test_pipelined.py:104；...（共 19 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-comment,use-example,use-test"
     },
     {
       "API": "T.npuir_cast",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -229,10 +250,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2667",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:2496；src/target/codegen_npuir_dev.cc:4457；testing/npuir/test_vcast_dev.py:35",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.npuir_clamp",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -250,10 +273,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "python-def,python-export"
     },
     {
       "API": "T.npuir_clear",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -271,10 +296,12 @@
       "A5 Expert依据": "testing/npuir/creation_ops/test_clear.py:39；unittest/npuir/test_clear_exp.py:41",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_cmp",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -292,10 +319,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2631",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3626；src/target/codegen_npuir_dev.cc:4413；src/target/codegen_npuir_dev.cc:5225；testing/npuir/condition_ops/test_select_dev.py:38；testing/npuir/condition_ops/test_select_dev.py:71；testing/npuir/linalg_ops/test_cmp_select_dev.py:36；testing/npuir/linalg_ops/test_cmp_select_dev.py:67；testing/npuir_a5/test_cmp_ops.py:76",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.npuir_concat",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -313,10 +342,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2691；testing/npuir/shape_manipulation_ops/test_slice_concat_exp.py:35",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4479；testing/npuir/broken/test_slice_concat_dev.py:35；testing/npuir/shape_manipulation_ops/test_slice_concat_dev.py:36",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_cumsum",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -334,10 +365,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:1584；src/target/codegen_npuir_api.cc:2673",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:2877；src/target/codegen_npuir_dev.cc:4465",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-comment"
     },
     {
       "API": "T.npuir_debug_print_buffer_value",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -355,10 +388,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2706",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4496",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref"
     },
     {
       "API": "T.npuir_debug_print_var",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -376,10 +411,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2186；src/target/codegen_npuir_api.cc:2705",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3957；src/target/codegen_npuir_dev.cc:4495",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref"
     },
     {
       "API": "T.npuir_deinterleave",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -397,10 +434,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2687",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4475",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_div",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -418,10 +457,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2643",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3627；src/target/codegen_npuir_dev.cc:4425；src/target/codegen_npuir_dev.cc:5218；testing/npuir/arith_ops/test_binary_arith_op_dev.py:49；testing/npuir/arith_ops/test_binary_arith_op_dev.py:86；testing/npuir/arith_ops/test_tensor_extract_dev.py:105；testing/npuir/compiler_hint_ops/test_pipelined.py:107；testing/npuir/linalg_ops/test_div_dev.py:30",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.npuir_dot",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -439,10 +480,12 @@
       "A5 Expert依据": "docs/Tilelang.language/线性代数操作/T.gemm.md:9；src/target/codegen_npuir_api.cc:1860；src/target/codegen_npuir_api.cc:2639；src/target/codegen_npuir_api.cc:270",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:314；src/target/codegen_npuir_dev.cc:3484；src/target/codegen_npuir_dev.cc:4421；src/target/codegen_npuir_dev.cc:5210",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-signature,internal-intrinsic-ref,python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.npuir_exp",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -460,10 +503,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2613；testing/npuir/linalg_ops/test_exp_dev.py:26；testing/npuir/shape_manipulation_ops/test_reshape_exp.py:32；unittest/npuir/test_vec_exp_2d.py:42",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:2201；src/target/codegen_npuir_dev.cc:4388；src/target/codegen_npuir_dev.cc:5235；testing/npuir/compiler_hint_ops/test_pipelined.py:127；testing/npuir/linalg_ops/test_exp_dev.py:26；testing/npuir/shape_manipulation_ops/test_reshape_dev.py:32",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.npuir_exp2",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -481,10 +526,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "python-def,python-export"
     },
     {
       "API": "T.npuir_fill",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -502,10 +549,12 @@
       "A5 Expert依据": "testing/npuir/creation_ops/test_fill.py:40；unittest/npuir/test_fill_exp.py:42",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_flip",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -523,10 +572,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2695",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4483",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_floor",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "无证据",
       "A3 Expert": "无",
@@ -544,10 +595,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4390；testing/npuir/linalg_ops/test_floor_dev.py:42",
       "简单说明": "仅 A5：明确支持(codegen)；backend codegen=A5:Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_floordiv",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "无证据",
       "A3 Expert": "无",
@@ -565,10 +618,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4493；testing/npuir/linalg_ops/test_floordiv_dev.py:44",
       "简单说明": "仅 A5：明确支持(codegen)；backend codegen=A5:Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_gather",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -586,10 +641,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2677；testing/npuir/indexing_ops/test_slice_gather.py:37",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4467；testing/npuir/indexing_ops/test_gather_dev.py:41",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_indirect_load",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "无证据",
       "A3 Expert": "无",
@@ -607,10 +664,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2679",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:319；src/target/codegen_npuir_dev.cc:4469",
       "简单说明": "仅 A5：明确支持(codegen)；backend codegen=A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref"
     },
     {
       "API": "T.npuir_interleave",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -628,10 +687,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2685；testing/npuir/shape_manipulation_ops/test_slice_interleave_exp.py:43",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4473；testing/npuir/broken/test_slice_interleave_dev.py:43",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_ln",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -649,10 +710,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2615",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4392；src/target/codegen_npuir_dev.cc:5239；testing/npuir/compiler_hint_ops/test_pipelined.py:146",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_load_nd2nz",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -670,10 +733,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:1778；src/target/codegen_npuir_api.cc:2633；testing/npuir/compiler_hint_ops/test_out_idx.py:43；testing/npuir/compiler_hint_ops/test_out_idx.py:44；unittest/npuir/test_minicv_mix.py:44；unittest/npuir/test_minicv_mix.py:45；unittest/npuir/test_nz2nd.py:46；unittest/npuir/test_nz2nd.py:48；...（共 12 处）",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:315；src/target/codegen_npuir_dev.cc:3413；src/target/codegen_npuir_dev.cc:4415",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-signature,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_log2",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -691,10 +756,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "python-def,python-export"
     },
     {
       "API": "T.npuir_max",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -712,10 +779,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2649",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3630；src/target/codegen_npuir_dev.cc:4433；src/target/codegen_npuir_dev.cc:5220；testing/npuir/bit_ops/test_binary_bit_op_dev.py:36；testing/npuir/bit_ops/test_binary_bit_op_dev.py:76",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_min",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -733,10 +802,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2651",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3631；src/target/codegen_npuir_dev.cc:4437；src/target/codegen_npuir_dev.cc:5221；testing/npuir/bit_ops/test_binary_bit_op_dev.py:38；testing/npuir/bit_ops/test_binary_bit_op_dev.py:78",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_mul",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -754,10 +825,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2645",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4429；src/target/codegen_npuir_dev.cc:5217；testing/autotune/Silu/silu_1d.py:96；testing/autotune/Silu/silu_2d.py:100；testing/autotune/Silu/silu_3d.py:135；testing/autotune/Silu/silu_4d.py:153；testing/npuir/arith_ops/test_binary_arith_op_dev.py:47；testing/npuir/arith_ops/test_binary_arith_op_dev.py:84；...（共 10 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.npuir_not",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -775,10 +848,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2627",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4408；src/target/codegen_npuir_dev.cc:5255；testing/npuir/compiler_hint_ops/test_pipelined.py:228",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_or",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -796,10 +871,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2653",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3632；src/target/codegen_npuir_dev.cc:4441；src/target/codegen_npuir_dev.cc:5227；testing/npuir/arith_ops/test_binary_arith_op_dev.py:117；testing/npuir/arith_ops/test_binary_arith_op_dev.py:148；testing/npuir/bit_ops/test_binary_bit_op_dev.py:42；testing/npuir/bit_ops/test_binary_bit_op_dev.py:82",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_pad",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -817,10 +894,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2693；testing/npuir/shape_manipulation_ops/test_slice_pad_exp.py:32",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4481；testing/npuir/broken/test_slice_pad_dev.py:32",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_pipe_barrier",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -838,10 +917,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2592",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4367",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref"
     },
     {
       "API": "T.npuir_pow",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -859,10 +940,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2659",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3635；src/target/codegen_npuir_dev.cc:4447；src/target/codegen_npuir_dev.cc:5219；testing/npuir/arith_ops/test_pow_dev.py:33",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_print",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -880,10 +963,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "python-def"
     },
     {
       "API": "T.npuir_rec",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -901,10 +986,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2625",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4405；src/target/codegen_npuir_dev.cc:5251；testing/npuir/compiler_hint_ops/test_pipelined.py:203",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_reduce",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -922,10 +1009,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2669；testing/npuir/broken/test_reduce_size_exp.py:45；testing/npuir/reduction_ops/test_reduce_slice_exp.py:48",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:2556；src/target/codegen_npuir_dev.cc:4459；src/target/codegen_npuir_dev.cc:5231；testing/npuir/compiler_hint_ops/test_pipelined.py:251；testing/npuir/reduction_ops/test_reduce_size_dev.py:48；testing/npuir/reduction_ops/test_reduce_slice_dev.py:48",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.npuir_relu",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -943,10 +1032,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2617",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4394；src/target/codegen_npuir_dev.cc:5263；testing/npuir/compiler_hint_ops/test_pipelined.py:290",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_reshape",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -964,10 +1055,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2708；testing/npuir/shape_manipulation_ops/test_reshape_exp.py:31",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4132；src/target/codegen_npuir_dev.cc:4498；testing/npuir/shape_manipulation_ops/test_reshape_dev.py:31",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.npuir_rsqrt",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -985,10 +1078,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2621",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4400；src/target/codegen_npuir_dev.cc:5247；testing/npuir/compiler_hint_ops/test_pipelined.py:184",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.npuir_select",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1006,10 +1101,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:1488；src/target/codegen_npuir_api.cc:2629",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:2346；src/target/codegen_npuir_dev.cc:4411；testing/npuir/condition_ops/test_select_dev.py:41；testing/npuir/condition_ops/test_select_dev.py:74；testing/npuir/linalg_ops/test_cmp_select_dev.py:37；testing/npuir/linalg_ops/test_cmp_select_dev.py:68",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.npuir_set_flag",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1027,10 +1124,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2596",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4371",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref"
     },
     {
       "API": "T.npuir_shl",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1048,10 +1147,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2661",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3636；src/target/codegen_npuir_dev.cc:4450；src/target/codegen_npuir_dev.cc:5223；testing/npuir/arith_ops/test_binary_arith_op_dev.py:178；testing/npuir/arith_ops/test_binary_arith_op_dev.py:207；testing/npuir/bit_ops/test_binary_bit_op_dev.py:46；testing/npuir/bit_ops/test_binary_bit_op_dev.py:86",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_shr",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1069,10 +1170,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2663",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3637；src/target/codegen_npuir_dev.cc:4452；src/target/codegen_npuir_dev.cc:5224；testing/npuir/arith_ops/test_binary_arith_op_dev.py:180；testing/npuir/arith_ops/test_binary_arith_op_dev.py:209；testing/npuir/bit_ops/test_binary_bit_op_dev.py:48；testing/npuir/bit_ops/test_binary_bit_op_dev.py:88",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_sigmoid",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1090,10 +1193,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2671；testing/npuir/arith_ops/test_sigmoid_exp.py:23；unittest/npuir/test_sigmoid_exp.py:27",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4461；testing/autotune/Sigmoid/sigmoid_1d.py:92；testing/autotune/Sigmoid/sigmoid_2d.py:98；testing/autotune/Sigmoid/sigmoid_3d.py:131；testing/autotune/Sigmoid/sigmoid_4d.py:149；testing/autotune/Silu/silu_1d.py:95；testing/autotune/Silu/silu_2d.py:99；testing/autotune/Silu/silu_3d.py:134；...（共 13 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_sqrt",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1111,10 +1216,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2619",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4397；src/target/codegen_npuir_dev.cc:5243；testing/npuir/compiler_hint_ops/test_pipelined.py:165",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_store_fixpipe",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1132,10 +1239,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:1811；src/target/codegen_npuir_api.cc:2637；testing/npuir/compiler_hint_ops/test_out_idx.py:65；unittest/npuir/test_minicv_mix.py:52；unittest/npuir/test_nz2nd.py:55；unittest/npuir/test_sync_op.py:55；unittest/npuir/test_sync_op_var_id.py:56",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:316；src/target/codegen_npuir_dev.cc:3441；src/target/codegen_npuir_dev.cc:4419",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.npuir_store_nz2nd",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1153,10 +1262,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:1799；src/target/codegen_npuir_api.cc:2635",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3429；src/target/codegen_npuir_dev.cc:4417",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_sub",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1174,10 +1285,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2647",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3629；src/target/codegen_npuir_dev.cc:4431；src/target/codegen_npuir_dev.cc:5216；testing/npuir/arith_ops/test_binary_arith_op_dev.py:45；testing/npuir/arith_ops/test_binary_arith_op_dev.py:82；testing/npuir/arith_ops/test_tensor_extract_dev.py:81；testing/npuir/compiler_hint_ops/test_pipelined.py:59",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_sync_block",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1195,10 +1308,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2600",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4375",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref"
     },
     {
       "API": "T.npuir_sync_block_set",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1216,10 +1331,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2603",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4378",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref"
     },
     {
       "API": "T.npuir_sync_block_wait",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1237,10 +1354,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2606",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4381",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref"
     },
     {
       "API": "T.npuir_transpose",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1258,10 +1377,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2683；testing/npuir/broken/test_slice_transpose_exp.py:32",
       "A5 Developer依据": "examples/simt/adc_tilelang_npu.py:64；src/target/codegen_npuir_dev.cc:4471；testing/npuir/broken/test_slice_transpose_dev.py:32；testing/npuir/shape_manipulation_ops/test_transpose_dev.py:35",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.npuir_vbrc",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "仅旧codegen映射",
       "A3 Expert": "未分模式(仅旧codegen映射)",
@@ -1279,10 +1400,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅旧codegen映射；A5=仅旧codegen映射；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-legacy"
     },
     {
       "API": "T.npuir_vcos",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1300,10 +1423,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2249；src/target/codegen_npuir_api.cc:2697；testing/npuir/arith_ops/test_vcos_exp.py:43；unittest/npuir/test_vcos_exp.py:44",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3976；src/target/codegen_npuir_dev.cc:4485；testing/npuir/arith_ops/test_vcos_dev.py:44",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_verf",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1321,10 +1446,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2412；src/target/codegen_npuir_api.cc:2701；testing/npuir/arith_ops/test_verf_exp.py:43；unittest/npuir/test_verf_exp.py:44",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4027；src/target/codegen_npuir_dev.cc:4489；testing/autotune/gelu/gelu_1d.py:102；testing/autotune/gelu/gelu_2d.py:106；testing/autotune/gelu/gelu_2d_multikernel_refine.py:112；testing/autotune/gelu/gelu_3d.py:142；testing/autotune/gelu/gelu_4d.py:164；testing/npuir/arith_ops/test_verf_dev.py:44",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_vmul",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "未分模式(明确支持(codegen))",
@@ -1342,10 +1469,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3628",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Developer，A5:Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer"
     },
     {
       "API": "T.npuir_vsin",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1363,10 +1492,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2327；src/target/codegen_npuir_api.cc:2699；testing/npuir/arith_ops/test_vsin_exp.py:43；unittest/npuir/test_vsin_exp.py:44",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4001；src/target/codegen_npuir_dev.cc:4487；testing/npuir/arith_ops/test_vsin_dev.py:44",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_vtanh",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1384,10 +1515,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2506；src/target/codegen_npuir_api.cc:2703；testing/npuir/arith_ops/test_vtanh_exp.py:43；unittest/npuir/test_vtanh_exp.py:44",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4055；src/target/codegen_npuir_dev.cc:4491；testing/npuir/arith_ops/test_vtanh_dev.py:45",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.npuir_wait_flag",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1405,10 +1538,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2598",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4373",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref"
     },
     {
       "API": "T.npuir_xor",
+      "平台归类": "NPU特有",
       "分组": "Legacy/Internal NPUIR",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1426,10 +1561,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2657",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3634；src/target/codegen_npuir_dev.cc:4445；src/target/codegen_npuir_dev.cc:5226；testing/npuir/arith_ops/test_binary_arith_op_dev.py:119；testing/npuir/arith_ops/test_binary_arith_op_dev.py:150；testing/npuir/bit_ops/test_binary_bit_op_dev.py:44；testing/npuir/bit_ops/test_binary_bit_op_dev.py:84",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer；legacy/internal NPUIR 名称；建议新示例优先 v-prefix 或公开别名",
+      "平台归类说明": "npuir_* legacy/internal 名称",
       "证据类型": "codegen-developer,codegen-expert,python-def,python-export,use-test"
     },
     {
       "API": "T.alloc_L0A",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -1447,10 +1584,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/memory_ops/test_alloc_dev.py:6；testing/npuir/memory_ops/test_alloc_dev.py:62",
       "简单说明": "A3=有公开定义；A5=明确支持(定义+用例)",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "python-def,python-export,use-test"
     },
     {
       "API": "T.alloc_L0B",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -1468,10 +1607,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/memory_ops/test_alloc_dev.py:63；testing/npuir/memory_ops/test_alloc_dev.py:7",
       "简单说明": "A3=有公开定义；A5=明确支持(定义+用例)",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "python-def,python-export,use-test"
     },
     {
       "API": "T.alloc_L0C",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -1489,10 +1630,12 @@
       "A5 Expert依据": "examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:535；examples/flash_attn_npuir.py:79；examples/fp8_lighting_indexer.py:68；examples/gemm/matmul.py:31；examples/gemm/matmul_dynamic_shape.py:27；examples/mixcv_mixkernel.py:53；examples/sparse_mla_fwd.py:137；examples/sparse_mla_fwd_dynamic_shape.py:377；...（共 24 处）",
       "A5 Developer依据": "testing/npuir/memory_ops/test_alloc_dev.py:64；testing/npuir/memory_ops/test_alloc_dev.py:8",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.alloc_L1",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(文档+定义+用例)",
@@ -1510,10 +1653,12 @@
       "A5 Expert依据": "docs/Tilelang.language/内存操作/T.alloc_shared.md:10；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:530；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:531；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:532；examples/flash_attn_npuir.py:76；examples/flash_attn_npuir.py:77；examples/fp8_lighting_indexer.py:66；examples/fp8_lighting_indexer.py:67；...（共 52 处）",
       "A5 Developer依据": "testing/npuir/memory_ops/test_alloc_dev.py:59；testing/npuir/memory_ops/test_alloc_dev.py:9",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.alloc_ub",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(文档+定义+用例)",
@@ -1531,10 +1676,12 @@
       "A5 Expert依据": "docs/Tilelang.language/内存操作/T.alloc_shared.md:9；docs/Tilelang.language/内存操作/T.alloc_ub.md:9；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:558；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:559；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:561；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:564；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:569；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:570；...（共 454 处）",
       "A5 Developer依据": "examples/simt/adc_tilelang_npu.py:50；examples/simt/adc_tilelang_npu.py:51；examples/simt/adc_tilelang_npu.py:52；examples/simt/adc_tilelang_npu.py:53；examples/simt/adc_tilelang_npu.py:54；examples/simt/indirect_load_full_block.py:36；examples/simt/indirect_load_full_block.py:37；examples/simt/indirect_load_tail_mask.py:37；...（共 75 处）",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.block_barrier",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1552,10 +1699,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2600；unittest/npuir/test_nz2nd.py:58；unittest/npuir/test_sync_block.py:33；unittest/npuir/test_sync_op.py:57",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4375",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.gemm",
+      "平台归类": "NPU/GPU通用",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1573,10 +1722,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:1860；src/target/codegen_npuir_api.cc:2639；src/target/codegen_npuir_api.cc:270；testing/autotune/anneal/flash_attention_exp_anneal.py:143；testing/autotune/anneal/flash_attention_exp_anneal.py:186；testing/npuir/linalg_ops/test_rank_reduce_gemm_exp.py:57；testing/npuir/linalg_ops/test_slice_gemm_exp.py:41",
       "A5 Developer依据": "docs/Tilelang.language/线性代数操作/T.gemm.md:8；examples/flash_attn_npuir_dev.py:64；examples/flash_attn_npuir_dev.py:86；examples/gemm/example_gemm.py:30；examples/gemm/example_gemm_int82int32.py:30；examples/mixcv/example_mixcv.py:39；examples/torch_tl_ops/compile/kernels/flash_attention.py:71；examples/torch_tl_ops/compile/kernels/flash_attention.py:89；...（共 19 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.load_nd2nz",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1594,10 +1745,12 @@
       "A5 Expert依据": "examples/fp8_lighting_indexer.py:71；examples/fp8_lighting_indexer.py:74；examples/gemm/matmul.py:34；examples/gemm/matmul.py:35；examples/gemm/matmul_dynamic_shape.py:34；examples/gemm/matmul_dynamic_shape.py:35；examples/mixcv_mixkernel.py:50；examples/mixcv_mixkernel.py:51；...（共 21 处）",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:315；src/target/codegen_npuir_dev.cc:3413；src/target/codegen_npuir_dev.cc:4415",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.pipe_barrier",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1615,10 +1768,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2592；unittest/npuir/test_nz2nd.py:47；unittest/npuir/test_nz2nd.py:92；unittest/npuir/test_pipe_barrier_op.py:38；unittest/npuir/test_sync_op.py:47；unittest/npuir/test_sync_op.py:91",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4367",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.rs",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -1636,10 +1791,12 @@
       "A5 Expert依据": "examples/sparse_mla_fwd_dynamic_shape.py:202；testing/autotune/anneal/flash_attention_exp_anneal.py:152；testing/autotune/anneal/flash_attention_exp_anneal.py:165；testing/autotune/anneal/flash_attention_exp_anneal.py:201；testing/autotune/anneal/flash_attention_exp_anneal.py:237；testing/autotune/anneal/flash_attention_exp_anneal.py:273；testing/autotune/anneal/flash_attention_exp_anneal.py:293；testing/npuir/sync_ops/test_vec_add_manual_sync_exp.py:38；...（共 13 处）",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "python-def,python-export,use-comment,use-example,use-test"
     },
     {
       "API": "T.Scope",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -1657,10 +1814,12 @@
       "A5 Expert依据": "examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:528；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:556；examples/flash_attn_npuir.py:163；examples/flash_attn_npuir.py:75；examples/fp8_lighting_indexer.py:57；examples/fp8_lighting_indexer.py:89；examples/gemm/matmul.py:26；examples/gemm/matmul_dynamic_shape.py:22；...（共 36 处）",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "doc-signature,python-def,python-export,use,use-example,use-test"
     },
     {
       "API": "T.set_flag",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1678,10 +1837,12 @@
       "A5 Expert依据": "examples/elementwise/vec_add_2d_multi_buffer.py:108；examples/elementwise/vec_add_2d_multi_buffer.py:128；examples/elementwise/vec_add_2d_multi_buffer.py:131；examples/elementwise/vec_add_2d_multi_buffer.py:156；examples/elementwise/vec_add_2d_multi_buffer.py:51；examples/elementwise/vec_add_2d_multi_buffer.py:56；src/target/codegen_npuir_api.cc:2596；testing/npuir/sync_ops/test_vec_add_manual_sync_exp.py:41；...（共 13 处）",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4371",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.store_fixpipe",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1699,10 +1860,12 @@
       "A5 Expert依据": "examples/fp8_lighting_indexer.py:79；examples/gemm/matmul.py:56；examples/gemm/matmul_dynamic_shape.py:44；examples/mixcv_mixkernel.py:58；examples/sparse_mla_fwd.py:183；examples/sparse_mla_fwd.py:205；examples/sparse_mla_fwd_dynamic_shape.py:110；examples/sparse_mla_fwd_dynamic_shape.py:137；...（共 12 处）",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:316；src/target/codegen_npuir_dev.cc:3441；src/target/codegen_npuir_dev.cc:4419",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.store_nz2nd",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1720,10 +1883,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:1799；src/target/codegen_npuir_api.cc:2635",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3429；src/target/codegen_npuir_dev.cc:4417",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export"
     },
     {
       "API": "T.subblock_barrier",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1741,10 +1906,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2600；unittest/npuir/test_nz2nd.py:93；unittest/npuir/test_sync_block.py:32；unittest/npuir/test_sync_op.py:92",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4375",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.sync_block_set",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1762,10 +1929,12 @@
       "A5 Expert依据": "examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:130；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:173；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:246；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:391；examples/flash_attn_npuir.py:119；examples/flash_attn_npuir.py:161；examples/flash_attn_npuir.py:235；examples/fp8_lighting_indexer.py:136；...（共 40 处）",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4378",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.sync_block_wait",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1783,10 +1952,12 @@
       "A5 Expert依据": "examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:142；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:261；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:430；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:94；examples/flash_attn_npuir.py:125；examples/flash_attn_npuir.py:197；examples/flash_attn_npuir.py:245；examples/fp8_lighting_indexer.py:116；...（共 42 处）",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4381",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.wait_flag",
+      "平台归类": "NPU特有",
       "分组": "NPUIR Expert/同步/内存",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -1804,10 +1975,12 @@
       "A5 Expert依据": "examples/elementwise/vec_add_2d_multi_buffer.py:118；examples/elementwise/vec_add_2d_multi_buffer.py:149；examples/elementwise/vec_add_2d_multi_buffer.py:65；examples/elementwise/vec_add_2d_multi_buffer.py:70；examples/elementwise/vec_add_2d_multi_buffer.py:92；examples/elementwise/vec_add_2d_multi_buffer.py:99；src/target/codegen_npuir_api.cc:2598；testing/npuir/sync_ops/test_vec_add_manual_sync_exp.py:43；...（共 13 处）",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4373",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.address_of",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -1825,10 +1998,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-comment,use-test"
     },
     {
       "API": "T.alloc_buffer",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -1846,10 +2021,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.alloc_fragment",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -1867,10 +2044,12 @@
       "A5 Expert依据": "testing/autotune/anneal/moe_grouped_gemm_anneal.py:25",
       "A5 Developer依据": "examples/elementwise/example_elementwise_add.py:27；examples/elementwise/vec_add_auto_brc.py:27；examples/flash_attn_npuir_dev.py:36；examples/flash_attn_npuir_dev.py:37；examples/flash_attn_npuir_dev.py:38；examples/flash_attn_npuir_dev.py:39；examples/flash_attn_npuir_dev.py:40；examples/flash_attn_npuir_dev.py:41；...（共 141 处）",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,python-export,use-comment,use-example,use-test"
     },
     {
       "API": "T.alloc_local",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -1888,10 +2067,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,python-export,use,use-example,use-test"
     },
     {
       "API": "T.attr",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -1909,10 +2090,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use-test"
     },
     {
       "API": "T.axis",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -1930,10 +2113,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use"
     },
     {
       "API": "T.block",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -1951,10 +2136,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.bool",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "未分模式(TVM/TIR转导)",
@@ -1972,10 +2159,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use,use-comment,use-test"
     },
     {
       "API": "T.Broadcast",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "未分模式(TVM/TIR转导)",
@@ -1993,10 +2182,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use-test"
     },
     {
       "API": "T.Buffer",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2014,10 +2205,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,python-export,use,use-comment,use-test"
     },
     {
       "API": "T.BufferLoad",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "未分模式(TVM/TIR转导)",
@@ -2035,10 +2228,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use"
     },
     {
       "API": "T.call_extern",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2056,10 +2251,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-comment,use-test"
     },
     {
       "API": "T.cast",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "未分模式(TVM/TIR转导)",
@@ -2077,10 +2274,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/parallel_ops/test_cast_parallel.py:37；testing/npuir/parallel_ops/test_cast_parallel.py:51；testing/npuir_a5/test_unary_ops.py:80；testing/npuir_a5/test_unary_ops.py:84",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use-example,use-test"
     },
     {
       "API": "T.ceildiv",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -2098,10 +2297,12 @@
       "A5 Expert依据": "examples/engram/engram_bwd_exp.py:176；examples/engram/engram_bwd_exp.py:293；examples/engram/engram_bwd_exp.py:41；examples/exp2.py:33；examples/flash_attn_npuir.py:70；examples/flash_attn_npuir.py:81；testing/autotune/anneal/flash_attention_exp_anneal.py:111；testing/autotune/anneal/flash_attention_exp_anneal.py:122；...（共 43 处）",
       "A5 Developer依据": "examples/deepseek_v4/example_mhc_post.py:47；examples/elementwise/example_elementwise_add.py:21；examples/elementwise/example_elementwise_add.py:22；examples/elementwise/example_elementwise_add.py:23；examples/elementwise/vec_add_auto_brc.py:21；examples/elementwise/vec_add_auto_brc.py:22；examples/elementwise/vec_add_auto_brc.py:23；examples/flash_attn_npuir_dev.py:29；...（共 300 处）",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,external-import,python-def,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.env_thread",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2119,10 +2320,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.evaluate",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -2140,10 +2343,12 @@
       "A5 Expert依据": "tilelang/language/customize_npuir.py:456；tilelang/language/customize_npuir.py:457；tilelang/language/parser/parser.py:460",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.exp",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2161,10 +2366,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/scalar_ops/test_scalar_exp.py:28；testing/npuir/scalar_ops/test_scalar_exp.py:44",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use-example,use-test"
     },
     {
       "API": "T.exp2",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2182,10 +2389,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/scalar_ops/test_scalar_exp2.py:28；testing/npuir/scalar_ops/test_scalar_exp2.py:44",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use-example,use-test"
     },
     {
       "API": "T.float",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "未分模式(TVM/TIR转导)",
@@ -2203,10 +2412,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use-example"
     },
     {
       "API": "T.float16",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "模式用例出现",
@@ -2224,10 +2435,12 @@
       "A5 Expert依据": "testing/npuir/shape_manipulation_ops/test_slice_pad_exp.py:35",
       "A5 Developer依据": "examples/deepseek_v4/example_mhc_post.py:14；examples/deepseek_v4/example_mhc_post.py:28；examples/deepseek_v4/example_mhc_post.py:30；examples/deepseek_v4/example_mhc_post.py:31；examples/deepseek_v4/example_mhc_post.py:34；examples/deepseek_v4/example_mhc_post.py:35；examples/deepseek_v4/example_mhc_post.py:36；testing/npuir/broken/test_slice_pad_dev.py:35",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use,use-example,use-test"
     },
     {
       "API": "T.float32",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "未分模式(TVM/TIR转导)",
@@ -2245,10 +2458,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "examples/deepseek_v4/example_mhc_post.py:15；examples/deepseek_v4/example_mhc_post.py:27；examples/deepseek_v4/example_mhc_post.py:29；examples/deepseek_v4/example_mhc_post.py:38；examples/deepseek_v4/example_mhc_post.py:39；examples/deepseek_v4/example_mhc_post.py:40；examples/deepseek_v4/example_mhc_post.py:42；examples/deepseek_v4/example_mhc_post.py:43；...（共 25 处）",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use-example,use-test"
     },
     {
       "API": "T.floordiv",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2266,10 +2481,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use-test"
     },
     {
       "API": "T.func_attr",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2287,10 +2504,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use-test"
     },
     {
       "API": "T.grid",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2308,10 +2527,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.handle",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2329,10 +2550,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.if_then_else",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2350,10 +2573,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/parallel_ops/test_gqa_decode_parallel.py:53；testing/npuir/parallel_ops/test_if_then_else_buffer_cond.py:66；testing/npuir/parallel_ops/test_if_then_else_cmp_cond.py:41；testing/npuir/parallel_ops/test_if_then_else_scalarVar_condition.py:30；testing/npuir/parallel_ops/test_loop_var_compute.py:147；testing/npuir/parallel_ops/test_loop_var_compute.py:211；testing/npuir/parallel_ops/test_loop_var_compute.py:219；testing/npuir/parallel_ops/test_loop_var_compute.py:37；...（共 9 处）",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use-comment,use-example,use-test"
     },
     {
       "API": "T.init",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -2371,10 +2596,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use"
     },
     {
       "API": "T.int32",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "模式用例出现",
@@ -2392,10 +2619,12 @@
       "A5 Expert依据": "testing/npuir/atomic_ops/test_atomic_add.py:28；testing/npuir/atomic_ops/test_atomic_add.py:49；testing/npuir/atomic_ops/test_atomic_add.py:50；testing/npuir/atomic_ops/test_atomic_addx4.py:28；testing/npuir/atomic_ops/test_atomic_addx4.py:29；testing/npuir/memory_ops/test_copy_general_exp.py:107；testing/npuir/memory_ops/test_copy_general_exp.py:108；testing/npuir/memory_ops/test_copy_general_exp.py:52；...（共 13 处）",
       "A5 Developer依据": "testing/npuir/atomic_ops/test_atomic_add_dev.py:28；testing/npuir/atomic_ops/test_atomic_add_dev.py:49；testing/npuir/atomic_ops/test_atomic_add_dev.py:50；testing/npuir/atomic_ops/test_atomic_add_with_slice_reshape_dev.py:23；testing/npuir/atomic_ops/test_atomic_add_with_slice_reshape_dev.py:24；testing/npuir/atomic_ops/test_atomic_addx4_dev.py:28；testing/npuir/atomic_ops/test_atomic_addx4_dev.py:29；testing/npuir/linalg_ops/test_max_dev.py:25；...（共 51 处）",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use-example,use-test"
     },
     {
       "API": "T.int64",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "未分模式(TVM/TIR转导)",
@@ -2413,10 +2642,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use"
     },
     {
       "API": "T.launch_thread",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2434,10 +2665,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.Layout",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2455,10 +2688,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-export,use,use-example,use-test"
     },
     {
       "API": "T.Let",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "有公开定义",
       "A3 Expert": "支持(定义+用例)",
@@ -2476,10 +2711,12 @@
       "A5 Expert依据": "tilelang/language/ast/ir.py:945",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use"
     },
     {
       "API": "T.LetStmt",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -2497,10 +2734,12 @@
       "A5 Expert依据": "tilelang/language/ast/ir.py:949",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.log",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2518,10 +2757,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/parallel_ops/test_unary_math_parallel.py:59；testing/npuir/parallel_ops/test_unary_math_parallel.py:74；testing/npuir/scalar_ops/test_scalar_log.py:28；testing/npuir/scalar_ops/test_scalar_log.py:44",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use-test"
     },
     {
       "API": "T.log2",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "未分模式(明确支持(文档+定义+用例))",
@@ -2539,10 +2780,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/scalar_ops/test_scalar_log2.py:26；testing/npuir/scalar_ops/test_scalar_log2.py:41",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-signature,external-import,python-def,use-test"
     },
     {
       "API": "T.match_buffer",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2560,10 +2803,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.max",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -2581,10 +2826,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/parallel_ops/test_min_max_parallel.py:61；testing/npuir/parallel_ops/test_min_max_parallel.py:89；testing/npuir_a5/test_unary_ops.py:69",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.min",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -2602,10 +2849,12 @@
       "A5 Expert依据": "examples/flash_attn_npuir.py:71；examples/sparse_mla_fwd_dynamic_shape.py:224；testing/autotune/anneal/flash_attention_exp_anneal.py:112；testing/autotune/anneal/flash_attention_exp_anneal.py:124；testing/autotune/anneal/flash_attention_exp_anneal.py:127；testing/autotune/anneal/flash_attention_exp_anneal.py:164；testing/autotune/anneal/flash_attention_exp_anneal.py:177；testing/autotune/anneal/flash_attention_exp_anneal.py:235；...（共 24 处）",
       "A5 Developer依据": "examples/elementwise/atomic_add_dev.py:30；examples/elementwise/atomic_add_dev.py:55；examples/elementwise/atomic_add_dev.py:56；examples/flash_attn_npuir_dev.py:91；examples/simt/adc_tilelang_npu.py:48；examples/simt/indirect_load_tail_mask.py:36；examples/simt/indirect_load_vadd.py:37；examples/torch_tl_ops/compile/kernels/flash_attention.py:94；...（共 48 处）",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,external-import,python-def,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.parallel",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -2623,10 +2872,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-comment"
     },
     {
       "API": "T.prim_func",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -2644,10 +2895,12 @@
       "A5 Expert依据": "examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:513；examples/engram/engram_bwd_exp.py:133；examples/engram/engram_bwd_exp.py:250；examples/engram/engram_bwd_exp.py:423；examples/exp2.py:23；examples/flash_attn_npuir.py:60；examples/sparse_mla_fwd_dynamic_shape.py:357；testing/autotune/anneal/flash_attention_exp_anneal.py:101；...（共 68 处）",
       "A5 Developer依据": "examples/deepseek_v4/example_mhc_post.py:25；examples/elementwise/atomic_add_dev.py:20；examples/elementwise/atomic_add_dev.py:45；examples/elementwise/example_elementwise_add.py:15；examples/elementwise/vec_add_auto_brc.py:15；examples/flash_attn_npuir_dev.py:22；examples/gemm/example_gemm.py:10；examples/gemm/example_gemm_int82int32.py:10；...（共 243 处）",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,python-export,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.ptr",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2665,10 +2918,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,python-export,use-test"
     },
     {
       "API": "T.Ramp",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "未分模式(TVM/TIR转导)",
@@ -2686,10 +2941,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use-test"
     },
     {
       "API": "T.reads",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2707,10 +2964,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-comment,use-test"
     },
     {
       "API": "T.reinterpret",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2728,10 +2987,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use-example,use-test"
     },
     {
       "API": "T.rsqrt",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "未分模式(明确支持(文档+定义+用例))",
@@ -2749,10 +3010,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/parallel_ops/test_unary_math_parallel.py:44；testing/npuir/parallel_ops/test_unary_math_parallel.py:74",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)；文档文件名 T.rsqrt 与概述签名 T.vrsqrt 不一致",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,external-import,python-def,use-comment,use-test"
     },
     {
       "API": "T.Select",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "未分模式(TVM/TIR转导)",
@@ -2770,10 +3033,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use-test"
     },
     {
       "API": "T.serial",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -2791,10 +3056,12 @@
       "A5 Expert依据": "examples/engram/engram_bwd_exp.py:106；examples/engram/engram_bwd_exp.py:201；examples/engram/engram_bwd_exp.py:207；examples/engram/engram_bwd_exp.py:331；examples/engram/engram_bwd_exp.py:63；examples/engram/engram_bwd_exp.py:72；examples/exp2.py:33；examples/flash_attn_npuir.py:81；...（共 46 处）",
       "A5 Developer依据": "examples/deepseek_v4/example_mhc_post.py:55；examples/simt/adc_tilelang_npu.py:66；testing/autotune/Rotary_embedding/Rotary_embedding.py:151；testing/autotune/abs/abs_2d_multikernel_refine.py:103；testing/autotune/add/add_2d_multikernel_refine.py:99；testing/autotune/fused_add_mean_mul_pow_rsqrt/fused_add_mean_mul_pow_rsqrt.py:125；testing/autotune/fused_add_mean_mul_pow_rsqrt/fused_add_mean_mul_pow_rsqrt.py:136；testing/autotune/gelu/gelu_2d_multikernel_refine.py:97；...（共 75 处）",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.sqrt",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2812,10 +3079,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/parallel_ops/test_unary_math_parallel.py:29；testing/npuir/parallel_ops/test_unary_math_parallel.py:74",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use-comment,use-test"
     },
     {
       "API": "T.Tensor",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -2833,10 +3102,12 @@
       "A5 Expert依据": "examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:515；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:516；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:517；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:518；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:519；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:520；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:521；examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:522；...（共 238 处）",
       "A5 Developer依据": "examples/deepseek_v4/example_mhc_post.py:27；examples/deepseek_v4/example_mhc_post.py:28；examples/deepseek_v4/example_mhc_post.py:29；examples/deepseek_v4/example_mhc_post.py:30；examples/deepseek_v4/example_mhc_post.py:31；examples/elementwise/atomic_add_dev.py:22；examples/elementwise/atomic_add_dev.py:23；examples/elementwise/atomic_add_dev.py:47；...（共 613 处）",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,python-export,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.thread_binding",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2854,10 +3125,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.uint32",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "未分模式(TVM/TIR转导)",
@@ -2875,10 +3148,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use-test"
     },
     {
       "API": "T.uint64",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "TVM/TIR转导",
       "A3 Expert": "未分模式(TVM/TIR转导)",
@@ -2896,10 +3171,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=TVM/TIR转导；A5=TVM/TIR转导",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,use-test"
     },
     {
       "API": "T.unroll",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2917,10 +3194,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.var",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -2938,10 +3217,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use"
     },
     {
       "API": "T.vectorized",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2959,10 +3240,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.vscale",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -2980,10 +3263,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use-test"
     },
     {
       "API": "T.writes",
+      "平台归类": "NPU/GPU通用",
       "分组": "TVM/TIR通用",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -3001,10 +3286,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "external-import,python-def,use,use-test"
     },
     {
       "API": "T.alloc_shared",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -3022,10 +3309,12 @@
       "A5 Expert依据": "testing/npuir/linalg_ops/test_exp_dev.py:22；testing/npuir/linalg_ops/test_exp_dev.py:23；testing/npuir/softmax_ops/test_log_softmax.py:76；testing/npuir/softmax_ops/test_log_softmax.py:77；testing/npuir/softmax_ops/test_log_softmax.py:78；testing/npuir/softmax_ops/test_log_softmax.py:79；testing/npuir/softmax_ops/test_log_softmax.py:80；testing/npuir/softmax_ops/test_log_softmax.py:81；...（共 21 处）",
       "A5 Developer依据": "docs/Tilelang.language/内存操作/T.alloc_shared.md:8；docs/Tilelang.language/内存操作/T.alloc_ub.md:8；examples/deepseek_v4/example_mhc_post.py:34；examples/deepseek_v4/example_mhc_post.py:35；examples/deepseek_v4/example_mhc_post.py:36；examples/deepseek_v4/example_mhc_post.py:38；examples/deepseek_v4/example_mhc_post.py:39；examples/deepseek_v4/example_mhc_post.py:40；...（共 445 处）",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,external-import,python-def,python-export,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.arange",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3043,10 +3332,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2689",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3286；src/target/codegen_npuir_dev.cc:4477",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example"
     },
     {
       "API": "T.atomic_add",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3064,10 +3355,12 @@
       "A5 Expert依据": "examples/engram/engram_bwd_exp.py:129；examples/engram/engram_bwd_exp.py:227；examples/engram/engram_bwd_exp.py:421；src/target/codegen_npuir_api.cc:1637；src/target/codegen_npuir_api.cc:2675",
       "A5 Developer依据": "examples/elementwise/atomic_add_dev.py:33；examples/elementwise/atomic_add_dev.py:62；src/target/codegen_npuir_dev.cc:2934；src/target/codegen_npuir_dev.cc:4463",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.atomic_addx4",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "未分模式(明确支持(文档+定义+用例))",
@@ -3085,10 +3378,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use-example"
     },
     {
       "API": "T.clear",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -3106,10 +3401,12 @@
       "A5 Expert依据": "examples/engram/engram_bwd_exp.py:109；examples/engram/engram_bwd_exp.py:110；examples/engram/engram_bwd_exp.py:111；examples/engram/engram_bwd_exp.py:112；examples/engram/engram_bwd_exp.py:205；examples/engram/engram_bwd_exp.py:209；examples/engram/engram_bwd_exp.py:307；examples/engram/engram_bwd_exp.py:70；...（共 13 处）",
       "A5 Developer依据": "testing/autotune/fused_add_mean_mul_pow_rsqrt/fused_add_mean_mul_pow_rsqrt.py:123；testing/autotune/gemv_autotune.py:64；testing/autotune/gemv_carver.py:89；testing/autotune/layernorm/layernorm_2d.py:150；testing/autotune/layernorm/layernorm_2d.py:151；testing/npuir/bf16_support_ops/test_gemm_bf16.py:35；testing/npuir/bf16_support_ops/test_mix_kernel_bf16.py:39；testing/npuir/bf16_support_ops/test_reduce_add_bf16.py:28；...（共 9 处）",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use-comment,use-example,use-test"
     },
     {
       "API": "T.concat",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3127,10 +3424,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2691",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4479",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export"
     },
     {
       "API": "T.copy",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(文档+定义+用例)",
@@ -3148,10 +3447,12 @@
       "A5 Expert依据": "docs/Tilelang.language/内存操作/T.copy.md:12；docs/Tilelang.language/内存操作/T.copy.md:9；examples/engram/engram_bwd_exp.py:115；examples/engram/engram_bwd_exp.py:116；examples/engram/engram_bwd_exp.py:131；examples/engram/engram_bwd_exp.py:183；examples/engram/engram_bwd_exp.py:212；examples/engram/engram_bwd_exp.py:214；...（共 176 处）",
       "A5 Developer依据": "docs/Tilelang.language/内存操作/T.copy.md:11；docs/Tilelang.language/内存操作/T.copy.md:8；examples/deepseek_v4/example_mhc_post.py:44；examples/deepseek_v4/example_mhc_post.py:45；examples/deepseek_v4/example_mhc_post.py:48；examples/deepseek_v4/example_mhc_post.py:49；examples/deepseek_v4/example_mhc_post.py:51；examples/deepseek_v4/example_mhc_post.py:52；...（共 676 处）",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use,use-comment,use-example,use-src,use-test"
     },
     {
       "API": "T.cumsum",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3169,10 +3470,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:1584；src/target/codegen_npuir_api.cc:2673；testing/npuir/scan_ops/test_cumsum_exp.py:31；unittest/npuir/test_cumsum_exp.py:39",
       "A5 Developer依据": "docs/Tilelang.language/排序操作/T.vcumsum.md:8；src/target/codegen_npuir_dev.cc:2877；src/target/codegen_npuir_dev.cc:4465；testing/npuir/hfusion_ops/test_cumsum_dev.py:28；testing/npuir/scan_ops/test_cumsum_dev.py:31；unittest/npuir/test_cumsum_dev.py:39",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-note,doc-signature,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.deinterleave",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3190,10 +3493,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2687",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4475",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export"
     },
     {
       "API": "T.fill",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -3211,10 +3516,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/autotune/softmax/softmax_2d.py:110；testing/autotune/softmax/softmax_2d.py:111",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-comment,use-example,use-test"
     },
     {
       "API": "T.flip",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3232,10 +3539,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2695",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4483；testing/npuir/shape_manipulation_ops/test_vflip_dev.py:41",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.gather",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3253,10 +3562,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2677",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4467",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export"
     },
     {
       "API": "T.interleave",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3274,10 +3585,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2685",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4473；testing/npuir/hfusion_ops/test_interleave_dev.py:32",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-src,use-test"
     },
     {
       "API": "T.pad",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3295,10 +3608,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2693",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4481",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export"
     },
     {
       "API": "T.print",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3316,10 +3631,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2186；src/target/codegen_npuir_api.cc:2705；src/target/codegen_npuir_api.cc:2706",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3957；src/target/codegen_npuir_dev.cc:4495；src/target/codegen_npuir_dev.cc:4496；testing/npuir/debug_ops/test_print_dev.py:40；testing/npuir/debug_ops/test_slice_print.py:48",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.reduce",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3337,10 +3654,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2669；testing/autotune/anneal/flash_attention_exp_anneal.py:250；testing/autotune/anneal/flash_attention_exp_anneal.py:282；testing/npuir/reduction_ops/test_reduce_exp.py:44；testing/npuir/softmax_ops/test_log_softmax.py:57；testing/npuir/softmax_ops/test_log_softmax.py:87；testing/npuir/softmax_ops/test_logsumexp.py:55；testing/npuir/softmax_ops/test_logsumexp.py:83；...（共 11 处）",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:2556；src/target/codegen_npuir_dev.cc:4459；src/target/codegen_npuir_dev.cc:5231；testing/autotune/ReduceSum/reduce_sum_2d.py:107；testing/autotune/fused_add_mean_mul_pow_rsqrt/fused_add_mean_mul_pow_rsqrt.py:129；testing/autotune/layernorm/layernorm_2d.py:158；testing/autotune/layernorm/layernorm_2d.py:172；testing/autotune/softmax/softmax_2d.py:118；...（共 23 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.reduce_max",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -3358,10 +3677,12 @@
       "A5 Expert依据": "testing/npuir/reduction_ops/test_reduce_exp.py:42；testing/npuir/softmax_ops/test_log_softmax.py:51；testing/npuir/softmax_ops/test_log_softmax.py:84；testing/npuir/softmax_ops/test_logsumexp.py:50；testing/npuir/softmax_ops/test_logsumexp.py:80；testing/npuir/softmax_ops/test_softmax.py:46；unittest/npuir/test_reduce_exp.py:41；unittest/npuir/test_reduce_exp.py:72",
       "A5 Developer依据": "examples/flash_attn_npuir_dev.py:68；examples/torch_tl_ops/compile/kernels/flash_attention.py:74；testing/autotune/flash_attn_npuir_autotune.py:98；testing/npuir/reduction_ops/test_reduce.py:37；testing/npuir/reduction_ops/test_reduce.py:67；testing/npuir/reduction_ops/test_reduce_dev.py:42；testing/npuir/softmax_ops/test_softmax.py:71；unittest/npuir/test_reduce_dev.py:41；...（共 9 处）",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.reduce_min",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -3379,10 +3700,12 @@
       "A5 Expert依据": "testing/npuir/reduction_ops/test_reduce_exp.py:43；unittest/npuir/test_reduce_exp.py:42；unittest/npuir/test_reduce_exp.py:73",
       "A5 Developer依据": "testing/autotune/reduce_min_autotune.py:62；testing/autotune/reduce_min_carver.py:76；testing/npuir/reduction_ops/test_reduce.py:38；testing/npuir/reduction_ops/test_reduce.py:68；testing/npuir/reduction_ops/test_reduce_dev.py:43；unittest/npuir/test_reduce_dev.py:42；unittest/npuir/test_reduce_dev.py:73",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-signature,python-def,python-export,use-test"
     },
     {
       "API": "T.reduce_sum",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -3400,10 +3723,12 @@
       "A5 Expert依据": "examples/engram/engram_bwd_exp.py:231；examples/engram/engram_bwd_exp.py:352；examples/engram/engram_bwd_exp.py:372；examples/engram/engram_bwd_exp.py:394",
       "A5 Developer依据": "examples/flash_attn_npuir_dev.py:75；examples/torch_tl_ops/compile/kernels/flash_attention.py:80；testing/autotune/flash_attn_npuir_autotune.py:105；testing/npuir/bf16_support_ops/test_reduce_add_bf16.py:30",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.reshape",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3421,10 +3746,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2708",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4132；src/target/codegen_npuir_dev.cc:4498；testing/autotune/fused_add_mean_mul_pow_rsqrt/fused_add_mean_mul_pow_rsqrt.py:140；testing/autotune/layernorm/layernorm_2d.py:179；testing/autotune/layernorm/layernorm_2d.py:181；testing/autotune/layernorm/layernorm_2d.py:190；testing/autotune/layernorm/layernorm_2d.py:191",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.transpose",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3442,10 +3769,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2683",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4471",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export"
     },
     {
       "API": "T.view",
+      "平台归类": "NPU/GPU通用",
       "分组": "TileLang公开API",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -3463,10 +3792,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-test"
     },
     {
       "API": "T.vabs",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3484,10 +3815,12 @@
       "A5 Expert依据": "docs/Tilelang.language/数学操作/T.vabs.md:9；src/target/codegen_npuir_api.cc:2623",
       "A5 Developer依据": "docs/Tilelang.language/数学操作/T.vabs.md:8；src/target/codegen_npuir_dev.cc:4403；src/target/codegen_npuir_dev.cc:5259；testing/autotune/abs/abs_1d.py:108；testing/autotune/abs/abs_2d.py:119；testing/autotune/abs/abs_2d_multikernel_refine.py:114；testing/autotune/abs/abs_3d.py:141；testing/autotune/abs/abs_4d.py:163；...（共 12 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vadd",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3505,10 +3838,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2611；testing/autotune/anneal/flash_attention_exp_anneal.py:290；testing/autotune/anneal/flash_attention_exp_anneal.py:310；testing/npuir/arith_ops/test_vadd_rank_reduce_exp.py:45；testing/npuir/softmax_ops/test_logsumexp.py:58；testing/npuir/softmax_ops/test_logsumexp.py:85",
       "A5 Developer依据": "examples/elementwise/vec_add_auto_brc.py:32；examples/flash_attn_npuir_dev.py:77；examples/flash_attn_npuir_dev.py:82；examples/simt/indirect_load_vadd.py:53；examples/torch_tl_ops/compile/kernels/flash_attention.py:82；examples/torch_tl_ops/compile/kernels/flash_attention.py:86；src/target/codegen_npuir_dev.cc:3625；src/target/codegen_npuir_dev.cc:4386；...（共 38 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vand",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3526,10 +3861,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2655",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3633；src/target/codegen_npuir_dev.cc:4443；src/target/codegen_npuir_dev.cc:5222",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,python-def,python-export,use-example"
     },
     {
       "API": "T.vbitcast",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3547,10 +3884,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2641",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4423",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export"
     },
     {
       "API": "T.vbrc",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3568,10 +3907,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2665；testing/autotune/anneal/flash_attention_exp_anneal.py:223；testing/autotune/anneal/flash_attention_exp_anneal.py:224；testing/autotune/anneal/flash_attention_exp_anneal.py:225；testing/autotune/anneal/flash_attention_exp_anneal.py:226；testing/autotune/anneal/flash_attention_exp_anneal.py:227",
       "A5 Developer依据": "examples/flash_attn_npuir_dev.py:53；examples/flash_attn_npuir_dev.py:54；examples/flash_attn_npuir_dev.py:55；examples/flash_attn_npuir_dev.py:56；examples/flash_attn_npuir_dev.py:57；examples/flash_attn_npuir_dev.py:58；examples/flash_attn_npuir_dev.py:81；examples/torch_tl_ops/compile/kernels/flash_attention.py:64；...（共 23 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-comment,use-example,use-test"
     },
     {
       "API": "T.vcast",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3589,10 +3930,12 @@
       "A5 Expert依据": "docs/Tilelang.language/数据类型转换操作/T.vcast.md:9；examples/engram/engram_bwd_exp.py:120；examples/engram/engram_bwd_exp.py:184；examples/engram/engram_bwd_exp.py:215；examples/engram/engram_bwd_exp.py:221；examples/engram/engram_bwd_exp.py:243；examples/engram/engram_bwd_exp.py:301；examples/engram/engram_bwd_exp.py:337；...（共 22 处）",
       "A5 Developer依据": "docs/Tilelang.language/数据类型转换操作/T.vcast.md:8；examples/flash_attn_npuir_dev.py:79；examples/flash_attn_npuir_dev.py:90；examples/torch_tl_ops/compile/kernels/flash_attention.py:84；examples/torch_tl_ops/compile/kernels/flash_attention.py:93；src/target/codegen_npuir_dev.cc:2496；src/target/codegen_npuir_dev.cc:4457；testing/autotune/flash_attn_npuir_autotune.py:109；...（共 11 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vclamp",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -3610,10 +3953,12 @@
       "A5 Expert依据": "testing/npuir/arith_ops/test_clamp_exp.py:41；testing/npuir/arith_ops/test_clamp_vec_exp.py:46",
       "A5 Developer依据": "testing/npuir/arith_ops/test_clamp_dev.py:41；testing/npuir/arith_ops/test_clamp_vec_dev.py:46",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vcmp",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3631,10 +3976,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2631",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3626；src/target/codegen_npuir_dev.cc:4413；src/target/codegen_npuir_dev.cc:5225；testing/npuir/bf16_support_ops/test_vselect_bf16.py:35",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vcos",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3652,10 +3999,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2249；src/target/codegen_npuir_api.cc:2697",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3976；src/target/codegen_npuir_dev.cc:4485",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,internal-intrinsic-ref,python-def,python-export"
     },
     {
       "API": "T.vcumsum",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "有API文档",
       "A3 Expert": "未分模式(有API文档)",
@@ -3673,10 +4022,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有API文档；A5=有API文档；文档文件名出现过，但当前签名/测试多使用 T.cumsum。；文档文件名 T.vcumsum 与概述签名 T.cumsum 不一致",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "doc-file"
     },
     {
       "API": "T.vdiv",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3694,10 +4045,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2643；testing/autotune/anneal/flash_attention_exp_anneal.py:312；testing/npuir/softmax_ops/test_softmax.py:50",
       "A5 Developer依据": "examples/flash_attn_npuir_dev.py:88；examples/torch_tl_ops/compile/kernels/flash_attention.py:91；src/target/codegen_npuir_dev.cc:3627；src/target/codegen_npuir_dev.cc:4425；src/target/codegen_npuir_dev.cc:5218；testing/autotune/flash_attn_npuir_autotune.py:118；testing/autotune/fused_add_mean_mul_pow_rsqrt/fused_add_mean_mul_pow_rsqrt.py:132；testing/autotune/layernorm/layernorm_2d.py:162；...（共 14 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.verf",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3715,10 +4068,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2412；src/target/codegen_npuir_api.cc:2701",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4027；src/target/codegen_npuir_dev.cc:4489",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export"
     },
     {
       "API": "T.vexp",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3736,10 +4091,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2613；testing/autotune/anneal/flash_attention_exp_anneal.py:260；testing/autotune/anneal/flash_attention_exp_anneal.py:270；testing/npuir/softmax_ops/test_log_softmax.py:55；testing/npuir/softmax_ops/test_log_softmax.py:86；testing/npuir/softmax_ops/test_logsumexp.py:53；testing/npuir/softmax_ops/test_logsumexp.py:82；testing/npuir/softmax_ops/test_softmax.py:48",
       "A5 Developer依据": "examples/flash_attn_npuir_dev.py:71；examples/flash_attn_npuir_dev.py:74；examples/mixcv/example_mixcv.py:40；examples/torch_tl_ops/compile/kernels/flash_attention.py:77；examples/torch_tl_ops/compile/kernels/flash_attention.py:79；src/target/codegen_npuir_dev.cc:2201；src/target/codegen_npuir_dev.cc:4388；src/target/codegen_npuir_dev.cc:5235；...（共 18 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vexp2",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "未分模式(明确支持(文档+定义+用例))",
@@ -3757,10 +4114,12 @@
       "A5 Expert依据": "examples/exp2.py:42",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use-example"
     },
     {
       "API": "T.vfloor",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "无证据",
       "A3 Expert": "无",
@@ -3778,10 +4137,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4390；testing/npuir_a5/test_unary_ops.py:88",
       "简单说明": "仅 A5：明确支持(codegen)；backend codegen=A5:Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,python-def,python-export,use-test"
     },
     {
       "API": "T.vfloordiv",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "无证据",
       "A3 Expert": "无",
@@ -3799,10 +4160,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4493；testing/npuir_a5/test_binary_ops.py:111；testing/npuir_a5/test_binary_ops.py:162",
       "简单说明": "仅 A5：明确支持(codegen)；backend codegen=A5:Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,python-def,python-export,use-test"
     },
     {
       "API": "T.vln",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3820,10 +4183,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2615；testing/npuir/softmax_ops/test_log_softmax.py:59；testing/npuir/softmax_ops/test_log_softmax.py:88；testing/npuir/softmax_ops/test_logsumexp.py:57；testing/npuir/softmax_ops/test_logsumexp.py:84",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4392；src/target/codegen_npuir_dev.cc:5239；testing/npuir/linalg_ops/test_ln_dev.py:26；testing/npuir_a5/test_unary_ops.py:76；testing/npuir_a5/test_unary_ops.py:82",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vLn",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "有API文档",
       "A3 Expert": "未分模式(有API文档)",
@@ -3841,10 +4206,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有API文档；A5=有API文档",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "doc-file,doc-signature"
     },
     {
       "API": "T.vlog2",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "未分模式(明确支持(文档+定义+用例))",
@@ -3862,10 +4229,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use-example"
     },
     {
       "API": "T.vmax",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3883,10 +4252,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2649；testing/autotune/anneal/flash_attention_exp_anneal.py:258",
       "A5 Developer依据": "examples/flash_attn_npuir_dev.py:69；examples/torch_tl_ops/compile/kernels/flash_attention.py:75；src/target/codegen_npuir_dev.cc:3630；src/target/codegen_npuir_dev.cc:4433；src/target/codegen_npuir_dev.cc:5220；testing/autotune/flash_attn_npuir_autotune.py:99；testing/npuir/linalg_ops/test_max_dev.py:37；testing/npuir_a5/test_binary_ops.py:107；...（共 9 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vmin",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3904,10 +4275,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2651",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3631；src/target/codegen_npuir_dev.cc:4437；src/target/codegen_npuir_dev.cc:5221；testing/npuir/linalg_ops/test_min_dev.py:37；testing/npuir_a5/test_binary_ops.py:109；testing/npuir_a5/test_binary_ops.py:160",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vmul",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3925,10 +4298,12 @@
       "A5 Expert依据": "examples/engram/engram_bwd_exp.py:225；examples/engram/engram_bwd_exp.py:226；examples/engram/engram_bwd_exp.py:235；examples/engram/engram_bwd_exp.py:236；examples/engram/engram_bwd_exp.py:237；src/target/codegen_npuir_api.cc:2645；testing/autotune/anneal/flash_attention_exp_anneal.py:249；testing/autotune/anneal/flash_attention_exp_anneal.py:289；...（共 9 处）",
       "A5 Developer依据": "examples/flash_attn_npuir_dev.py:67；examples/flash_attn_npuir_dev.py:76；examples/flash_attn_npuir_dev.py:78；examples/torch_tl_ops/compile/kernels/flash_attention.py:73；examples/torch_tl_ops/compile/kernels/flash_attention.py:81；examples/torch_tl_ops/compile/kernels/flash_attention.py:83；src/target/codegen_npuir_dev.cc:4429；src/target/codegen_npuir_dev.cc:5217；...（共 38 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vnot",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3946,10 +4321,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2627",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4408；src/target/codegen_npuir_dev.cc:5255；testing/npuir/hfusion_ops/test_not_dev.py:26",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,python-def,python-export,use-test"
     },
     {
       "API": "T.vor",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3967,10 +4344,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2653",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3632；src/target/codegen_npuir_dev.cc:4441；src/target/codegen_npuir_dev.cc:5227",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,python-def,python-export"
     },
     {
       "API": "T.vpow",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -3988,10 +4367,12 @@
       "A5 Expert依据": "docs/Tilelang.language/数学操作/T.vpow.md:9；src/target/codegen_npuir_api.cc:2659",
       "A5 Developer依据": "docs/Tilelang.language/数学操作/T.vpow.md:8；src/target/codegen_npuir_dev.cc:3635；src/target/codegen_npuir_dev.cc:4447；src/target/codegen_npuir_dev.cc:5219；testing/npuir_a5/test_binary_ops.py:105；testing/npuir_a5/test_binary_ops.py:156",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,python-def,python-export,use-test"
     },
     {
       "API": "T.vrec",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4009,10 +4390,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2625",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4405；src/target/codegen_npuir_dev.cc:5251；testing/npuir/linalg_ops/test_rec_dev.py:26",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.vrelu",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4030,10 +4413,12 @@
       "A5 Expert依据": "docs/Tilelang.language/数学操作/T.vrelu.md:9；src/target/codegen_npuir_api.cc:2617",
       "A5 Developer依据": "docs/Tilelang.language/数学操作/T.vrelu.md:8；src/target/codegen_npuir_dev.cc:4394；src/target/codegen_npuir_dev.cc:5263；testing/npuir/hfusion_ops/test_relu_dev.py:26",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vrsqrt",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4051,10 +4436,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2621",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4400；src/target/codegen_npuir_dev.cc:5247；testing/autotune/fused_add_mean_mul_pow_rsqrt/fused_add_mean_mul_pow_rsqrt.py:134；testing/autotune/layernorm/layernorm_2d.py:177；testing/npuir/hfusion_ops/test_rsqrt_dev.py:26",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vselect",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4072,10 +4459,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:1488；src/target/codegen_npuir_api.cc:2629",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:2346；src/target/codegen_npuir_dev.cc:4411；testing/npuir/bf16_support_ops/test_vselect_bf16.py:39",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.vshl",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4093,10 +4482,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2661",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3636；src/target/codegen_npuir_dev.cc:4450；src/target/codegen_npuir_dev.cc:5223",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,python-def,python-export"
     },
     {
       "API": "T.vshr",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4114,10 +4505,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2663",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3637；src/target/codegen_npuir_dev.cc:4452；src/target/codegen_npuir_dev.cc:5224",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export"
     },
     {
       "API": "T.vsigmoid",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4135,10 +4528,12 @@
       "A5 Expert依据": "examples/engram/engram_bwd_exp.py:98；src/target/codegen_npuir_api.cc:2671",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4461",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vsin",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4156,10 +4551,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2327；src/target/codegen_npuir_api.cc:2699",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4001；src/target/codegen_npuir_dev.cc:4487",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export"
     },
     {
       "API": "T.vsqrt",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4177,10 +4574,12 @@
       "A5 Expert依据": "examples/engram/engram_bwd_exp.py:305；src/target/codegen_npuir_api.cc:2619",
       "A5 Developer依据": "examples/simt/adc_tilelang_npu.py:73；src/target/codegen_npuir_dev.cc:4397；src/target/codegen_npuir_dev.cc:5243；testing/npuir/linalg_ops/test_sqrt_dev.py:26",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vsub",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4198,10 +4597,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2647；testing/autotune/anneal/flash_attention_exp_anneal.py:259；testing/autotune/anneal/flash_attention_exp_anneal.py:269；testing/npuir/softmax_ops/test_log_softmax.py:53；testing/npuir/softmax_ops/test_log_softmax.py:61；testing/npuir/softmax_ops/test_log_softmax.py:85；testing/npuir/softmax_ops/test_log_softmax.py:89；testing/npuir/softmax_ops/test_logsumexp.py:52；...（共 10 处）",
       "A5 Developer依据": "examples/flash_attn_npuir_dev.py:70；examples/flash_attn_npuir_dev.py:73；examples/torch_tl_ops/compile/kernels/flash_attention.py:76；examples/torch_tl_ops/compile/kernels/flash_attention.py:78；src/target/codegen_npuir_dev.cc:3629；src/target/codegen_npuir_dev.cc:4431；src/target/codegen_npuir_dev.cc:5216；testing/autotune/flash_attn_npuir_autotune.py:100；...（共 18 处）",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,codegen-legacy,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.vtanh",
+      "平台归类": "NPU/GPU通用",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4219,10 +4620,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2506；src/target/codegen_npuir_api.cc:2703",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:4055；src/target/codegen_npuir_dev.cc:4491",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,internal-intrinsic-ref,python-def,python-export,use-test"
     },
     {
       "API": "T.vxor",
+      "平台归类": "NPU特有",
       "分组": "v-prefix/向量",
       "A3 总体": "明确支持(codegen)",
       "A3 Expert": "支持(codegen)",
@@ -4240,10 +4643,12 @@
       "A5 Expert依据": "src/target/codegen_npuir_api.cc:2657",
       "A5 Developer依据": "src/target/codegen_npuir_dev.cc:3634；src/target/codegen_npuir_dev.cc:4445；src/target/codegen_npuir_dev.cc:5226",
       "简单说明": "A3=明确支持(codegen)；A5=明确支持(codegen)；backend codegen=A3:Expert/Developer，A5:Expert/Developer",
+      "平台归类说明": "只看到 NPUIR/Ascend 侧定义、文档或用例证据",
       "证据类型": "codegen-developer,codegen-expert,doc-file,doc-signature,python-def,python-export"
     },
     {
       "API": "T.abs",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -4261,10 +4666,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-comment"
     },
     {
       "API": "T.Add",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -4282,10 +4689,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.AddWorkspace",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -4303,10 +4712,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "只看到 GPU/普通 TileLang 侧证据，未见 NPUIR 侧证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.all_of",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4324,10 +4735,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.alloc_var",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4345,10 +4758,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/memory_ops/test_alloc_dev.py:5；testing/npuir/memory_ops/test_alloc_dev.py:67",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.allocate",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4366,10 +4781,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.And",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -4387,10 +4804,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.annotate_layout",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4408,10 +4827,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.annotate_padding",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4429,10 +4850,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use,use-test"
     },
     {
       "API": "T.any",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -4450,10 +4873,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.any_of",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4471,10 +4896,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-comment,use-test"
     },
     {
       "API": "T.arg",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -4492,10 +4919,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.ascend_copy",
+      "平台归类": "NPU特有",
       "分组": "其他出现",
       "A3 总体": "仅注释引用",
       "A3 Expert": "仅注释引用",
@@ -4513,10 +4942,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅注释引用；A5=仅注释引用",
+      "平台归类说明": "Ascend/NPUIR 专属内存、同步或 Expert API",
       "证据类型": "use-comment"
     },
     {
       "API": "T.Assert",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -4534,10 +4965,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.assert_",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -4555,10 +4988,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/arith_ops/test_binary_arith_op_dev.py:121；testing/npuir/arith_ops/test_binary_arith_op_dev.py:152；testing/npuir/arith_ops/test_binary_arith_op_dev.py:182；testing/npuir/arith_ops/test_binary_arith_op_dev.py:211；testing/npuir/arith_ops/test_binary_arith_op_dev.py:51；testing/npuir/arith_ops/test_binary_arith_op_dev.py:88",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.bitwise_xor",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4576,10 +5011,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.boxDim",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -4597,10 +5034,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.buffer_data_to_buffer_",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -4618,10 +5057,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "只看到 GPU/普通 TileLang 侧证据，未见 NPUIR 侧证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.buffer_decl",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -4639,10 +5080,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.buffer_lca_",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -4660,10 +5103,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "只看到 GPU/普通 TileLang 侧证据，未见 NPUIR 侧证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.buffer_remap",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -4681,10 +5126,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "只看到 GPU/普通 TileLang 侧证据，未见 NPUIR 侧证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.buffer_store",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -4702,10 +5149,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.buffer_var",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -4723,10 +5172,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.c2d_im2col",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -4744,10 +5195,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export"
     },
     {
       "API": "T.call_intrin",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -4765,10 +5218,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.call_packed",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -4786,10 +5241,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.Cast",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -4807,10 +5264,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "testing/npuir/parallel_ops/test_cast_parallel.py:70；testing/npuir/parallel_ops/test_variable_loop_invariants.py:33",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-example,use-test"
     },
     {
       "API": "T.clamp",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4828,10 +5287,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-comment,use-example,use-test"
     },
     {
       "API": "T.comm_reducer",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4849,10 +5310,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.copysign",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -4870,10 +5333,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-comment"
     },
     {
       "API": "T.create_list_of_mbarrier",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4891,10 +5356,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.create_tma_descriptor",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4912,10 +5379,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.decl_buffer",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4933,10 +5402,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-comment,use-test"
     },
     {
       "API": "T.disable_tma_lower",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -4954,10 +5425,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "只看到 GPU/普通 TileLang 侧证据，未见 NPUIR 侧证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.Div",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -4975,10 +5448,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.dp4a",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -4996,10 +5471,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,python-export,use-test"
     },
     {
       "API": "T.dynamic",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5017,10 +5494,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "仅 A3：有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use,use-comment"
     },
     {
       "API": "T.elementStrides",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5038,10 +5517,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.Else",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5059,10 +5540,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.EQ",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5080,10 +5563,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.fence_proxy_async",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -5101,10 +5586,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.FloorDiv",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5122,10 +5609,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.FloorMod",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5143,10 +5632,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.Fragment",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5164,10 +5655,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-export,use"
     },
     {
       "API": "T.FragmentBuffer",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -5185,10 +5678,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.frame",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5206,10 +5701,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.func_name",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5227,10 +5724,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.func_ret",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5248,10 +5747,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.GE",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5269,10 +5770,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.GemmWarpPolicy",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5290,10 +5793,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-comment,use-example,use-test"
     },
     {
       "API": "T.get_block_binding",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5311,10 +5816,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export"
     },
     {
       "API": "T.get_block_bindings",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5332,10 +5839,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export"
     },
     {
       "API": "T.get_let_value",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5353,10 +5862,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use"
     },
     {
       "API": "T.get_mbarrier",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -5374,10 +5885,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use,use-test"
     },
     {
       "API": "T.get_thread_binding",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -5395,10 +5908,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-test"
     },
     {
       "API": "T.get_thread_bindings",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5416,10 +5931,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export"
     },
     {
       "API": "T.globalAddress",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5437,10 +5954,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.globalDim",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5458,10 +5977,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.globalStride",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5479,10 +6000,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.GT",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5500,10 +6023,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.has_let_value",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5521,10 +6046,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use"
     },
     {
       "API": "T.If",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -5542,10 +6069,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use,use-test"
     },
     {
       "API": "T.infinity",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -5563,10 +6092,12 @@
       "A5 Expert依据": "testing/autotune/anneal/flash_attention_exp_anneal.py:222",
       "A5 Developer依据": "examples/flash_attn_npuir_dev.py:52；examples/torch_tl_ops/compile/kernels/flash_attention.py:63；testing/autotune/flash_attn_npuir_autotune.py:84；testing/npuir/parallel_ops/test_if_then_else_buffer_cond.py:69",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,python-def,use-comment,use-example,use-test"
     },
     {
       "API": "T.Kernel",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -5584,10 +6115,12 @@
       "A5 Expert依据": "examples/deepseek_v4/example_sparse_attn_kernel_highperf.py:526；examples/engram/engram_bwd_exp.py:176；examples/engram/engram_bwd_exp.py:293；examples/engram/engram_bwd_exp.py:41；examples/exp2.py:28；examples/flash_attn_npuir.py:70；examples/sparse_mla_fwd_dynamic_shape.py:369；testing/autotune/anneal/flash_attention_exp_anneal.py:111；...（共 68 处）",
       "A5 Developer依据": "examples/deepseek_v4/example_mhc_post.py:33；examples/elementwise/atomic_add_dev.py:25；examples/elementwise/atomic_add_dev.py:50；examples/elementwise/example_elementwise_add.py:21；examples/elementwise/vec_add_auto_brc.py:21；examples/flash_attn_npuir_dev.py:29；examples/gemm/example_gemm.py:16；examples/gemm/example_gemm_int82int32.py:16；...（共 243 处）",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.KernelLaunchFrame",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5605,10 +6138,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use"
     },
     {
       "API": "T.l2Promotion",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5626,10 +6161,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.layout_map",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5647,10 +6184,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.LE",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5668,10 +6207,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.let",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "支持(定义+用例)",
@@ -5689,10 +6230,12 @@
       "A5 Expert依据": "tilelang/language/ast/ir.py:945；tilelang/language/ast/ir.py:949",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.LocalBuffer",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5710,10 +6253,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export"
     },
     {
       "API": "T.LT",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5731,10 +6276,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.macro",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -5752,10 +6299,12 @@
       "A5 Expert依据": "examples/engram/engram_bwd_exp.py:165；examples/engram/engram_bwd_exp.py:26；examples/engram/engram_bwd_exp.py:277；examples/sparse_mla_fwd_dynamic_shape.py:205",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use,use-comment,use-example,use-test"
     },
     {
       "API": "T.make_tensor",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -5773,10 +6322,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-test"
     },
     {
       "API": "T.map",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5794,10 +6345,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "只看到 GPU/普通 TileLang 侧证据，未见 NPUIR 侧证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.Max",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5815,10 +6368,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.mbarrier_arrive",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5836,10 +6391,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.mbarrier_expect_tx",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -5857,10 +6414,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.mbarrier_wait_parity",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -5878,10 +6437,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use,use-test"
     },
     {
       "API": "T.meta_var",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -5899,10 +6460,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.Min",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5920,10 +6483,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.Mod",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5941,10 +6506,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.Mul",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5962,10 +6529,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.NE",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -5983,10 +6552,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.nreg_",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6004,10 +6575,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.oobFill",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6025,10 +6598,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.Optional",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -6046,10 +6621,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-export"
     },
     {
       "API": "T.Or",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6067,10 +6644,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.Parallel",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -6088,10 +6667,12 @@
       "A5 Expert依据": "examples/engram/engram_bwd_exp.py:100；examples/engram/engram_bwd_exp.py:122；examples/engram/engram_bwd_exp.py:217；examples/engram/engram_bwd_exp.py:229；examples/engram/engram_bwd_exp.py:239；examples/engram/engram_bwd_exp.py:245；examples/engram/engram_bwd_exp.py:348；examples/engram/engram_bwd_exp.py:350；...（共 17 处）",
       "A5 Developer依据": "examples/deepseek_v4/example_mhc_post.py:53；examples/elementwise/example_elementwise_add.py:32；examples/simt/adc_tilelang_npu.py:67；examples/simt/indirect_load_full_block.py:20；examples/simt/indirect_load_full_block.py:40；examples/simt/indirect_load_tail_mask.py:20；examples/simt/indirect_load_tail_mask.py:41；examples/simt/indirect_load_vadd.py:20；...（共 57 处）",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,doc-signature,python-def,python-export,use,use-comment,use-example,use-src,use-test"
     },
     {
       "API": "T.Pipelined",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6109,10 +6690,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "examples/deepseek_v4/example_mhc_post.py:47；examples/flash_attn_npuir_dev.py:60；examples/gemm/example_gemm.py:27；examples/gemm/example_gemm_int82int32.py:27；examples/torch_tl_ops/compile/kernels/flash_attention.py:69；testing/autotune/example_gemm_autotune.py:76；testing/autotune/example_gemm_carver.py:103；testing/autotune/flash_attn_npuir_autotune.py:90；...（共 24 处）",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-comment,use-example,use-test"
     },
     {
       "API": "T.pixelBoxLowerCorner",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6130,10 +6713,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.pixelBoxUpperCorner",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6151,10 +6736,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.PrimFunc",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6172,10 +6759,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.Ptr",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6193,10 +6782,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use"
     },
     {
       "API": "T.ptx_ldmatrix",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -6214,10 +6805,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use,use-comment"
     },
     {
       "API": "T.ptx_mma",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -6235,10 +6828,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.reduce_absmax",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6256,10 +6851,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-example"
     },
     {
       "API": "T.reduce_abssum",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -6277,10 +6874,12 @@
       "A5 Expert依据": "testing/npuir/reduction_ops/test_reduce_exp.py:41；unittest/npuir/test_reduce_exp.py:40；unittest/npuir/test_reduce_exp.py:71",
       "A5 Developer依据": "testing/npuir/reduction_ops/test_reduce.py:36；testing/npuir/reduction_ops/test_reduce.py:66；testing/npuir/reduction_ops/test_reduce_dev.py:41；unittest/npuir/test_reduce_dev.py:40；unittest/npuir/test_reduce_dev.py:71",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-test"
     },
     {
       "API": "T.region",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -6298,10 +6897,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-comment"
     },
     {
       "API": "T.set_max_nreg",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6319,10 +6920,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.SharedBuffer",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6340,10 +6943,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use-example,use-test"
     },
     {
       "API": "T.sigmoid",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(文档+定义+用例)",
       "A3 Expert": "未分模式(明确支持(文档+定义+用例))",
@@ -6361,10 +6966,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(文档+定义+用例)；A5=明确支持(文档+定义+用例)；文档文件名 T.sigmoid 与概述签名 T.vsigmoid 不一致",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "doc-file,python-def,use-comment,use-example,use-test"
     },
     {
       "API": "T.smem_box_channel",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6382,10 +6989,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "只看到 GPU/普通 TileLang 侧证据，未见 NPUIR 侧证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.smem_box_pixel",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6403,10 +7012,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "只看到 GPU/普通 TileLang 侧证据，未见 NPUIR 侧证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.Sub",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6424,10 +7035,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.swizzle",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6445,10 +7058,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.symbolic",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "支持(定义+用例)",
@@ -6466,10 +7081,12 @@
       "A5 Expert依据": "testing/npuir/broken/test_reduce_size_exp.py:21；testing/npuir/broken/test_reduce_size_exp.py:22；testing/npuir/reduction_ops/test_reduce_slice_exp.py:21；testing/npuir/reduction_ops/test_reduce_slice_exp.py:22",
       "A5 Developer依据": "examples/deepseek_v4/example_mhc_post.py:20；examples/simt/adc_tilelang_npu.py:38；testing/npuir/arith_ops/test_cumadd_slice_dev.py:15；testing/npuir/arith_ops/test_cumadd_slice_dev.py:16；testing/npuir/arith_ops/test_slice_vexp_dev.py:19；testing/npuir/arith_ops/test_slice_vexp_dev.py:20；testing/npuir/arith_ops/test_slice_vexp_dev.py:66；testing/npuir/arith_ops/test_slice_vexp_dev.py:67；...（共 23 处）",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-example,use-test"
     },
     {
       "API": "T.sync_threads",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -6487,10 +7104,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "仅 A3：有公开定义",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use-comment"
     },
     {
       "API": "T.target",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6508,10 +7127,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use,use-src,use-test"
     },
     {
       "API": "T.tensorRank",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6529,10 +7150,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.Then",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6550,10 +7173,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use,use-test"
     },
     {
       "API": "T.thread_bounds",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6571,10 +7196,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.thread_var",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6592,10 +7219,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.tma_load",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6613,10 +7242,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.to",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6634,10 +7265,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-example,use-test"
     },
     {
       "API": "T.ToDebugString",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6655,10 +7288,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "use-src"
     },
     {
       "API": "T.tvm_access_ptr",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6676,10 +7311,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-comment,use-test"
     },
     {
       "API": "T.tvm_call_cpacked",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6697,10 +7334,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.tvm_mfma",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -6718,10 +7357,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.tvm_storage_sync",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6739,10 +7380,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.tvm_struct_get",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6760,10 +7403,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.tvm_thread_allreduce",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6781,10 +7426,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.type",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6802,10 +7449,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "只看到 GPU/普通 TileLang 侧证据，未见 NPUIR 侧证据",
       "证据类型": "use-src"
     },
     {
       "API": "T.type_annotation",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6823,10 +7472,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use-test"
     },
     {
       "API": "T.use_swizzle",
+      "平台归类": "GPU特有",
       "分组": "其他出现",
       "A3 总体": "明确支持(定义+用例)",
       "A3 Expert": "未分模式(明确支持(定义+用例))",
@@ -6844,10 +7495,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=明确支持(定义+用例)；A5=明确支持(定义+用例)",
+      "平台归类说明": "CUDA/HIP/PTX/TMA 或 GPU runtime 专属 API/字段",
       "证据类型": "python-def,use-example,use-test"
     },
     {
       "API": "T.Var",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "仅用例/引用",
       "A3 Expert": "仅用例/引用",
@@ -6865,10 +7518,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=仅用例/引用；A5=仅用例/引用",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "use-test"
     },
     {
       "API": "T.While",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -6886,10 +7541,12 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,use"
     },
     {
       "API": "T.ws",
+      "平台归类": "NPU/GPU通用",
       "分组": "其他出现",
       "A3 总体": "有公开定义",
       "A3 Expert": "未分模式(有公开定义)",
@@ -6907,13 +7564,14 @@
       "A5 Expert依据": "",
       "A5 Developer依据": "",
       "简单说明": "A3=有公开定义；A5=有公开定义",
+      "平台归类说明": "有通用 TileLang/TIR 定义，或同时出现 GPU/普通用例与 NPUIR 证据",
       "证据类型": "python-def,python-export,use"
     }
   ],
   "stats": [
     [
       "生成时间",
-      "2026-06-24 22:18:03"
+      "2026-06-25 11:05:21"
     ],
     [
       "A3 分支",
@@ -6980,6 +7638,18 @@
       2
     ],
     [
+      "平台归类: NPU/GPU通用",
+      188
+    ],
+    [
+      "平台归类: NPU特有",
+      103
+    ],
+    [
+      "平台归类: GPU特有",
+      38
+    ],
+    [
       "仅 A5 有证据 API",
       "T.npuir_floor, T.npuir_floordiv, T.npuir_indirect_load, T.vfloor, T.vfloordiv (共5)"
     ],
@@ -6996,6 +7666,26 @@
     [
       "本版变化",
       "v2 不再把没有 codegen 的 API 简单标成“通用/出现”。Python export/def、docs OP 概述签名、模式化测试/示例都参与支持判定。"
+    ],
+    [
+      "平台归类",
+      "新增第二列：GPU特有、NPU/GPU通用、NPU特有、不清楚。归类来自 API 名称、定义路径、文档、codegen、测试/示例路径和文件内 target/device 标记。"
+    ],
+    [
+      "GPU特有",
+      "CUDA/HIP/PTX/TMA、GPU runtime 字段，或只在 GPU/普通 TileLang 路径看到证据且不是通用 TIR/TileLang API。"
+    ],
+    [
+      "NPU/GPU通用",
+      "通用 TileLang/TIR API，或同时有 GPU/普通路径和 NPUIR/Ascend 路径证据；不代表逐项硬件运行验收。"
+    ],
+    [
+      "NPU特有",
+      "npuir_* legacy/internal 名称，或 Ascend/NPUIR 专属内存、同步、Expert API，或只看到 NPU 侧证据。"
+    ],
+    [
+      "不清楚",
+      "证据不足或只出现零散引用，未强行归到三类。"
     ],
     [
       "明确支持(codegen)",
