@@ -66,8 +66,7 @@ def make_merge_kernel(num_pairs: int, K: int, dtype: str = "float16"):
             T.copy(cand_idx[bid : bid + 1, :], idx_ub)
 
             T.vsort(val_ub, sorted_val_ub, perm_ub, descending=True, sort_axis=-1)
-            for k in T.Parallel(K):
-                res_idx_ub[0, k] = idx_ub[0, perm_ub[0, k]]
+            T.gather(idx_ub, res_idx_ub, perm_ub[0:1, 0:K])
 
             T.copy(sorted_val_ub[0:1, 0:K], out_val[bid : bid + 1, 0:K])
             T.copy(res_idx_ub[0:1, 0:K], out_idx[bid : bid + 1, 0:K])
@@ -120,8 +119,7 @@ class HierarchicalTopK:
                     T.copy(cand_val[0:1, :], val_ub)
                     T.copy(cand_idx[0:1, :], idx_ub)
                     T.vsort(val_ub, sorted_val_ub, perm_ub, descending=True, sort_axis=-1)
-                    for k in T.Parallel(self.K):
-                        res_idx_ub[0, k] = idx_ub[0, perm_ub[0, k]]
+                    T.gather(idx_ub, res_idx_ub, perm_ub[0:1, 0 : self.K])
                     T.copy(sorted_val_ub[0:1, 0 : self.K], out_val[0:1, 0 : self.K])
                     T.copy(res_idx_ub[0:1, 0 : self.K], out_idx[0:1, 0 : self.K])
 
