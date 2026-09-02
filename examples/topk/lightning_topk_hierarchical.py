@@ -98,24 +98,55 @@ class HierarchicalTopK:
         # Compile reduction tree levels
         self.merge_kernels = []
         curr_p = self.P
-        while curr_p > 1:
-            num_pairs = curr_p // 2
-            m_func = make_merge_kernel(num_pairs, self.K, dtype=dtype)
-            compiled_m = tilelang.compile(m_func, target="npuir")
-            self.merge_kernels.append((num_pairs, compiled_m))
-            curr_p = num_pairs
+        total_cand = curr_p * self.K
+        torch_dtype = getattr(torch, dtype)
+
+        if curr_p > 1 and total_cand <= 4096:
+            # Fast-path: single-stage reduction when total candidate pool fits in UB (<= 4096 elements)
+            @T.prim_func
+            def single_merge_kernel(
+                cand_val: T.Tensor((1, total_cand), dtype),
+                cand_idx: T.Tensor((1, total_cand), "int32"),
+                out_val: T.Tensor((1, self.K), dtype),
+                out_idx: T.Tensor((1, self.K), "int32"),
+            ):
+                with T.Kernel(1, is_npu=True) as (cid, _):
+                    val_ub = T.alloc_shared((1, total_cand), dtype)
+                    sorted_val_ub = T.alloc_shared((1, total_cand), dtype)
+                    perm_ub = T.alloc_shared((1, total_cand), "int32")
+                    idx_ub = T.alloc_shared((1, total_cand), "int32")
+                    res_idx_ub = T.alloc_shared((1, self.K), "int32")
+
+                    T.copy(cand_val[0:1, :], val_ub)
+                    T.copy(cand_idx[0:1, :], idx_ub)
+                    T.vsort(val_ub, sorted_val_ub, perm_ub, descending=True, sort_axis=-1)
+                    for k in T.Parallel(self.K):
+                        res_idx_ub[0, k] = idx_ub[0, perm_ub[0, k]]
+                    T.copy(sorted_val_ub[0:1, 0 : self.K], out_val[0:1, 0 : self.K])
+                    T.copy(res_idx_ub[0:1, 0 : self.K], out_idx[0:1, 0 : self.K])
+
+            compiled_single = tilelang.compile(single_merge_kernel, target="npuir")
+            self.merge_kernels.append(("single", total_cand, compiled_single))
+            self.tree_bufs = [(
+                torch.zeros((1, self.K), dtype=torch_dtype, device=device),
+                torch.zeros((1, self.K), dtype=torch.int32, device=device),
+            )]
+        else:
+            self.tree_bufs = []
+            while curr_p > 1:
+                num_pairs = curr_p // 2
+                m_func = make_merge_kernel(num_pairs, self.K, dtype=dtype)
+                compiled_m = tilelang.compile(m_func, target="npuir")
+                self.merge_kernels.append(("binary", num_pairs, compiled_m))
+                v = torch.zeros((num_pairs, self.K), dtype=torch_dtype, device=device)
+                i = torch.zeros((num_pairs, self.K), dtype=torch.int32, device=device)
+                self.tree_bufs.append((v, i))
+                curr_p = num_pairs
 
         # Preallocate buffers
         self.offsets = (torch.arange(self.P, dtype=torch.int32, device=device) * self.B).unsqueeze(1)
-        torch_dtype = getattr(torch, dtype)
         self.s1_val = torch.zeros((self.P, self.K), dtype=torch_dtype, device=device)
         self.s1_idx = torch.zeros((self.P, self.K), dtype=torch.int32, device=device)
-
-        self.tree_bufs = []
-        for num_pairs, _ in self.merge_kernels:
-            v = torch.zeros((num_pairs, self.K), dtype=torch_dtype, device=device)
-            i = torch.zeros((num_pairs, self.K), dtype=torch.int32, device=device)
-            self.tree_bufs.append((v, i))
 
     def __call__(self, scores: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -126,20 +157,28 @@ class HierarchicalTopK:
         self.compiled_s1(scores_blocks, self.s1_val, self.s1_idx)
         s1_idx_global = self.s1_idx + self.offsets
 
+        if not self.merge_kernels:
+            return self.s1_val.view(1, self.K), s1_idx_global.view(1, self.K)
+
+        if self.merge_kernels[0][0] == "single":
+            _, total_cand, kernel = self.merge_kernels[0]
+            cand_v = self.s1_val.view(1, total_cand)
+            cand_i = s1_idx_global.view(1, total_cand)
+            out_v, out_i = self.tree_bufs[0]
+            kernel(cand_v, cand_i, out_v, out_i)
+            return out_v.view(1, self.K), out_i.view(1, self.K)
+
         prev_val = self.s1_val
         prev_idx = s1_idx_global
 
         MERGE_IN = 2 * self.K
-        for idx, (num_pairs, kernel) in enumerate(self.merge_kernels):
+        for idx, (_, num_pairs, kernel) in enumerate(self.merge_kernels):
             out_v, out_i = self.tree_bufs[idx]
             cand_v = prev_val.view(num_pairs, MERGE_IN)
             cand_i = prev_idx.view(num_pairs, MERGE_IN)
             kernel(cand_v, cand_i, out_v, out_i)
             prev_val = out_v
             prev_idx = out_i
-
-        if not self.merge_kernels:
-            return self.s1_val.view(1, self.K), s1_idx_global.view(1, self.K)
 
         final_val, final_idx = self.tree_bufs[-1]
         return final_val.view(1, self.K), final_idx.view(1, self.K)
