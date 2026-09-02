@@ -26,6 +26,7 @@ except ImportError:
 import tilelang
 from lightning_topk_vsort import lightning_topk_vsort
 from lightning_topk_chunked import lightning_topk_chunked
+from lightning_topk_hierarchical import HierarchicalTopK
 
 
 def synchronize_device():
@@ -189,6 +190,42 @@ def run_benchmark(
                             lat_us = -1.0
                             bw = 0.0
 
+                    elif method == "hierarchical":
+                        # Multi-Core Binary Tree Hierarchical TopK
+                        if N % 8192 != 0 or N < 8192:
+                            continue
+                        try:
+                            engine = HierarchicalTopK(
+                                N, K, B=8192, dtype=dtype_str, device=scores.device
+                            )
+                            val, idx = engine(scores)
+                            synchronize_device()
+
+                            ok, msg = check_correctness(scores, idx, K)
+                            if not ok:
+                                status = f"FAIL: {msg}"
+                                lat_us = -1.0
+                                bw = 0.0
+                            else:
+                                synchronize_device()
+                                for _ in range(warmup):
+                                    val, idx = engine(scores)
+                                synchronize_device()
+
+                                t_start = time.perf_counter()
+                                for _ in range(iters):
+                                    val, idx = engine(scores)
+                                synchronize_device()
+                                t_end = time.perf_counter()
+
+                                lat_us = ((t_end - t_start) / iters) * 1e6
+                                bw = (total_bytes / 1e9) / (lat_us / 1e6)
+                                status = "PASS"
+                        except Exception as e:
+                            status = f"ERR ({type(e).__name__})"
+                            lat_us = -1.0
+                            bw = 0.0
+
                     elif method == "torch":
                         # PyTorch baseline
                         try:
@@ -261,8 +298,8 @@ def main():
         "--methods",
         type=str,
         nargs="+",
-        default=["vsort", "chunked", "torch"],
-        help="Methods to benchmark",
+        default=["vsort", "chunked", "hierarchical", "torch"],
+        help="Methods to benchmark (vsort, chunked, hierarchical, torch)",
     )
     parser.add_argument(
         "--chunk-size",
