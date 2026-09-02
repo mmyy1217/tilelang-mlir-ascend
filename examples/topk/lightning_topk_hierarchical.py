@@ -96,7 +96,12 @@ class HierarchicalTopK:
             self.k_local = K
         else: # "auto" or "twostage"
             if self.P > 1 and (self.P * K) > 4096:
-                self.k_local = min(K, max(128, 4096 // self.P))
+                k_cand = 4096 // self.P
+                if k_cand >= 128:
+                    self.k_local = min(K, k_cand)
+                else:
+                    # When P > 32, fallback to exact tree reduction to maintain mathematical validity
+                    self.k_local = K
             else:
                 self.k_local = K
 
@@ -162,12 +167,8 @@ class HierarchicalTopK:
             self.single_cand_v = self.s1_val.view(1, total_cand)
             self.single_cand_i = self.s1_idx_global.view(1, total_cand)
 
-    def __call__(self, scores: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Executes hierarchical TopK on input scores tensor (1, N).
-        Returns (values, indices) of shape (1, K).
-        """
-        scores_blocks = scores.view(self.P, self.B)
+    def _forward_single(self, row_scores: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        scores_blocks = row_scores.view(self.P, self.B)
         self.compiled_s1(scores_blocks, self.s1_val, self.s1_idx)
         torch.add(self.s1_idx, self.offsets, out=self.s1_idx_global)
 
@@ -194,3 +195,27 @@ class HierarchicalTopK:
 
         final_val, final_idx = self.tree_bufs[-1]
         return final_val.view(1, self.K), final_idx.view(1, self.K)
+
+    def __call__(self, scores: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Executes hierarchical TopK on input scores tensor of arbitrary shape (..., N).
+        Returns (values, indices) of shape (..., K).
+        """
+        orig_shape = scores.shape
+        if len(orig_shape) > 2 or (len(orig_shape) == 2 and orig_shape[0] > 1):
+            scores_2d = scores.view(-1, self.N)
+            M = scores_2d.shape[0]
+            out_vals = []
+            out_idxs = []
+            for m in range(M):
+                v, i = self._forward_single(scores_2d[m : m + 1])
+                out_vals.append(v.clone())
+                out_idxs.append(i.clone())
+            res_v = torch.cat(out_vals, dim=0).view(*orig_shape[:-1], self.K)
+            res_i = torch.cat(out_idxs, dim=0).view(*orig_shape[:-1], self.K)
+            return res_v, res_i
+        else:
+            v, i = self._forward_single(scores.view(1, self.N))
+            if len(orig_shape) == 1:
+                return v.squeeze(0), i.squeeze(0)
+            return v, i
