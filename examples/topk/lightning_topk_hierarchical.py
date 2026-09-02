@@ -79,25 +79,35 @@ class HierarchicalTopK:
     Hierarchical Multi-Core Top-K Engine on Ascend NPU.
     Manages precompiled kernels and execution for arbitrary N and K.
     """
-    def __init__(self, N: int, K: int = 2048, B: int = 8192, dtype: str = "float16", device: str = "npu:0"):
+    def __init__(self, N: int, K: int = 2048, B: int = 8192, dtype: str = "float16", device: str = "npu:0", strategy: str = "auto"):
         self.N = N
         self.K = K
         self.B = B
         self.dtype = dtype
         self.device = device
+        self.strategy = strategy
 
         assert N % B == 0, f"N ({N}) must be divisible by B ({B})"
         self.P = N // B
         assert (self.P & (self.P - 1)) == 0, f"P ({self.P}) must be a power of 2"
 
+        # Decide local candidate extraction size
+        if strategy == "tree":
+            self.k_local = K
+        else: # "auto" or "twostage"
+            if self.P > 1 and (self.P * K) > 4096:
+                self.k_local = min(K, max(128, 4096 // self.P))
+            else:
+                self.k_local = K
+
         # Compile Stage 1
-        s1_func = make_stage1_kernel(self.P, self.B, self.K, dtype=dtype)
+        s1_func = make_stage1_kernel(self.P, self.B, self.k_local, dtype=dtype)
         self.compiled_s1 = tilelang.compile(s1_func, target="npuir")
 
         # Compile reduction tree levels
         self.merge_kernels = []
         curr_p = self.P
-        total_cand = curr_p * self.K
+        total_cand = curr_p * self.k_local
         torch_dtype = getattr(torch, dtype)
 
         if curr_p > 1 and total_cand <= 4096:
@@ -143,8 +153,14 @@ class HierarchicalTopK:
 
         # Preallocate buffers
         self.offsets = (torch.arange(self.P, dtype=torch.int32, device=device) * self.B).unsqueeze(1)
-        self.s1_val = torch.zeros((self.P, self.K), dtype=torch_dtype, device=device)
-        self.s1_idx = torch.zeros((self.P, self.K), dtype=torch.int32, device=device)
+        self.s1_val = torch.zeros((self.P, self.k_local), dtype=torch_dtype, device=device)
+        self.s1_idx = torch.zeros((self.P, self.k_local), dtype=torch.int32, device=device)
+        self.s1_idx_global = torch.zeros((self.P, self.k_local), dtype=torch.int32, device=device)
+
+        if self.merge_kernels and self.merge_kernels[0][0] == "single":
+            _, total_cand, _ = self.merge_kernels[0]
+            self.single_cand_v = self.s1_val.view(1, total_cand)
+            self.single_cand_i = self.s1_idx_global.view(1, total_cand)
 
     def __call__(self, scores: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -153,21 +169,19 @@ class HierarchicalTopK:
         """
         scores_blocks = scores.view(self.P, self.B)
         self.compiled_s1(scores_blocks, self.s1_val, self.s1_idx)
-        s1_idx_global = self.s1_idx + self.offsets
+        torch.add(self.s1_idx, self.offsets, out=self.s1_idx_global)
 
         if not self.merge_kernels:
-            return self.s1_val.view(1, self.K), s1_idx_global.view(1, self.K)
+            return self.s1_val.view(1, self.K), self.s1_idx_global.view(1, self.K)
 
         if self.merge_kernels[0][0] == "single":
-            _, total_cand, kernel = self.merge_kernels[0]
-            cand_v = self.s1_val.view(1, total_cand)
-            cand_i = s1_idx_global.view(1, total_cand)
+            _, _, kernel = self.merge_kernels[0]
             out_v, out_i = self.tree_bufs[0]
-            kernel(cand_v, cand_i, out_v, out_i)
+            kernel(self.single_cand_v, self.single_cand_i, out_v, out_i)
             return out_v.view(1, self.K), out_i.view(1, self.K)
 
         prev_val = self.s1_val
-        prev_idx = s1_idx_global
+        prev_idx = self.s1_idx_global
 
         MERGE_IN = 2 * self.K
         for idx, (_, num_pairs, kernel) in enumerate(self.merge_kernels):
