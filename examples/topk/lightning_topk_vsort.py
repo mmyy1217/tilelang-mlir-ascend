@@ -7,7 +7,11 @@ Takes scores of shape [M, N] and outputs top-K indices along the last dimension.
 """
 
 from typing import Optional, Tuple
+import os
 import torch
+
+os.environ.setdefault("TILELANG_ASCEND_MODE", "Developer")
+
 import tilelang
 import tilelang.language as T
 

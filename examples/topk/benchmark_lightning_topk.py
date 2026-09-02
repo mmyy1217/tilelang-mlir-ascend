@@ -9,9 +9,12 @@ and prepares baseline logs for AscendC comparison.
 
 import argparse
 import csv
+import os
 import sys
 import time
 from typing import Dict, List, Optional, Tuple
+
+os.environ.setdefault("TILELANG_ASCEND_MODE", "Developer")
 
 import torch
 

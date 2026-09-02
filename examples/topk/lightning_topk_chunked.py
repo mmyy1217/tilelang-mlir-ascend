@@ -9,7 +9,11 @@ running top-K candidates in UB.
 """
 
 from typing import Optional
+import os
 import torch
+
+os.environ.setdefault("TILELANG_ASCEND_MODE", "Developer")
+
 import tilelang
 import tilelang.language as T
 
