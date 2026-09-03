@@ -266,5 +266,5 @@ class HierarchicalTopK:
         else:
             v, i = self._forward_single(scores.view(1, self.N))
             if len(orig_shape) == 1:
-                return v.squeeze(0), i.squeeze(0)
-            return v, i
+                return v.clone().squeeze(0), i.clone().squeeze(0)
+            return v.clone(), i.clone()
