@@ -118,6 +118,8 @@ class HierarchicalTopK:
         else:
             self.B = B
 
+        assert K <= N, f"K ({K}) cannot exceed sequence length N ({N})"
+        assert K <= self.B, f"K ({K}) cannot exceed block size B ({self.B}). Increase B if larger K is required."
         assert N % self.B == 0, f"N ({N}) must be divisible by B ({self.B})"
         self.P = N // self.B
         assert (self.P & (self.P - 1)) == 0, f"P ({self.P}) must be a power of 2"
@@ -128,10 +130,10 @@ class HierarchicalTopK:
         else: # "auto" or "twostage"
             if self.P > 1 and (self.P * K) > 4096:
                 k_cand = 4096 // self.P
-                if k_cand >= 128:
+                if k_cand >= 128 and (self.P * k_cand) >= K:
                     self.k_local = min(K, k_cand)
                 else:
-                    # When P > 32, fallback to exact tree reduction to maintain mathematical validity
+                    # Fallback to exact tree reduction to maintain mathematical validity
                     self.k_local = K
             else:
                 self.k_local = K
@@ -247,6 +249,7 @@ class HierarchicalTopK:
         Executes hierarchical TopK on input scores tensor of arbitrary shape (..., N).
         Returns (values, indices) of shape (..., K).
         """
+        scores = scores.contiguous()
         orig_shape = scores.shape
         if len(orig_shape) > 2 or (len(orig_shape) == 2 and orig_shape[0] > 1):
             scores_2d = scores.view(-1, self.N)
