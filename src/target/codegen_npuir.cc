@@ -1050,7 +1050,7 @@ void CodeGenTileLangNPUIR::SyncBlockSetCodegen(const T &sync_op,
   this->stream << coretype_syncblock_map[current_coretype] << ">, <";
   this->stream << sync_op.pipe_type;
   this->stream << ">, <PIPE_S>] flag = " << flag_id;
-  this->stream << " syn_instr_mode = <" << SyncBlockMode_str[sync_op.mode];
+  this->stream << " sync_instr_mode = <" << SyncBlockMode_str[sync_op.mode];
   this->stream << ">\n";
 }
 

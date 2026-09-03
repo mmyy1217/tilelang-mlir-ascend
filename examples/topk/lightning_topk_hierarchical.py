@@ -18,27 +18,52 @@ import tilelang
 import tilelang.language as T
 
 
-def make_stage1_kernel(P: int, B: int, K: int, dtype: str = "float16"):
+def make_stage1_kernel(P: int, B: int, K: int, dtype: str = "float16", with_offset: bool = False):
     """
     Stage 1: P cores in parallel extract local top-K from blocks of size B.
+    When with_offset is True, uses hardware T.npuir_add in UB to directly output global indices.
     """
-    @T.prim_func
-    def stage1_kernel(
-        scores_blocks: T.Tensor((P, B), dtype),
-        out_val: T.Tensor((P, K), dtype),
-        out_idx: T.Tensor((P, K), "int32"),
-    ):
-        with T.Kernel(P, is_npu=True) as (bid, _):
-            src_ub = T.alloc_shared((1, B), dtype)
-            val_ub = T.alloc_shared((1, B), dtype)
-            idx_ub = T.alloc_shared((1, B), "int32")
+    if with_offset:
+        @T.prim_func
+        def stage1_kernel_offset(
+            scores_blocks: T.Tensor((P, B), dtype),
+            offsets: T.Tensor((P, K), "int32"),
+            out_val: T.Tensor((P, K), dtype),
+            out_idx: T.Tensor((P, K), "int32"),
+        ):
+            with T.Kernel(P, is_npu=True) as (bid, _):
+                src_ub = T.alloc_shared((1, B), dtype)
+                val_ub = T.alloc_shared((1, B), dtype)
+                idx_ub = T.alloc_shared((1, B), "int32")
+                off_ub = T.alloc_shared((1, K), "int32")
+                res_idx_ub = T.alloc_shared((1, K), "int32")
 
-            T.copy(scores_blocks[bid : bid + 1, :], src_ub)
-            T.vsort(src_ub, val_ub, idx_ub, descending=True, sort_axis=-1)
-            T.copy(val_ub[0:1, 0:K], out_val[bid : bid + 1, 0:K])
-            T.copy(idx_ub[0:1, 0:K], out_idx[bid : bid + 1, 0:K])
+                T.copy(scores_blocks[bid : bid + 1, :], src_ub)
+                T.copy(offsets[bid : bid + 1, :], off_ub)
+                T.vsort(src_ub, val_ub, idx_ub, descending=True, sort_axis=-1)
+                T.copy(val_ub[0:1, 0:K], out_val[bid : bid + 1, 0:K])
+                T.npuir_add(idx_ub[0:1, 0:K], off_ub, res_idx_ub)
+                T.copy(res_idx_ub, out_idx[bid : bid + 1, 0:K])
 
-    return stage1_kernel
+        return stage1_kernel_offset
+    else:
+        @T.prim_func
+        def stage1_kernel(
+            scores_blocks: T.Tensor((P, B), dtype),
+            out_val: T.Tensor((P, K), dtype),
+            out_idx: T.Tensor((P, K), "int32"),
+        ):
+            with T.Kernel(P, is_npu=True) as (bid, _):
+                src_ub = T.alloc_shared((1, B), dtype)
+                val_ub = T.alloc_shared((1, B), dtype)
+                idx_ub = T.alloc_shared((1, B), "int32")
+
+                T.copy(scores_blocks[bid : bid + 1, :], src_ub)
+                T.vsort(src_ub, val_ub, idx_ub, descending=True, sort_axis=-1)
+                T.copy(val_ub[0:1, 0:K], out_val[bid : bid + 1, 0:K])
+                T.copy(idx_ub[0:1, 0:K], out_idx[bid : bid + 1, 0:K])
+
+        return stage1_kernel
 
 
 def make_merge_kernel(num_pairs: int, K: int, dtype: str = "float16"):
@@ -82,13 +107,19 @@ class HierarchicalTopK:
     def __init__(self, N: int, K: int = 2048, B: int = 8192, dtype: str = "float16", device: str = "npu:0", strategy: str = "auto"):
         self.N = N
         self.K = K
-        self.B = B
         self.dtype = dtype
         self.device = device
         self.strategy = strategy
 
-        assert N % B == 0, f"N ({N}) must be divisible by B ({B})"
-        self.P = N // B
+        # In auto mode for large N, adaptive block size 4096 maximizes AI Core utilization (up to 32 cores)
+        # and enables on-chip T.npuir_add vector offset addition.
+        if strategy == "auto" and N >= 16384 and B == 8192:
+            self.B = 4096
+        else:
+            self.B = B
+
+        assert N % self.B == 0, f"N ({N}) must be divisible by B ({self.B})"
+        self.P = N // self.B
         assert (self.P & (self.P - 1)) == 0, f"P ({self.P}) must be a power of 2"
 
         # Decide local candidate extraction size
@@ -105,8 +136,11 @@ class HierarchicalTopK:
             else:
                 self.k_local = K
 
+        # Check if on-chip T.npuir_add offset vectorization is enabled
+        self.with_offset = (self.B <= 4096 and self.P > 1) and (self.k_local <= 256)
+
         # Compile Stage 1
-        s1_func = make_stage1_kernel(self.P, self.B, self.k_local, dtype=dtype)
+        s1_func = make_stage1_kernel(self.P, self.B, self.k_local, dtype=dtype, with_offset=self.with_offset)
         self.compiled_s1 = tilelang.compile(s1_func, target="npuir")
 
         # Compile reduction tree levels
@@ -157,7 +191,11 @@ class HierarchicalTopK:
                 curr_p = num_pairs
 
         # Preallocate buffers
-        self.offsets = (torch.arange(self.P, dtype=torch.int32, device=device) * self.B).unsqueeze(1)
+        if self.with_offset:
+            self.offsets_2d = ((torch.arange(self.P, dtype=torch.int32, device=device) * self.B).unsqueeze(1).expand(-1, self.k_local).contiguous())
+        else:
+            self.offsets = (torch.arange(self.P, dtype=torch.int32, device=device) * self.B).unsqueeze(1)
+
         self.s1_val = torch.zeros((self.P, self.k_local), dtype=torch_dtype, device=device)
         self.s1_idx = torch.zeros((self.P, self.k_local), dtype=torch.int32, device=device)
         self.s1_idx_global = torch.zeros((self.P, self.k_local), dtype=torch.int32, device=device)
@@ -165,15 +203,23 @@ class HierarchicalTopK:
         if self.merge_kernels and self.merge_kernels[0][0] == "single":
             _, total_cand, _ = self.merge_kernels[0]
             self.single_cand_v = self.s1_val.view(1, total_cand)
-            self.single_cand_i = self.s1_idx_global.view(1, total_cand)
+            if self.with_offset:
+                self.single_cand_i = self.s1_idx.view(1, total_cand)
+            else:
+                self.single_cand_i = self.s1_idx_global.view(1, total_cand)
 
     def _forward_single(self, row_scores: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         scores_blocks = row_scores.view(self.P, self.B)
-        self.compiled_s1(scores_blocks, self.s1_val, self.s1_idx)
-        torch.add(self.s1_idx, self.offsets, out=self.s1_idx_global)
+        if self.with_offset:
+            self.compiled_s1(scores_blocks, self.offsets_2d, self.s1_val, self.s1_idx)
+            active_idx = self.s1_idx
+        else:
+            self.compiled_s1(scores_blocks, self.s1_val, self.s1_idx)
+            torch.add(self.s1_idx, self.offsets, out=self.s1_idx_global)
+            active_idx = self.s1_idx_global
 
         if not self.merge_kernels:
-            return self.s1_val.view(1, self.K), self.s1_idx_global.view(1, self.K)
+            return self.s1_val.view(1, self.K), active_idx.view(1, self.K)
 
         if self.merge_kernels[0][0] == "single":
             _, _, kernel = self.merge_kernels[0]
@@ -182,7 +228,7 @@ class HierarchicalTopK:
             return out_v.view(1, self.K), out_i.view(1, self.K)
 
         prev_val = self.s1_val
-        prev_idx = self.s1_idx_global
+        prev_idx = active_idx
 
         MERGE_IN = 2 * self.K
         for idx, (_, num_pairs, kernel) in enumerate(self.merge_kernels):
