@@ -754,7 +754,15 @@ static void _launch(const char* kernelName, const void* func, rtStream_t stream,
   {
         "auto launch_call = [=]() mutable -> rtError_t"
         if (enable_taskqueue and compile_on_910_95)
-        else ("auto launch_call = [&]()" if enable_taskqueue else "")
+        else (
+            (
+                "auto launch_call = [=]() mutable"
+                if lock_num <= 0
+                else "auto launch_call = [&]()"
+            )
+            if enable_taskqueue
+            else ""
+        )
     } {{
     uint32_t blockNum = gridX * gridY * gridZ;
     {
@@ -802,6 +810,15 @@ static void _launch(const char* kernelName, const void* func, rtStream_t stream,
     }
     {
         f'''
+    auto workspace = at_npu::native::allocate_workspace(
+        {workspace_size} * blockNum, stream);
+    workspace_addr = workspace.data_ptr();
+    '''
+        if workspace_size > 0
+        and enable_taskqueue
+        and not compile_on_910_95
+        and lock_num <= 0
+        else f'''
     uint64_t totalWorkSpaceSize = {workspace_size} * blockNum;
     ret = rtMalloc(reinterpret_cast<void **>(&workspace_addr),
                    totalWorkSpaceSize, RT_MEMORY_HBM, ModuleId);
@@ -891,7 +908,11 @@ static void _launch(const char* kernelName, const void* func, rtStream_t stream,
         "at_npu::native::OpCommand cmd; cmd.Name(name.c_str()).SetCustomHandler(launch_call).Run();"
         if (enable_taskqueue and compile_on_910_95)
         else (
-            "at_npu::native::OpCommand::RunOpApi(name.c_str(), launch_call, true); rtFree(workspace_addr);"
+            (
+                "at_npu::native::OpCommand::RunOpApi(name.c_str(), launch_call, false);"
+                if lock_num <= 0
+                else "at_npu::native::OpCommand::RunOpApi(name.c_str(), launch_call, true); rtFree(workspace_addr);"
+            )
             if enable_taskqueue
             else ""
         )
@@ -1279,6 +1300,7 @@ class JitKernel_NPU:
         full_args.extend(self.extra_args)
 
         # Run kernel
+        self.launch_stream = torch.npu.current_stream(self.utils_device).npu_stream
         self.launch_npu(
             self.launch_grid[0],
             self.launch_grid[1],
@@ -1751,6 +1773,17 @@ class compiler_npu:
             # bishengir-compile --enable-triton-kernel-compile=true make sure the way.
 
             _compile_option_list = []
+            if "hivm.hir.vmrgsort" in linalg or "hivm.hir.vsort32" in linalg:
+                packed_library = (
+                    Path(npu_compiler_path).resolve().parent.parent
+                    / "lib"
+                    / "bishengir_mrgsort.aiv.bc"
+                )
+                if not packed_library.is_file():
+                    raise RuntimeError(
+                        f"Native packed-sort library missing: {packed_library}; build AscendNPU-IR with BISHENGIR_BUILD_MRGSORT_TEMPLATE=ON"
+                    )
+                _compile_option_list.append(f"--link-aicore-bitcode={packed_library}")
             pass_configs = getattr(self, "pass_configs", {})
 
             if _is_a5_device():
