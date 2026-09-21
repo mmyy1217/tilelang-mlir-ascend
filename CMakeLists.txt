@@ -300,6 +300,24 @@ endif()
 target_include_directories(tilelang_objs PRIVATE ${TILE_LANG_INCLUDES})
 target_compile_definitions(tilelang_objs PRIVATE ${TILE_LANG_COMPILE_DEFS})
 target_compile_definitions(tilelang_objs PRIVATE -DTILE_LANG_EXPORTS)
+if(USE_NPUIR)
+  include(CheckCXXSourceCompiles)
+  include(CMakePushCheckState)
+  cmake_push_check_state(RESET)
+  set(CMAKE_REQUIRED_INCLUDES ${BISHENGIR_INCLUDE_DIRS})
+  set(_tilelang_saved_try_compile_type "${CMAKE_TRY_COMPILE_TARGET_TYPE}")
+  set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+  check_cxx_source_compiles(
+    "#include <bishengir/Dialect/HIVM/IR/HIVM.h>
+     int main() { return sizeof(mlir::hivm::SetAtomicOp) == 0; }"
+    TILELANG_HAS_HIVM_SET_ATOMIC)
+  set(CMAKE_TRY_COMPILE_TARGET_TYPE "${_tilelang_saved_try_compile_type}")
+  unset(_tilelang_saved_try_compile_type)
+  cmake_pop_check_state()
+  if(TILELANG_HAS_HIVM_SET_ATOMIC)
+    target_compile_definitions(tilelang_objs PRIVATE TILELANG_HAS_HIVM_SET_ATOMIC=1)
+  endif()
+endif()
 
 # Shared library
 add_library(tilelang SHARED $<TARGET_OBJECTS:tilelang_objs>)

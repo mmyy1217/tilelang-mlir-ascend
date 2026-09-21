@@ -3536,7 +3536,8 @@ void CodeGenTileLangNPUIRDEV::ReshapeCodegen(const CallNode *op) {
 }
 
 void CodeGenTileLangNPUIRDEV::CallExternCodegen(const CallNode *op) {
-  // Todo: Implementation pending
+  LOG(FATAL) << "NPU-IR Developer mode does not support call_extern: "
+             << op->args[0];
 }
 
 mlir::Value CodeGenTileLangNPUIRDEV::ScalarExpCodegen(const CallNode *op) {

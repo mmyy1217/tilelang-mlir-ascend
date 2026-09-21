@@ -730,6 +730,8 @@ extern "C" {
 
     return f"""
 #include "npu_launcher.h"
+#include <memory>
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #define PY_SSIZE_T_CLEAN
 {"#define __CCE_ENABLE_PRINT__" if need_debug else ""}
 {extract_device_print_code_from_cann() if need_debug else ""}
@@ -754,7 +756,15 @@ static void _launch(const char* kernelName, const void* func, rtStream_t stream,
   {
         "auto launch_call = [=]() mutable -> rtError_t"
         if (enable_taskqueue and compile_on_910_95)
-        else ("auto launch_call = [&]()" if enable_taskqueue else "")
+        else (
+            (
+                "auto launch_call = [=]() mutable"
+                if lock_num <= 0
+                else "auto launch_call = [&]()"
+            )
+            if enable_taskqueue
+            else ""
+        )
     } {{
     uint32_t blockNum = gridX * gridY * gridZ;
     {
@@ -802,6 +812,19 @@ static void _launch(const char* kernelName, const void* func, rtStream_t stream,
     }
     {
         f'''
+    // Explicit launch-stream allocation also participates in graph memory pools.
+    // Release enqueues reuse on that same stream; no workspace allocator sync.
+    std::unique_ptr<void, void(*)(void*)> workspace(
+        c10_npu::NPUCachingAllocator::raw_alloc_with_stream(
+            static_cast<uint64_t>({workspace_size}) * blockNum, stream),
+        c10_npu::NPUCachingAllocator::raw_delete);
+    workspace_addr = workspace.get();
+    '''
+        if workspace_size > 0
+        and enable_taskqueue
+        and not compile_on_910_95
+        and lock_num <= 0
+        else f'''
     uint64_t totalWorkSpaceSize = {workspace_size} * blockNum;
     ret = rtMalloc(reinterpret_cast<void **>(&workspace_addr),
                    totalWorkSpaceSize, RT_MEMORY_HBM, ModuleId);
@@ -891,7 +914,11 @@ static void _launch(const char* kernelName, const void* func, rtStream_t stream,
         "at_npu::native::OpCommand cmd; cmd.Name(name.c_str()).SetCustomHandler(launch_call).Run();"
         if (enable_taskqueue and compile_on_910_95)
         else (
-            "at_npu::native::OpCommand::RunOpApi(name.c_str(), launch_call, true); rtFree(workspace_addr);"
+            (
+                "at_npu::native::OpCommand::RunOpApi(name.c_str(), launch_call, false);"
+                if lock_num <= 0
+                else "at_npu::native::OpCommand::RunOpApi(name.c_str(), launch_call, true); rtFree(workspace_addr);"
+            )
             if enable_taskqueue
             else ""
         )
@@ -1279,6 +1306,7 @@ class JitKernel_NPU:
         full_args.extend(self.extra_args)
 
         # Run kernel
+        self.launch_stream = torch.npu.current_stream(self.utils_device).npu_stream
         self.launch_npu(
             self.launch_grid[0],
             self.launch_grid[1],
