@@ -102,7 +102,7 @@ FINGERPRINTS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     ),
     "SC-DUP-REPORT": (
         f"{_STD}/final-report-template.md",
-        "harness 集成验证: <smoke / full 用例数与结果，仅 migration-harness 填>",
+        "harness 集成验证: <本次 TileOPs report 的全量正确性用例数与结果；benchmark passed/partial 及有效数值或失败原因，仅 migration-harness 填>",
         (f"{_STD}/final-report-template.md",),
     ),
     # --- C3.2 知识块指纹（变更半径治理）：状态机图 / Stage 表 / 目录结构 /
@@ -134,7 +134,7 @@ FINGERPRINTS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     ),
     "SC-DUP-DPRC": (
         ".agents/skills/tilelang-skill-evolution/SKILL.md",
-        "| **D 实测数据** | 性能数字、代价常数、编译器/运行时陷阱实证、API 实际行为实证 | **Tier 0** 直接合入 `pattern-library.md` §1/§2（须带溯源 + 工具链版本戳 + 复现命令三件套） |",
+        "| **D 实测数据** | 性能数字、代价常数、编译器/运行时陷阱实证、API 实际行为实证 | **Tier 0** 直接合入 `pattern-library/` 主题文件 + `constants.md`（ED-A 三件套：provenance〔origin_task + 出处，允许失效〕+ 版本戳 + repro〔知识域自包含脚本〕；缺 repro → Tier 1 入队标 `repro-missing`） |",
         (
             ".agents/skills/tilelang-skill-evolution/SKILL.md",
             ".agents/skills/tilelang-skill-evolution/references/distillation-rules.md",
@@ -152,7 +152,7 @@ FINGERPRINTS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     ),
     "SC-DUP-PERFRECORDS": (
         f"{_STD}/signal-registry.md",
-        "{round, candidate_id, parent_id, dispatch_path, workload, duration_us, l0_pass, msprof_raw_path, timestamp}",
+        "{round, candidate_id, parent_id, kernel_id, workload_id, phase, artifact_path, artifact_sha256, duration_us, l0_pass, msprof_raw_path, timestamp}",
         (f"{_STD}/signal-registry.md",),
     ),
 }
@@ -219,7 +219,7 @@ def iter_consumer_files(repo_root: str) -> list[str]:
                 full = os.path.join(dirpath, fn)
                 if os.path.commonpath([full, excluded_prefix]) == excluded_prefix:
                     continue
-                files.append(os.path.relpath(full, repo_root))
+                files.append(os.path.relpath(full, repo_root).replace(os.sep, "/"))
     return files
 
 

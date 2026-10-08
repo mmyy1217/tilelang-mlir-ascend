@@ -1,100 +1,20 @@
-# NPU 性能模式库与证伪协议
+# NPU 性能模式库（已拆分——见 pattern-library/ 目录）
 
-> 本文件收录**已实测验证**的性能模式、代价数据与实验方法学规则。来源：真实调优任务的 msprof 实测（首版素材：AvgPool2dFwdOp optimize 任务，2026-08，Ascend910B2C，数据可追溯至该任务 `perf_opt/opt_log.md`）。
+> **本文件已按渐进披露原则拆分为主题文件**（K-2，2026-09-10）——本存根仅保留入口指引与兼容重定向，**不再更新内容**；所有条目已迁移至：
 >
-> **维护规则**：每次调优任务产出的新模式/代价数据/证伪更正，由调优 Agent 在任务结束前追加到对应章节（含任务溯源与工具链版本戳）。模式库只有在"每次被读"的位置上才不会遗忘。**任务终态另有 `tilelang-skill-evolver`（`tilelang-skill-evolution` skill）统一蒸馏合入**——它是本文件的第二个授权写入者（覆盖 §1/§2/§4 的增量条目，五种 delta：add/update/consolidate/negate/deprecate；含其他 Stage 产出的 D/C 类价值点）；两次写入互补防双写（evolver 跳过已回写条目）。
+> ```text
+> .agents/skills/tilelang-op-optimize/references/pattern-library/
+> ├── INDEX.md            # 唯一入口：维护规则 + 证伪协议 + 检索规则 + 条目索引（必读）
+> ├── layout.md           # §1.1–1.5 向量化轴与布局模式
+> ├── elementwise.md      # §1.6 copy-floor 与 MTE2 带宽曲线
+> ├── attention.md        # §1.7–1.9 Expert persistent / attention 族
+> ├── traps-compiler.md   # §2 编译器/解析器陷阱
+> ├── traps-runtime.md    # §2 运行时/数值/语义陷阱
+> ├── constants.md        # 硬件常数表（设计期 roofline 口径，D-2）
+> ├── cases.md            # §4 案例索引 + 参考实现集 + 反例档案互链
+> └── repro/              # 最小可复现代码（ED-B，知识回归测试）
+> ```
 >
-> **条目溯源（D2）**：新增条目须带 `origin_task`（来源任务 id）与工具链版本戳；**下游引用条目时须标注其 origin_task**（optimizer Phase 0 检索注入、designer 步骤 0.5、复盘引用），据此判别可信度与是否需按版本戳重验。
+> **历史引用对照**：`pattern-library.md §1` → layout/elementwise/attention.md；`§2` → traps-compiler/traps-runtime.md；`§3` → INDEX.md §2/§3；`§4` → cases.md；`§1.6 常数` → constants.md。
 >
-> **预算与生命周期**（由 evolver 维护）：§1–§3 知识区预算 300 行、§4 案例索引预算 150 行，超限触发 consolidate（合并、压缩措辞；负面条目只可 deprecate 不可删除）；`update` 优先于 `add`（同主题已有条目时禁止新开）；工具链变更后相关条目自动降级"待重验"。
-
-## 1. 向量化轴与布局模式（优先级最高的检索项）
-
-**诊断触发器**：msprof 显示算子热点段**标量执行占比 > 50%** 时，强制触发"换向量化轴/换布局"分析——不要在原轴上微调（实测案例：窗口累加 98.3% 标量源于 `j·sW`（sW≠1）跨步系数阻碍向量化，原轴微调收益为 0，换轴后 5.6x）。
-
-### 1.1 核内融合转置链（布局重排的正确形态）✅ 已验证
-
-- **模式**：I/O 保持原生契约（如 NCHW），核内用 **T.transpose 二轴交换链**重排到目标布局（如 NHWC）。3D 置换 = 两次二轴交换：
-  ```
-  (CH, Hi, Wi) -[1,0,2]-> (Hi, CH, Wi) -[0,2,1]-> (Hi, Wi, CH)   # 输入侧
-  (BH, WO, CH) -[0,2,1]-> (BH, CH, WO) -[1,0,2]-> (CH, BH, WO)   # 输出侧
-  ```
-- **实测代价**：4 次融合转置合计 **~5.4µs**（远低于算子本体）——"转置很慢"是错误印象，勿因直觉弃用。
-- **硬约束**：① `T.transpose` 的 permutation **仅支持二轴交换**（如 `[1,0,2]`/`[0,2,1]`），**不支持 3-cycle**（`[1,2,0]`）——3D 置换必须拆成两次交换链；② **reshape→transpose 链会 mis-compile（数据错乱）**——必须始终在自然形状 buffer 之间做 transpose；③ 转置须在**自然形状** shared/UB buffer 间进行。
-- **佐证**：`testing/npuir/broken/test_slice_transpose_dev.py`；AvgPool2d perf_opt v3a（`examples/TileOPs/tileops/kernels/pool/avg_pool2d/avg_pool2d_kernel/perf_opt/`）。
-
-### 1.2 C 轴切片累加（channel-batched vector accumulation）✅ 已验证
-
-- **模式**：`T.vadd(acc[i, j, :], in_f32[i*SH+ki, j*SW+kj, :], acc[i, j, :])`——整 C 轴切片作为向量操作数，**i/j 用 T.serial**（不是 Parallel），ki/kj serial 外层。
-- **适用**：C 恒为向量宽度整数倍的 NCHW 类算子（C=64/96/128；96 用 CH=48/32/16 分块）。
-- **实测收益**：AvgPool2d kernel 级 1.98–13.2x（vs 同代 H-collapse 版本）。
-
-### 1.3 host permute 路线 ❌ 通常净亏（已量化证伪）
-
-- 两次 host permute（NCHW↔NHWC）实测 **106–147µs** > 多数中等算子本体耗时；仅当算子本体远大于此（如 >500µs）且无法核内重排时才值得复测。
-
-### 1.4 tiling 启发式（C 轴向量化形态）✅ 已验证
-
-- **BH=1 + 最宽 CH 最优**：CH64 21.6µs < CH32 26.7µs < BH2/CH16 44.8µs——更宽 C 向量 + 更少 block 胜过更高空间并行度。
-- **UB 约束**：CH×空间 tile 驻留超 192KB 时收缩 CH（实测 vis-3x3 的 CH=64 需 252.8KB 被排除，CH=32 落地）；buffer 生命周期不重叠时可探索 aliasing 复用（预估再省 10–20%，未验证）。
-- **回退分发**：C%16≠0 或 shape 越界时回退到非重排路径（工厂层静态判定，无运行时开销）——保持全 shape 兼容。
-
-### 1.5 其他已验证模式速查
-
-| 模式                  | 一句话                                                                                                                                                                                                                                                               | 实测参考                                                                                                           |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| 乘编译期常数倒数      | divisor 恒定时`T.vmul(acc, 1/d, acc)`，省逐元素除法                                                                                                                                                                                                                | AvgPool2d fast path                                                                                                |
-| H-collapse            | 把 kH 折叠进向量管道，消除一层 serial 累加                                                                                                                                                                                                                           | AvgPool2d v2（对 sW 跨步问题的 W 轴解法）                                                                          |
-| fp32 求和序匹配       | kernel 累加序与 golden（F.avg_pool2d 等）一致时解锁高精度快路径                                                                                                                                                                                                      | AvgPool2d fp32 13.2x                                                                                               |
-| launch 开销主导判定   | 小 shape 与大 shape 耗时同量级 → 固定开销主导；拆 pad-only/padded-in 定位                                                                                                                                                                                           | bench_runner`--decompose`                                                                                        |
-| host 层编译期常量折叠 | `@T.prim_func` 外的 `T.ceildiv(int,int)`/`min(IntImm,int)` 对 Python int 常量折叠为 IntImm（复现：`T.ceildiv(4097,4096)`→`2 <IntImm>`）——persistent 设计的 num_logical/num_kernels/num_local_tasks 可在工厂层直接求编译期常量，无需改写 Python 整数算术 | lerp_tensor 迁移 2026-09-07（REVIEW.md 附#29；origin_task: lerp_tensor-_make_lerp_tensor_kernel-20260907T010433Z） |
-
-### 1.6 copy-floor 标定与 MTE2 带宽退化曲线（elementwise 多输入）✅ 已验证
-
-- **copy-only 探针标定法**：与目标 kernel 同结构（同 persistent/分块/映射）的 3 载入 + 2 vadd 保活（DCE-proof）+ 1 写出探针，一步判定计算链暴露量。lerp_tensor（3 输入 1 输出，7-pass fp32-transit 链）：≥16M 全 dtype delta ≤1.1us（16M 仅 0.34us）——**auto multi-buffer 将全部向量 pass 隐藏于 MTE2 窗口内**，计算链优化在该区间 ROI≈0，直接进入搬运效率维度。
-- **MTE2 有效带宽随总流量退化**（4-set 轮换，fp16 bs4096，48 vector core）：1M 33.9 → 16M 30.2 → 64M 20.9 → 256M 18.4 GB/s/core；256M 的 3:1 R/W 混合全流量 ~1.26 TB/s 为该设备地板——**"~1.8 TB/s 峰值参考"对混合读写流量不可达**（不要据其估算大 N headroom）。1M 档读带宽含 L2 成分。
-- **访问模式**：grid-stride（48 核聚集于 48×tile 移动窗口）实测优于每核连续分块 +3.2%（256M）——HBM 混合流下聚集窗口访问更优，"连续流 DRAM 局部性"直觉反向（详见 bottleneck-patterns BP 候选）。
-- **标量削减判定式**：mte2_ratio ≥0.95（搬运饱和）时 per-tile 标量/分支开销已被隐藏——静态尾块（去 T.min）全档 tie/-0.6%，guard-free 预判 <0.3%；此类优化仅在 mte2_ratio <0.9 的流水浅区（如 1M 档 0.70–0.84）可能有收益。
-- 溯源：lerp_tensor optimize 任务（2026-09-07），`examples/TileOPs/tileops/kernels/elementwise/lerp_tensor/lerp_tensor_kernel/perf_opt/opt_log.md`；tilelang 0.1.2+ed787bb / Ascend910B2C / CANN 8.5.0。
-
-## 2. 已知编译器/运行时陷阱（工具链版本绑定 ⚠️）
-
-> **证伪协议（强制）**：
->
-> 1. **否定任何 API/模式前，必须用文档合法形态测试**——先查 `docs/Tilelang.language/` 确认 API 的合法参数/形式，穷举代表性写法后再下结论。实测教训：曾以非法 3-cycle permutation（`[1,2,0]`）与 Parallel 循环累加形式测出"编译失败"，误判"transpose 链/C 轴累加不可用"，掩盖了 2–13x 收益。
-> 2. **一切编译器约束结论必须盖工具链版本戳**（tilelang commit/build 时间 + 来源任务），工具链变更（源码修改/重编译）后**自动视为待重验**，不得直接引用旧结论。
-> 3. 证伪更正时须在 opt_log 写明"误判根因 + 合法形态 + 新数据"。
-
-| #   | 陷阱                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 状态（含版本戳）                                                                                                                                                                                                                                                                                                                                                                                          |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| C1  | 旧编译器 transpose/C-slice 形态不可用                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | **已失效**（2026-08-27 tilelang 重编译后推翻；合法形态见 §1.1/1.2）                                                                                                                                                                                                                                                                                                                                |
-| C9  | `TILELANG_ENABLE_TASKQUEUE=false` 异步 launch 损坏 fp32 数据                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 有效（截至 2026-08-28 build）                                                                                                                                                                                                                                                                                                                                                                             |
-| C10 | 跨步 gather 向量指令缺失（非 C 轴连续的跨步访问小心）                                                                                                                                                                                                                                                                                                                                                                                                                                                             | 有效（同上）                                                                                                                                                                                                                                                                                                                                                                                              |
-| C11 | parser var-table 作用域问题                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 有效（同上）                                                                                                                                                                                                                                                                                                                                                                                              |
-| C12 | `T.copy` 静默跨 dtype 转换                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 有效（同上）；Developer GM→UB lowering 为隐藏 hivm::VCastOp（`docs/Tilelang.language/内存操作/T.copy.md` §3），跨 dtype copy 不减少 vector pass 且舍入不可控——勿用作 cast 融合（lerp_tensor 2026-09-07 文档证伪）                                                                                                                                                                                   |
-| —  | auto-multi-buffer UB 膨胀 ~1.7x 超 192KB 上限：大 block_size 探索须按膨胀后预算评估；削 buffer 不必然解锁（lerp fp32 3-buffer 12288/16384 仍 blocked）                                                                                                                                                                                                                                                                                                                                                            | 有效（2026-08-24 mish 首证；2026-09-07 lerp_tensor 第二次独立证据：`ub overflow, requires 1966080 bits while 1572864 bits available`）                                                                                                                                                                                                                                                                  |
-| —  | UB dst 非零起点切片 + 32B 倍宽度触发 VEC 对齐错误                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 有效（同上；host pad 或 0 起点拷贝绕开）                                                                                                                                                                                                                                                                                                                                                                  |
-| —  | vbrc 标量→shared 不可用；serial 变量条件 if_then_else select segfault                                                                                                                                                                                                                                                                                                                                                                                                                                            | 有效（同上）                                                                                                                                                                                                                                                                                                                                                                                              |
-| —  | `T.Kernel(..., threads=)` 在 npuir 无效果：`src/ir.cc` L175–203 KernelLaunch NPU 分支仅消费 grid_size、block_size 不生成任何 threadIdx 绑定（Python 签名仍接受并透传该 kwarg）；GPU 源码迁移遇 `threads=` 直接移除即可，threads/npt 折叠为单一 block_size 由 wrapper 参数传入（复现：`grep -n -A 30 "is_npu_kernel_frame" src/ir.cc`）                                                                                                                                                                   | 有效（tilelang-mlir-dev dev root build 2026-09-07 源码通读；evidence:`examples/lerp_tensor/_make_lerp_tensor_kernel/REVIEW.md` 附#28；origin_task: lerp_tensor-_make_lerp_tensor_kernel-20260907T010433Z）                                                                                                                                                                                              |
-| —  | torch CPU golden 的 fp16 opmath 域分歧：torch.lerp（torch 2.9.0+cpu）对 fp16 输入经**fp32 opmath + 单次舍回**计算，NPU fp16 原生域三步链（逐步 fp16 舍入）与之差 ~2–3 ulp fp16，N=2^24、atol=rtol=1e-3 下违反率 ~0.125% 且与 shape/block_size/核数无关（纯舍入路径统计性质，非 tiling/同步缺陷）；bf16 golden 与 fp32 中转 kernel 逐位一致。对齐通解：`vcast(rint)` 升 fp32 → fp32 域 v-prefix 链 → `vcast(rint)` 单次舍回，差 ≤1 ulp fp16（rtol≥5e-4 即覆盖）；NaN/Inf 角点 IEEE 传播不受中转影响 | 有效（torch 2.9.0+cpu + tilelang-mlir-dev dev root build 2026-09-07；origin_task: lerp_tensor-_make_lerp_tensor_kernel-20260907T010433Z；复现：`python examples/lerp_tensor/_make_lerp_tensor_kernel/history_version/_make_lerp_tensor_kernel_impl_s3_attempt1.py --level L0`（fp16 违反）vs `python examples/lerp_tensor/_make_lerp_tensor_kernel/_make_lerp_tensor_kernel.py --level all`（全过）） |
-
-## 3. 检索规则（调优 Agent 每轮必读）
-
-1. **首轮必查项**：① 向量化轴/布局重估（对照 §1，即使上游设计已定——设计期结论可能基于旧工具链）；② 标量执行占比诊断（>50% 触发换轴）；③ 本模式库 §2 版本戳核对（工具链变更则重验）。
-2. 新模式/新代价数据/证伪更正 → 任务结束前追加进本文件对应章节（含溯源）。
-3. 本库模式是**起点不是终点**：每算子的最优 tiling（CH/BH/block）仍须实测扫描。
-
-## 4. 案例索引（同类问题的正/反例参考）
-
-> **用途**：按"哪类问题该参考哪个算子目录"组织 `examples/` 的检索入口。Stage 1 设计（强制步骤 0.5）与本 skill Phase 0 均会读取本节——命中时优先精读对应算子目录，优先于盲目 Glob。**维护**：由 `tilelang-skill-evolver` 在任务终态追加（C 类，Tier 0）；条目 = 路径 + 一句话 + 适用触发条件，不复制内容；路径失效或长期零引用 → deprecate。
-
-| 算子目录                                                                                  | 一句话                                                                                                                                                                    | 适用触发条件                                                                                               | 溯源                                                                                           |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `examples/TileOPs/tileops/kernels/pool/max_pool3d/max_pool3d_kernel/`                   | TileOPs 集成包形态：kernel +`{func}_DESIGN.md` 快照 + 聚合 `__init__.py` + integration_log                                                                            | migration-harness 集成结构参考；Stage 5 集成问题排查                                                       | 2026-08 max_pool3d harness 迁移                                                                |
-| `examples/TileOPs/tileops/kernels/elementwise/mish/mish_kernel/perf_opt/`               | elementwise cast 类完整调优档案（persistent 甜点、multi-buffer 教训、Expert 流水平台约束、run 双态协议）                                                                  | elementwise 调优前必读先例；<3% 结论多 run 协议                                                            | 2026-08 mish optimize                                                                          |
-| `examples/TileOPs/tileops/kernels/reduction/logsumexp/_logsumexp_kernel_single/`        | 规约类（logsumexp）独立算子目录：DESIGN.md + kernel + 分层测试                                                                                                            | 规约类（水平归约/online 单遍）设计与 L0 测试计划参考                                                       | 2026-08 logsumexp 迁移                                                                         |
-| `examples/TileOPs/tileops/kernels/elementwise/lerp_tensor/lerp_tensor_kernel/perf_opt/` | elementwise 3 输入 persistent 调优：copy-floor 探针标定法 + MTE2 带宽退化曲线 + 交错 A/B 采纳复核 + grid-stride vs 连续分块反例                                           | 判定"已贴内存地板"时的方法学参考；多输入 elementwise 调优                                                  | 2026-09 lerp_tensor optimize                                                                   |
-| `examples/lerp_tensor/_make_lerp_tensor_kernel/`                                        | fp16 精度失败定征与修复完整档案：attempt-1 原生域失败基线（`history_version/`）+ R2 fp32 中转修复（≤1 ulp，全量 62 PASS）+ kernel 头部 Implementation Notes 等价性论证 | fp16/bf16 逐元素迁移精度失败（golden opmath 域分歧）定征与修复参考；vcast 中转路径 UB 混合字节预算复算案例 | 2026-09 lerp_tensor 迁移（origin_task: lerp_tensor-_make_lerp_tensor_kernel-20260907T010433Z） |
-| `examples/maxpool3d/_max_pool3d_kernel/`                                                | standalone 形态的池化算子目录（DESIGN.md + kernel）                                                                                                                       | 窗口/池化类设计参考（分核策略、边界处理）                                                                  | 2026-08 maxpool3d 开发                                                                         |
-
-> 反例档案（BLOCKED 终态任务的根因链）同样入本节，标注「反例」；当前暂无条目。
+> **检索**：`python3 .agents/tools/kb_search.py "<算子族/症状/API/dtype>"`（覆盖本库全部主题 + bottleneck-patterns + algorithm-candidates + capability-gaps + queue pending）；**写入**（optimizer 回写 / evolver 合入）一律作用于主题文件，五种 delta 与预算规则不变（INDEX.md §1）。

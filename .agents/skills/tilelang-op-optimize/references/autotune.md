@@ -85,11 +85,21 @@ Autotune 后邻域精搜：
 
 执行后必须：
 
-- 用 best config 生成当前 autotune 实验分支，例如 `perf_opt/{op}_opt_v{iter}_{opt_id}.py`。
+- 用 best config 生成当前 autotune 实验分支，例如 `perf_opt/{op}_round{iter}_{opt_id}.py`。
 - 若执行了邻域精搜，用精搜 winner 生成最终候选分支，并记录它与 autotune winner 的关系。
 - 跑 L0 精度回归。
 - 对 winner 单独跑 `msprof op`。
 - 最终性能报告使用单独复测的 `msprof op`，不直接使用 autotune latency 作为最终结果。
+
+## 实验批处理 runner（T-4）
+
+Phase 2 的实验分支执行（L0 回归 → msprof 采集 → perf_records.jsonl 追加 → 汇总表）应交给批处理脚本而非 agent 逐个往返驱动：
+
+1. **首轮生成**：先从 benchmark 建立 `workload_inventory.json`，再从模板 [run_experiments_template.py](run_experiments_template.py) 拷贝到 `perf_opt/run_experiments.py`，适配 `kernel_id`、直接运行 kernel 的命令与 EXPERIMENTS；模板只读取 inventory 中该 kernel 的 tune workload，smoke 精度回归另按 skill 执行；
+2. **后续轮直接调用**：逐 workload 候选实验使用 `--workload {workload_id}`；baseline、核内合并和 final 用 `--phase baseline/merged/final --all` 对当前 kernel 的全部 tune workload 串行采集。脚本逐测量追加性能记录，末尾打印「候选 vs current best」汇总表；
+3. **决策留在 agent**：读表决策 winner/rollback/下一轮候选——脚本只执行不判断；`<5%` 差异与平区决胜仍按 SKILL.md Phase 2 第 9 步走 `ab_test.py` 交错多 run 协议；
+4. 收益：单轮 agent 交互轮次下降 60%+；大工件会话超限类失败（VP-2026-0021：两次空返回各耗 1579s/930s）被根治——长链路工具调用收敛为一次脚本执行；
+5. 脚本输出与 perf_records.jsonl 对账（append-only 纪律不变），gate 4 机械校验照常生效。
 
 ## 口径约束
 

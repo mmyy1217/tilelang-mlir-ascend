@@ -64,7 +64,7 @@ STAGE3 = """# stage3 routing
 """
 
 REPORT = """# report
-harness 集成验证: <smoke / full 用例数与结果，仅 migration-harness 填>
+harness 集成验证: <本次 TileOPs report 的全量正确性用例数与结果；benchmark passed/partial 及有效数值或失败原因，仅 migration-harness 填>
 """
 
 PERF_FEEDBACK = """# perf feedback
@@ -75,7 +75,7 @@ SIGNAL_REGISTRY = """# signal registry
 developer mode 枚举：`first_impl` / `retry_impl` / `precision_fix`。
 optimizer mode 枚举：`full`（默认，完整调优流程） / `precision_fix`（仅精度回归修复）。
 perf_records.jsonl 字段契约：
-{round, candidate_id, parent_id, dispatch_path, workload, duration_us, l0_pass, msprof_raw_path, timestamp}
+{round, candidate_id, parent_id, kernel_id, workload_id, phase, artifact_path, artifact_sha256, duration_us, l0_pass, msprof_raw_path, timestamp}
 """
 
 CONDUCTOR_MAIN = """# conductor main
@@ -88,7 +88,7 @@ INIT --> DESIGN --> REVIEW --> DEVELOP --> TUNING(可选) --> DONE
 """
 
 EVOLUTION_SKILL = """# skill evolution
-| **D 实测数据** | 性能数字、代价常数、编译器/运行时陷阱实证、API 实际行为实证 | **Tier 0** 直接合入 `pattern-library.md` §1/§2（须带溯源 + 工具链版本戳 + 复现命令三件套） |
+| **D 实测数据** | 性能数字、代价常数、编译器/运行时陷阱实证、API 实际行为实证 | **Tier 0** 直接合入 `pattern-library/` 主题文件 + `constants.md`（ED-A 三件套：provenance〔origin_task + 出处，允许失效〕+ 版本戳 + repro〔知识域自包含脚本〕；缺 repro → Tier 1 入队标 `repro-missing`） |
 """
 
 
@@ -345,8 +345,10 @@ def test_readme_inlining_dprc_table_is_flagged():
         ) as fh:
             fh.write(
                 "| **D 实测数据** | 性能数字、代价常数、编译器/运行时陷阱实证、"
-                "API 实际行为实证 | **Tier 0** 直接合入 `pattern-library.md` §1/§2"
-                "（须带溯源 + 工具链版本戳 + 复现命令三件套） |\n"
+                "API 实际行为实证 | **Tier 0** 直接合入 `pattern-library/` 主题文件 + "
+                "`constants.md`（ED-A 三件套：provenance〔origin_task + 出处，允许失效〕"
+                "+ 版本戳 + repro〔知识域自包含脚本〕；缺 repro → Tier 1 入队标 "
+                "`repro-missing`） |\n"
             )
         code, out = run(["check"], root)
         assert code == 1
