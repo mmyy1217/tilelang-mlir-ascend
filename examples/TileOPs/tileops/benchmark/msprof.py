@@ -14,11 +14,14 @@ Workflow:
 
   3. Parse ``OpBasicInfo*.csv`` in the output directory to extract
      ``Task Duration(us)``.
-  4. Return the median latency in **milliseconds**.
+  4. Return the median latency across measured launches in **milliseconds**.
 
 Configuration (environment variables):
-  TILEOPS_PROF_MODE           — "events" (default) or "msprof"
-  TILEOPS_MSPROF_KERNEL_NAME  — kernel name filter for --kernel-name
+  TILEOPS_PROF_MODE           — "msprof" (default) or "events"
+  TILEOPS_MSPROF_KERNEL_NAME  — explicit kernel name filter for
+                                --kernel-name (overrides the default
+                                derived from @T.prim_func via the
+                                JitKernel_NPU object graph)
   TILEOPS_MSPROF_LAUNCH_COUNT — number of measured launches (default 10)
   TILEOPS_MSPROF_WARM_UP      — number of warm-up iterations (default 5)
   TILEOPS_MSPROF_OUTPUT_DIR   — persistent output directory (optional)
@@ -30,12 +33,15 @@ from __future__ import annotations
 import csv
 import glob
 import inspect
+import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import types
 from typing import Any, Callable, Optional
 
 import torch
@@ -242,8 +248,8 @@ def _generate_callable_script(
 # ---------------------------------------------------------------------------
 
 
-def _parse_op_basic_info(output_dir: str) -> tuple[list[float], str]:
-    """Parse all ``OpBasicInfo*.csv`` files and return ``(durations_us, op_name)``.
+def _parse_op_basic_info(output_dir: str) -> tuple[list[float], str, list[str]]:
+    """Return durations, the first op name, and all captured op names.
 
     The msprof output directory has the structure::
 
@@ -268,6 +274,7 @@ def _parse_op_basic_info(output_dir: str) -> tuple[list[float], str]:
 
     durations: list[float] = []
     op_name = ""
+    op_names: set[str] = set()
     for csv_path in csv_files:
         with open(csv_path, "r", newline="") as f:
             reader = csv.DictReader(f)
@@ -282,17 +289,126 @@ def _parse_op_basic_info(output_dir: str) -> tuple[list[float], str]:
                             csv_path,
                             val,
                         )
-                if not op_name:
-                    name_val = row.get("Op Name", "")
-                    if name_val and name_val.strip():
-                        op_name = name_val.strip()
+                name_val = row.get("Op Name", "")
+                if name_val and name_val.strip():
+                    captured_name = name_val.strip()
+                    op_names.add(captured_name)
+                    if not op_name:
+                        op_name = captured_name
 
     if not durations:
         raise ValueError(
             f"No Task Duration(us) values found in OpBasicInfo CSVs under {output_dir}"
         )
 
-    return durations, op_name
+    return durations, op_name, sorted(op_names)
+
+
+# ---------------------------------------------------------------------------
+# Kernel-name resolution (explicit first, @T.prim_func-derived default last)
+# ---------------------------------------------------------------------------
+
+
+def _derive_kernel_name_from_prim_func(
+    functor: Any,
+    max_depth: int = 5,
+    max_nodes: int = 128,
+) -> Optional[str]:
+    """Derive the default msprof kernel name from the functor's kernel graph.
+
+    TileLang names the compiled device kernel after the ``@T.prim_func``
+    function, so the default ``msprof op --kernel-name`` filter is exactly
+    that name.  Two complementary passes recover it:
+
+    **Pass 1 (runtime object graph)**: bounded BFS over instance
+    attributes and closure cells looking for an object exposing a string
+    ``kernel_name`` (``tilelang.jit.jit_npu.JitKernel_NPU``).  This hits
+    kernels that are already materialized and reachable -- Developer-mode
+    ops whose ``Kernel.kernel`` *is* the JIT kernel, or any state that
+    keeps the built kernel alive.
+
+    **Pass 2 (static source scan)**: during the same BFS, record the
+    module file of every visited function (``func.__globals__['__file__']``
+    -- the tilelang kernel factory chain lives in the kernel module), then
+    regex-scan those files for ``@T.prim_func``-decorated defs.  This hits
+    Expert-mode ops whose ``Kernel.kernel`` is only a *middle factory*
+    (the ``JitKernel_NPU`` is created and discarded inside ``forward`` per
+    config, so no runtime object carries it at bench time).
+
+    A single distinct name across all candidate modules is returned;
+    ambiguity (or nothing found) returns ``None`` -- the caller then runs
+    msprof unfiltered with a loud warning in ``benchmark_base``.
+    """
+    _PRIM_FUNC_DEF_RE = re.compile(
+        r"@T\.prim_func[^\n]*\n(?:[ \t]*@[\w.]+[^\n]*\n)*[ \t]*def\s+([A-Za-z_]\w*)"
+    )
+
+    def _scan_prim_func_names(module_file: Any) -> list[str]:
+        if not isinstance(module_file, str) or not module_file.endswith(".py"):
+            return []
+        try:
+            with open(module_file, "r", encoding="utf-8") as f:
+                source = f.read()
+        except (OSError, UnicodeDecodeError):
+            return []
+        names: list[str] = []
+        for match in _PRIM_FUNC_DEF_RE.finditer(source):
+            if match.group(1) not in names:
+                names.append(match.group(1))
+        return names
+
+    def _bfs(root: Any) -> tuple[Optional[str], list[str]]:
+        seen: set[int] = set()
+        module_files: list[str] = []
+        queue: list[tuple[Any, int]] = [(root, 0)]
+        while queue and len(seen) < max_nodes:
+            obj, depth = queue.pop(0)
+            if depth > max_depth or id(obj) in seen:
+                continue
+            seen.add(id(obj))
+            name = getattr(obj, "kernel_name", None)
+            if isinstance(name, str) and name:
+                return name, module_files
+            if isinstance(obj, types.FunctionType):
+                module_file = obj.__globals__.get("__file__")
+                if isinstance(module_file, str) and module_file not in module_files:
+                    module_files.append(module_file)
+            if isinstance(obj, dict):
+                # e.g. Op._kernel_cache {key: Kernel instance} (lazy-commit
+                # ops keep built kernels here instead of self.kernel)
+                for value in obj.values():
+                    queue.append((value, depth + 1))
+            elif isinstance(obj, (list, tuple, set, frozenset)):
+                for value in obj:
+                    queue.append((value, depth + 1))
+            elif hasattr(obj, "__dict__"):
+                for value in vars(obj).values():
+                    queue.append((value, depth + 1))
+            for cell in getattr(obj, "__closure__", None) or ():
+                try:
+                    queue.append((cell.cell_contents, depth + 1))
+                except ValueError:
+                    # empty closure cell
+                    continue
+        return None, module_files
+
+    candidate_files: list[str] = []
+    for root in (getattr(functor, "kernel", None), functor):
+        if root is None:
+            continue
+        name, files = _bfs(root)
+        if name:
+            return name
+        candidate_files.extend(f for f in files if f not in candidate_files)
+
+    distinct_names: list[str] = []
+    for module_file in candidate_files:
+        for name in _scan_prim_func_names(module_file):
+            if name not in distinct_names:
+                distinct_names.append(name)
+    if len(distinct_names) == 1:
+        return distinct_names[0]
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -322,7 +438,23 @@ def bench_kernel_msprof(
             or a module-level callable (imported by ``__module__`` + ``__name__``).
         args: Tuple of input arguments (tensors saved via ``torch.save``).
         kernel_name: Kernel name filter for ``--kernel-name``.  If ``None``,
-            auto-detected from the Op (``_op_name`` attribute) or omitted.
+            resolved in order (explicit values win, derived default last):
+
+            1. this argument (programmatic, per-call);
+            2. ``functor.msprof_kernel_name`` (Op-level declaration, e.g.
+               multi-kernel dispatch pointing at the kernel its forward
+               actually invokes);
+            3. ``functor.kernel.msprof_kernel_name`` (Kernel-level
+               declaration);
+            4. the ``TILEOPS_MSPROF_KERNEL_NAME`` env var (manual session
+               override);
+            5. the derived default: the ``@T.prim_func`` function name,
+               read from the ``JitKernel_NPU`` object in the functor's
+               kernel object graph.
+
+            ``None`` after all of the above means no filter (legacy
+            behavior; ``benchmark_base`` warns if multiple ops are
+            captured).
         launch_count: Number of measured kernel launches (default from
             ``TILEOPS_MSPROF_LAUNCH_COUNT`` or 10).
         warm_up: Number of warm-up iterations (default from
@@ -333,7 +465,8 @@ def bench_kernel_msprof(
 
     Returns:
         ``(latency_ms, prof_output_dir)`` where *latency_ms* is the median
-        kernel latency in milliseconds and *prof_output_dir* is the path
+        kernel latency across measured launches in milliseconds and
+        *prof_output_dir* is the path
         to the msprof output directory (containing ``OPPROF_*`` subdirs).
         On success the temp workspace is kept so the caller can parse
         ``visualize_data.bin``; the caller is responsible for cleanup via
@@ -381,17 +514,26 @@ def bench_kernel_msprof(
             f"Closures and lambdas are not supported — use events mode."
         )
 
-    # Auto-detect kernel name only from an explicit msprof_kernel_name
-    # attribute — NOT from _op_name (tilelang compiled kernels are named
-    # "main", not the op name).
+    # Kernel-name resolution: explicit values win, derived default last
+    # (see the bench_kernel_msprof docstring for the full chain).  NOT
+    # from _op_name: tilelang compiled kernels are named after the
+    # @T.prim_func function, not the op name.  Empty-string declarations
+    # (the Kernel base-class default) are normalized to None.
     if kernel_name is None and is_op:
-        kernel_name = getattr(functor, "msprof_kernel_name", None)
+        kernel_name = getattr(functor, "msprof_kernel_name", None) or None
+    if kernel_name is None and is_op:
+        kernel = getattr(functor, "kernel", None)
+        kernel_name = getattr(kernel, "msprof_kernel_name", None) or None
     if kernel_name is None:
         kernel_name = os.environ.get("TILEOPS_MSPROF_KERNEL_NAME") or None
+    if kernel_name is None and is_op:
+        kernel_name = _derive_kernel_name_from_prim_func(functor)
 
     # --- Create temp workspace --------------------------------------------
     tmp_dir = tempfile.mkdtemp(prefix="tileops_msprof_")
     _success = False
+    user_output = None
+    copied_to_persistent = False
     try:
         inputs_path = os.path.join(tmp_dir, "inputs.pt")
         script_path = os.path.join(tmp_dir, "prof_script.py")
@@ -445,6 +587,7 @@ def bench_kernel_msprof(
         # --- Run msprof (with retry if --kernel-name yields no CSV) -------
         durations_us: list[float] = []
         op_name = ""
+        captured_op_names: list[str] = []
         tried_kernel_names: list[Optional[str]] = []
 
         # Build the list of kernel-name candidates to try:
@@ -497,7 +640,7 @@ def bench_kernel_msprof(
                 continue
 
             try:
-                durations_us, op_name = _parse_op_basic_info(prof_output_dir)
+                durations_us, op_name, captured_op_names = _parse_op_basic_info(prof_output_dir)
             except (FileNotFoundError, ValueError) as e:
                 _logger.warning(
                     "No OpBasicInfo CSV found with --kernel-name=%s: %s",
@@ -536,21 +679,48 @@ def bench_kernel_msprof(
 
         # --- Optionally persist output -----------------------------------
         if (keep_output or os.environ.get("TILEOPS_MSPROF_KEEP_OUTPUT") == "1") and not user_output:
-            persistent = os.path.join(cwd, "msprof_output")
-            if os.path.exists(persistent):
-                shutil.rmtree(persistent)
+            artifact_root = os.environ.get(
+                "TILEOPS_MSPROF_ARTIFACT_ROOT", os.path.join(cwd, "msprof_output")
+            )
+            os.makedirs(artifact_root, exist_ok=True)
+            artifact_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", op_name or kernel_name or "kernel")
+            persistent = tempfile.mkdtemp(prefix=f"{artifact_name}_", dir=artifact_root)
             try:
-                shutil.copytree(prof_output_dir, persistent)
+                shutil.copytree(prof_output_dir, persistent, dirs_exist_ok=True)
                 _logger.info("msprof output copied to %s", persistent)
+                prof_output_dir = persistent
+                copied_to_persistent = True
             except Exception as e:
                 _logger.warning("Failed to copy msprof output: %s", e)
+
+        metadata_path = os.path.join(prof_output_dir, "tileops_msprof_metadata.json")
+        try:
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "kernel_name_requested": kernel_name,
+                        "kernel_name_resolved": kn,
+                        "kernel_name_attempts": tried_kernel_names,
+                        "op_name": op_name or None,
+                        "captured_op_names": captured_op_names,
+                        "captured_op_count": len(captured_op_names),
+                        "sample_count": len(durations_us),
+                        "latency_us": median_us,
+                        "min_latency_us": durations_us[0],
+                        "max_latency_us": durations_us[-1],
+                    },
+                    f,
+                    indent=2,
+                )
+        except OSError as e:
+            _logger.warning("Failed to write msprof metadata: %s", e)
 
         _success = True
         return latency_ms, prof_output_dir
 
     finally:
         should_keep = keep_output or os.environ.get("TILEOPS_MSPROF_KEEP_OUTPUT") == "1"
-        if not should_keep and not _success:
+        if user_output or copied_to_persistent or not should_keep and not _success:
             shutil.rmtree(tmp_dir, ignore_errors=True)
         elif not should_keep:
             _logger.debug(

@@ -5,8 +5,10 @@ pipeline (``examples/{project}/{func}/{func}.py``) into the TileOPs kernel
 package (``tileops/kernels/{family}/{op_slug}/{op_slug}_kernel/``), copies
 each function's Stage 1 design doc (``DESIGN.md`` co-located with the kernel
 product) into the same package as ``{func}_DESIGN.md``, generates
-the aggregation ``__init__.py``, rewrites the wrapper import to point at the
-integrated package, and runs an import smoke test. Idempotent: re-running
+the aggregation ``__init__.py``, rewrites the wrapper import into a
+baseline/perf_opt kernel-source selection block (baseline active,
+``.{op_slug}_kernel.perf_opt.{func}`` commented out for later Stage 4
+adoption), and runs an import smoke test. Idempotent: re-running
 overwrites integrated copies and leaves an already-rewritten wrapper intact.
 A function without a co-located ``DESIGN.md`` is warned about (not fatal)
 and its kernel is still integrated.
@@ -109,6 +111,100 @@ def find_design_doc(kernel_src: Path) -> Path | None:
     return candidate if candidate.is_file() else None
 
 
+def kernel_ascend_mode(kernel_src: Path) -> str:
+    """Read the verified source mode, accepting legacy literal setdefault calls."""
+    tree = ast.parse(kernel_src.read_text(encoding="utf-8"))
+    declared: list[str] = []
+    defaults: list[str] = []
+    for node in tree.body:
+        if (
+            isinstance(node, ast.Assign)
+            and any(
+                isinstance(target, ast.Name) and target.id == "ASCEND_MODE"
+                for target in node.targets
+            )
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            declared.append(node.value.value)
+        if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+            continue
+        call = node.value
+        if (
+            isinstance(call.func, ast.Attribute)
+            and call.func.attr == "setdefault"
+            and isinstance(call.func.value, ast.Attribute)
+            and call.func.value.attr == "environ"
+            and len(call.args) >= 2
+            and isinstance(call.args[0], ast.Constant)
+            and call.args[0].value == "TILELANG_ASCEND_MODE"
+        ):
+            value = call.args[1]
+            if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                defaults.append(value.value)
+            elif isinstance(value, ast.Name) and value.id == "ASCEND_MODE" and declared:
+                defaults.append(declared[-1])
+    modes = {mode.capitalize() for mode in declared + defaults}
+    if not modes or modes - {"Developer", "Expert"} or len(modes) != 1:
+        raise SystemExit(
+            f"[error] {kernel_src}: missing or conflicting ASCEND_MODE / "
+            "TILELANG_ASCEND_MODE declaration; expected one Developer or Expert mode"
+        )
+    return modes.pop()
+
+
+def sync_wrapper_ascend_mode(wrapper_path: Path, kernel_class: str | None, mode: str) -> bool:
+    """Set the Kernel subclass mode once, without changing other wrapper logic."""
+    source = wrapper_path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    classes = [node for node in tree.body if isinstance(node, ast.ClassDef)]
+    if kernel_class:
+        classes = [node for node in classes if node.name == kernel_class]
+    else:
+        classes = [
+            node
+            for node in classes
+            if any(isinstance(base, ast.Name) and base.id == "Kernel" for base in node.bases)
+        ]
+    if len(classes) != 1:
+        raise SystemExit(
+            f"[error] {wrapper_path}: expected one Kernel class"
+            + (f" named {kernel_class}" if kernel_class else "")
+        )
+    cls = classes[0]
+    assignments = [
+        node
+        for node in cls.body
+        if isinstance(node, ast.Assign)
+        and any(
+            isinstance(target, ast.Name) and target.id == "ascend_mode" for target in node.targets
+        )
+    ]
+    if len(assignments) > 1:
+        raise SystemExit(f"[error] {wrapper_path}: duplicate ascend_mode in {cls.name}")
+    lines = source.splitlines(keepends=True)
+    declaration = f'    ascend_mode = "{mode}"\n'
+    if assignments:
+        current = assignments[0]
+        if not isinstance(current.value, ast.Constant) or current.end_lineno != current.lineno:
+            raise SystemExit(f"[error] {wrapper_path}: non-literal ascend_mode in {cls.name}")
+        if current.value.value == mode:
+            return False
+        lines[current.lineno - 1] = declaration
+    else:
+        first = cls.body[0]
+        insert_after = (
+            first.end_lineno
+            if isinstance(first, ast.Expr)
+            and isinstance(first.value, ast.Constant)
+            and isinstance(first.value.value, str)
+            else cls.lineno
+        )
+        lines.insert(insert_after, "\n" + declaration)
+    wrapper_path.write_text("".join(lines), encoding="utf-8")
+    return True
+
+
 def parse_wrapper_imports(wrapper_path: Path, extracted_module: str) -> list[str]:
     """Return the names the wrapper imports from .{extracted_module}."""
     tree = ast.parse(wrapper_path.read_text(encoding="utf-8"))
@@ -126,7 +222,7 @@ def defining_module(name: str, integrated_files: dict[str, Path]) -> str | None:
     for stem, path in integrated_files.items():
         try:
             tree = ast.parse(path.read_text(encoding="utf-8"))
-        except SyntaxError:
+        except (SyntaxError, OSError):
             continue
         for node in tree.body:
             if (
@@ -167,21 +263,73 @@ def gen_init_py(names: list[str], integrated_files: dict[str, Path], op_slug: st
     return "\n".join(lines)
 
 
-def rewrite_wrapper_import(wrapper_path: Path, extracted_module: str, op_slug: str) -> bool:
-    """Point the wrapper's .{extracted_module} import at .{op_slug}_kernel.
+def _format_import_stmt(module: str, names: list[str]) -> str:
+    """Format ``from {module} import ...``, parenthesizing long lines."""
+    single = f"from {module} import {', '.join(names)}"
+    if len(single) <= 100:
+        return single
+    body = "".join(f"\n    {n}," for n in names)
+    return f"from {module} import ({body}\n)"
+
+
+def gen_kernel_source_block(
+    names: list[str], integrated_files: dict[str, Path], op_slug: str
+) -> str:
+    """Generate the baseline/perf_opt kernel-source selection block.
+
+    The block carries both import paths side by side: the baseline import
+    (active) plus one commented perf_opt import per kernel function,
+    pointing at the future Stage 4 tuned products
+    (``{op_slug}_kernel/perf_opt/{func}.py``).  Selection is done by
+    swapping the comment; the perf_opt lines become the default once the
+    tuned kernels pass L0/L1 regression.  Per-function lines also allow
+    partial adoption (only some functions tuned).
+    """
+    header = [
+        "# ---------------------------------------------------------------------------",
+        "# Kernel source selection: baseline vs perf_opt (Stage 4 tuned)",
+        "#",
+        "# Exactly one source block below is active; toggle by swapping the comment.",
+        "# Default policy: the perf_opt source becomes active once tuned drop-in",
+        "# kernels (same factory signatures) land at",
+        f"# .{op_slug}_kernel/perf_opt/{{func}}.py and pass their L0/L1 regression;",
+        "# the baseline (Stage 3) source is active otherwise.  ``pytest tests/ops/``",
+        "# and ``pytest benchmarks/ops/`` dispatch through whichever source is",
+        "# active here.",
+        "# ---------------------------------------------------------------------------",
+        "# --- baseline (Stage 3) ------------------------------------------------------",
+    ]
+    baseline = [_format_import_stmt(f".{op_slug}_kernel", names)]
+    perf = ["# --- perf_opt (Stage 4 tuned) ------------------------------------------------"]
+    for name in names:
+        stem = defining_module(name, integrated_files) or name
+        perf.append(f"# from .{op_slug}_kernel.perf_opt.{stem} import {name}")
+    return "\n".join(header + baseline + perf)
+
+
+def rewrite_wrapper_import(
+    wrapper_path: Path, extracted_module: str, op_slug: str, integrated_files: dict[str, Path]
+) -> bool:
+    """Replace the wrapper's .{extracted_module} import with the kernel
+    source selection block (baseline active, perf_opt commented out).
 
     Returns True when a rewrite happened, False when already integrated.
     """
     text = wrapper_path.read_text(encoding="utf-8")
     if re.search(rf"from \.{op_slug}_kernel(?:\.\w+)?\s+import", text):
         return False
-    pattern = rf"from \.{re.escape(extracted_module)}\s+import"
-    if not re.search(pattern, text):
+    stmt_re = re.compile(rf"from \.{re.escape(extracted_module)}\s+import\s*(?:\([^)]*\)|[^\n]*)")
+    m = stmt_re.search(text)
+    if not m:
         raise SystemExit(
             f"[error] wrapper {wrapper_path} has no 'from .{extracted_module} import'; "
             f"check --extracted-module or edit the wrapper manually"
         )
-    text = re.sub(pattern, f"from .{op_slug}_kernel import", text)
+    names = parse_wrapper_imports(wrapper_path, extracted_module)
+    if not names:
+        names = list(integrated_files)
+    block = gen_kernel_source_block(names, integrated_files, op_slug)
+    text = text[: m.start()] + block + text[m.end() :]
     wrapper_path.write_text(text, encoding="utf-8")
     return True
 
@@ -290,6 +438,14 @@ def main() -> None:
         wrapper_names = list(functions)
 
     sources = {f: find_conductor_file(f, examples_root, op_slug, overrides) for f in functions}
+    source_modes = {func: kernel_ascend_mode(src) for func, src in sources.items()}
+    unique_modes = set(source_modes.values())
+    if len(unique_modes) != 1:
+        raise SystemExit(
+            f"[error] {wrapper_path}: one Kernel class cannot use mixed programming "
+            f"modes without per-call scoping: {source_modes}"
+        )
+    ascend_mode = unique_modes.pop()
 
     target_dir = tileops_root / "tileops" / "kernels" / family / op_slug / f"{op_slug}_kernel"
     integrated: dict[str, Path] = {}
@@ -329,11 +485,19 @@ def main() -> None:
         print("[ok] dry run complete")
         return
 
-    rewritten = rewrite_wrapper_import(wrapper_path, extracted_module, op_slug)
+    rewritten = rewrite_wrapper_import(wrapper_path, extracted_module, op_slug, integrated)
     print(
         f"[wrapper] {wrapper_path} "
-        f"{'rewritten -> .' + op_slug + '_kernel' if rewritten else 'already integrated'}"
+        + (
+            "rewritten -> baseline/perf_opt kernel-source selection block"
+            if rewritten
+            else "already integrated"
+        )
     )
+    mode_updated = sync_wrapper_ascend_mode(
+        wrapper_path, meta.get("kernel_class_name"), ascend_mode
+    )
+    print(f"[mode] {wrapper_path}: {ascend_mode} ({'updated' if mode_updated else 'unchanged'})")
 
     ok, out = (
         (True, "skipped")
@@ -357,6 +521,8 @@ def main() -> None:
         "target_dir": str(target_dir),
         "wrapper": str(wrapper_path),
         "wrapper_rewritten": rewritten,
+        "ascend_mode": ascend_mode,
+        "wrapper_mode_updated": mode_updated,
         "reexported": wrapper_names,
         "smoke": "pass" if out != "skipped" else "skipped",
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
