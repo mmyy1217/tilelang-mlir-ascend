@@ -14,15 +14,19 @@ from fastapi.staticfiles import StaticFiles
 
 from .db import ConflictError, NotFoundError, ValidationError, WorkbenchStorage
 from .service import WorkbenchService
+from .workspace import Workspace
 from .simulator import run_two_agent_simulation
 
 AGENT_TOKEN = os.environ.get("WORKBENCH_AGENT_TOKEN", "agent-secret-token")
 OPERATOR_TOKEN = os.environ.get("WORKBENCH_OPERATOR_TOKEN", "operator-secret-token")
 
 
-def create_app(data_dir: Optional[str | Path] = None, auto_seed: bool = True) -> FastAPI:
+def create_app(
+    data_dir: Optional[str | Path] = None, auto_seed: bool = True
+) -> FastAPI:
     storage = WorkbenchStorage(data_dir=data_dir)
     service = WorkbenchService(storage=storage)
+    workspace = Workspace(storage)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -56,15 +60,21 @@ def create_app(data_dir: Optional[str | Path] = None, auto_seed: bool = True) ->
     # ------------------------------------------------------------------
     @app.exception_handler(ConflictError)
     async def handle_conflict(_: Request, exc: ConflictError) -> JSONResponse:
-        return JSONResponse(status_code=409, content={"error": "conflict", "detail": str(exc)})
+        return JSONResponse(
+            status_code=409, content={"error": "conflict", "detail": str(exc)}
+        )
 
     @app.exception_handler(ValidationError)
     async def handle_validation(_: Request, exc: ValidationError) -> JSONResponse:
-        return JSONResponse(status_code=422, content={"error": "validation_error", "detail": str(exc)})
+        return JSONResponse(
+            status_code=422, content={"error": "validation_error", "detail": str(exc)}
+        )
 
     @app.exception_handler(NotFoundError)
     async def handle_not_found(_: Request, exc: NotFoundError) -> JSONResponse:
-        return JSONResponse(status_code=404, content={"error": "not_found", "detail": str(exc)})
+        return JSONResponse(
+            status_code=404, content={"error": "not_found", "detail": str(exc)}
+        )
 
     def verify_agent_credential(x_agent_token: Optional[str]) -> None:
         if x_agent_token != AGENT_TOKEN and x_agent_token != OPERATOR_TOKEN:
@@ -83,9 +93,119 @@ def create_app(data_dir: Optional[str | Path] = None, auto_seed: bool = True) ->
     # ------------------------------------------------------------------
     # Exploration Endpoints
     # ------------------------------------------------------------------
+    @app.post("/api/projects/import")
+    async def import_project(
+        payload: Dict[str, Any],
+        x_agent_token: Optional[str] = Header(default=None),
+        x_request_id: Optional[str] = Header(default=None),
+    ):
+        verify_agent_credential(x_agent_token)
+        return await asyncio.to_thread(workspace.import_snapshot, payload, x_request_id)
+
+    @app.post(
+        "/api/explorations/{exp_id}/nodes/{node_id}/attempts/{attempt_id}/reconcile"
+    )
+    async def reconcile(
+        exp_id: str,
+        node_id: str,
+        attempt_id: str,
+        payload: Dict[str, Any],
+        x_operator_token: Optional[str] = Header(default=None),
+        x_request_id: Optional[str] = Header(default=None),
+    ):
+        verify_operator_credential(x_operator_token)
+        if (
+            payload.get("status") not in ("stopped", "failed")
+            or not payload.get("failureOrSkipReason")
+            or payload.get("expectedVersion") is None
+        ):
+            raise HTTPException(
+                422,
+                "Reconciliation requires stopped/failed, evidence in failureOrSkipReason and expectedVersion",
+            )
+        body = {
+            k: payload[k] for k in ("status", "failureOrSkipReason", "expectedVersion")
+        }
+        return await asyncio.to_thread(
+            service.finish_stage_attempt,
+            exp_id,
+            node_id,
+            attempt_id,
+            body,
+            x_request_id,
+        )
+
+    @app.get("/api/capabilities")
+    async def capabilities():
+        return {
+            "protocolVersion": 1,
+            "capabilities": [
+                "graph",
+                "context",
+                "checkpoint",
+                "fork",
+                "handoff",
+                "session-close",
+                "request-status",
+                "snapshot-import",
+            ],
+            "unsupported": ["project-configure", "automatic-dispatch"],
+        }
+
+    @app.get("/api/explorations/{exp_id}/context")
+    async def get_context(exp_id: str):
+        return await asyncio.to_thread(workspace.context, exp_id)
+
+    @app.get("/api/explorations/{exp_id}/requests/{request_id}")
+    async def request_status(
+        exp_id: str,
+        request_id: str,
+        x_agent_token: Optional[str] = Header(default=None),
+    ):
+        verify_agent_credential(x_agent_token)
+
+        def read():
+            with storage.read_conn() as c:
+                row = c.execute(
+                    "SELECT response_json FROM idempotency_keys WHERE exploration_id=? AND request_id=?",
+                    (exp_id, request_id),
+                ).fetchone()
+                return (
+                    {"state": "committed", "result": json.loads(row[0])}
+                    if row
+                    else {"state": "unknown"}
+                )
+
+        return await asyncio.to_thread(read)
+
+    @app.post("/api/explorations/{exp_id}/workspace/{operation}")
+    async def workspace_action(
+        exp_id: str,
+        operation: str,
+        payload: Dict[str, Any],
+        x_agent_token: Optional[str] = Header(default=None),
+        x_request_id: Optional[str] = Header(default=None),
+    ):
+        verify_agent_credential(x_agent_token)
+        actions = {
+            "checkpoint": workspace.checkpoint,
+            "fork": workspace.fork,
+            "handoff": workspace.handoff,
+            "session-close": workspace.close,
+        }
+        if operation not in actions:
+            raise HTTPException(404, "Unknown workspace operation")
+        return await asyncio.to_thread(
+            actions[operation], exp_id, payload, x_request_id
+        )
+
     @app.get("/api/health")
     async def health() -> Dict[str, Any]:
-        return {"status": "ok", "storage": "sqlite+wal", "explorations": len(storage.list_explorations())}
+        return {
+            "status": "ok",
+            "storage": "sqlite+wal",
+            "explorations": len(storage.list_explorations()),
+        }
 
     @app.get("/api/explorations")
     async def list_explorations() -> Dict[str, Any]:
@@ -114,7 +234,9 @@ def create_app(data_dir: Optional[str | Path] = None, auto_seed: bool = True) ->
         x_request_id: Optional[str] = Header(default=None),
     ) -> Dict[str, Any]:
         verify_operator_credential(x_operator_token)
-        return await asyncio.to_thread(service.request_stop, exp_id, payload, x_request_id)
+        return await asyncio.to_thread(
+            service.request_stop, exp_id, payload, x_request_id
+        )
 
     @app.post("/api/explorations/{exp_id}/resume")
     async def resume_exploration(
@@ -189,7 +311,9 @@ def create_app(data_dir: Optional[str | Path] = None, auto_seed: bool = True) ->
         x_request_id: Optional[str] = Header(default=None),
     ) -> Dict[str, Any]:
         verify_agent_credential(x_agent_token)
-        return await asyncio.to_thread(service.create_node, exp_id, payload, x_request_id)
+        return await asyncio.to_thread(
+            service.create_node, exp_id, payload, x_request_id
+        )
 
     @app.post("/api/explorations/{exp_id}/nodes/{node_id}/attempts")
     async def start_attempt(
@@ -263,7 +387,9 @@ def create_app(data_dir: Optional[str | Path] = None, auto_seed: bool = True) ->
             "contentStatus": row["content_status"],
             "sizeBytes": int(row["size_bytes"]),
             "isBinary": is_bin,
-            "content": row["preview_content"] if is_bin else raw_bytes.decode("utf-8", errors="replace"),
+            "content": row["preview_content"]
+            if is_bin
+            else raw_bytes.decode("utf-8", errors="replace"),
             "experimentData": (
                 json.loads(row["experiment_data_json"])
                 if row["experiment_data_json"]
@@ -290,7 +416,9 @@ def create_app(data_dir: Optional[str | Path] = None, auto_seed: bool = True) ->
             is_bin = bool(row["is_binary"])
 
         raw_bytes = storage.read_blob_bytes(blob_rel)
-        media_type = "application/octet-stream" if is_bin else "text/plain; charset=utf-8"
+        media_type = (
+            "application/octet-stream" if is_bin else "text/plain; charset=utf-8"
+        )
         return Response(
             content=raw_bytes,
             media_type=media_type,
@@ -307,6 +435,18 @@ def create_app(data_dir: Optional[str | Path] = None, auto_seed: bool = True) ->
         verify_agent_credential(x_agent_token)
         return await asyncio.to_thread(
             service.create_resource_link, exp_id, payload, x_request_id
+        )
+
+    @app.post("/api/explorations/{exp_id}/relations")
+    async def create_graph_relation(
+        exp_id: str,
+        payload: Dict[str, Any],
+        x_agent_token: Optional[str] = Header(default=None),
+        x_request_id: Optional[str] = Header(default=None),
+    ):
+        verify_agent_credential(x_agent_token)
+        return await asyncio.to_thread(
+            service.create_graph_relation, exp_id, payload, x_request_id
         )
 
     @app.post("/api/explorations/{exp_id}/references")
@@ -369,7 +509,11 @@ def create_app(data_dir: Optional[str | Path] = None, auto_seed: bool = True) ->
                 storage.get_event_watermarkBounds, exp_id
             )
             # If client asks for an event seq that was truncated or lies in the future (after reset)
-            if cursor < 0 or (min_seq > 1 and 0 < cursor < min_seq - 1) or (max_seq > 0 and cursor > max_seq):
+            if (
+                cursor < 0
+                or (min_seq > 1 and 0 < cursor < min_seq - 1)
+                or (max_seq > 0 and cursor > max_seq)
+            ):
                 resync_payload = json.dumps(
                     {
                         "reason": "watermark_out_of_range",

@@ -47,11 +47,13 @@ repos:
     rev: v2.4.1  # sync with requirements-lint.txt
     hooks:
       - id: codespell
+        args: ["--ignore-words-list=cann,nd"]  # hardware toolkit and tensor layout names
         additional_dependencies: [".[toml]"]
         exclude: |
           (?x)(
             ^.+\.(cpp|hpp|cxx|cc|c|h|cu|cuh)$|
             ^.+\.svg$|
+            ^web/package-lock\.json$|  # registry package names and integrity hashes
             ^.*\brequirements\b.*\.txt$
           )
   - repo: https://github.com/jackdewinter/pymarkdown

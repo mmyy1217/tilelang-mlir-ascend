@@ -16,7 +16,7 @@ from .db import (
 
 
 class WorkbenchService:
-    """Domain service implementing Search Tree -> Node -> StageAttempt rules & SSE events."""
+    """Domain service implementing Exploration Graph -> Node -> StageAttempt rules & SSE events."""
 
     def __init__(self, storage: WorkbenchStorage) -> None:
         self.storage = storage
@@ -28,7 +28,9 @@ class WorkbenchService:
             (exploration_id, version_id),
         ).fetchone()
         if not row or row["category"] != "kernel":
-            raise ValidationError(f"Kernel resource version '{version_id}' is missing or not kernel code")
+            raise ValidationError(
+                f"Kernel resource version '{version_id}' is missing or not kernel code"
+            )
 
     @staticmethod
     def _reject_internal_flags(payload: Dict[str, Any], _internal_seed: bool) -> None:
@@ -42,9 +44,7 @@ class WorkbenchService:
         )
         for key in forbidden:
             if payload.get(key):
-                raise ValidationError(
-                    f"禁止通过外部 API 请求传入内部控制开关 '{key}'"
-                )
+                raise ValidationError(f"禁止通过外部 API 请求传入内部控制开关 '{key}'")
 
     # ------------------------------------------------------------------
     # Exploration Creation & Snapshot
@@ -101,7 +101,9 @@ class WorkbenchService:
                     payload.get("coordinatorStatus", "running"),
                     payload.get("stopReason"),
                     payload.get("bestValidNodeId", "N0"),
-                    json.dumps(payload.get("unfinishedDirections", []), ensure_ascii=False),
+                    json.dumps(
+                        payload.get("unfinishedDirections", []), ensure_ascii=False
+                    ),
                     now,
                     now,
                 ),
@@ -149,8 +151,13 @@ class WorkbenchService:
             if not exp:
                 raise NotFoundError(f"Exploration '{exploration_id}' not found")
 
+            if conn.execute(
+                "SELECT 1 FROM closed_sessions WHERE exploration_id=? AND session_id=?",
+                (exploration_id, agent_id),
+            ).fetchone():
+                raise ConflictError("Session was closed; register a new session")
             existing = conn.execute(
-                "SELECT version FROM agents WHERE exploration_id = ? AND id = ?",
+                "SELECT * FROM agents WHERE exploration_id = ? AND id = ?",
                 (exploration_id, agent_id),
             ).fetchone()
 
@@ -173,8 +180,8 @@ class WorkbenchService:
                         payload.get("role"),
                         payload.get("status", "active"),
                         now,
-                        payload.get("currentNodeId"),
-                        payload.get("currentStage"),
+                        payload.get("currentNodeId", existing["current_node_id"]),
+                        payload.get("currentStage", existing["current_stage"]),
                         new_ver,
                         exploration_id,
                         agent_id,
@@ -230,7 +237,12 @@ class WorkbenchService:
                 "event": evt,
             }
             self.storage.save_idempotency(
-                conn, exploration_id, request_id, "agent_heartbeat", payload_hash, result
+                conn,
+                exploration_id,
+                request_id,
+                "agent_heartbeat",
+                payload_hash,
+                result,
             )
             return result
 
@@ -374,7 +386,12 @@ class WorkbenchService:
                 "event": evt,
             }
             self.storage.save_idempotency(
-                conn, exploration_id, request_id, "upload_resource", payload_hash, result
+                conn,
+                exploration_id,
+                request_id,
+                "upload_resource",
+                payload_hash,
+                result,
             )
             return result
 
@@ -385,7 +402,10 @@ class WorkbenchService:
         request_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         payload_hash = self.storage.compute_payload_hash(payload)
-        link_id = payload.get("id") or f"link-{payload['nodeId']}-{payload['resourceVersionId']}-{payload.get('role', 'input')}"
+        link_id = (
+            payload.get("id")
+            or f"link-{payload['nodeId']}-{payload['resourceVersionId']}-{payload.get('role', 'input')}"
+        )
 
         with self.storage.write_tx() as conn:
             cached = self.storage.check_idempotency(
@@ -450,7 +470,12 @@ class WorkbenchService:
             )
             result = {"linkId": link_id, "event": evt}
             self.storage.save_idempotency(
-                conn, exploration_id, request_id, "create_resource_link", payload_hash, result
+                conn,
+                exploration_id,
+                request_id,
+                "create_resource_link",
+                payload_hash,
+                result,
             )
             return result
 
@@ -468,7 +493,27 @@ class WorkbenchService:
         self._reject_internal_flags(payload, _internal_seed)
         payload_hash = self.storage.compute_payload_hash(payload)
         node_id = payload["id"]
-        parent_id = payload.get("parentId")
+        parents = payload.get(
+            "parentIds", [payload["parentId"]] if payload.get("parentId") else []
+        )
+        if (
+            not isinstance(parents, list)
+            or not all(isinstance(p, str) for p in parents)
+            or len(set(parents)) != len(parents)
+        ):
+            raise ValidationError("parentIds must contain distinct node IDs")
+        if payload.get("parentId") and parents and payload["parentId"] != parents[0]:
+            raise ValidationError(
+                "Legacy parentId must agree with first parentIds entry"
+            )
+        contributions = payload.get("sourceContributions", {})
+        if not isinstance(contributions, dict) or not all(
+            k in parents and isinstance(v, str) for k, v in contributions.items()
+        ):
+            raise ValidationError(
+                "sourceContributions maps source node IDs to contribution descriptions"
+            )
+        parent_id = parents[0] if parents else None
         content_status = payload.get("contentStatus", "hot")
 
         if content_status == "cooled" and not _internal_seed:
@@ -495,7 +540,10 @@ class WorkbenchService:
             ).fetchone()
             if not exp:
                 raise NotFoundError(f"Exploration '{exploration_id}' not found")
-            if exp["coordinator_status"] in ("stopping", "stopped") and not _internal_seed:
+            if (
+                exp["coordinator_status"] in ("stopping", "stopped")
+                and not _internal_seed
+            ):
                 raise ValidationError(
                     f"Exploration is '{exp['coordinator_status']}'; creating new nodes is forbidden."
                 )
@@ -508,28 +556,21 @@ class WorkbenchService:
                 raise ConflictError(f"Node '{node_id}' already exists")
 
             if payload.get("primaryKernelVersionId"):
-                self._require_kernel(conn, exploration_id, payload["primaryKernelVersionId"])
+                self._require_kernel(
+                    conn, exploration_id, payload["primaryKernelVersionId"]
+                )
 
-            if parent_id is None:
-                root_row = conn.execute(
-                    "SELECT id FROM nodes WHERE exploration_id = ? AND parent_id IS NULL",
-                    (exploration_id,),
+            depth = 0
+            for source in parents:
+                if source == node_id:
+                    raise ValidationError("Node cannot derive from itself")
+                row = conn.execute(
+                    "SELECT depth FROM nodes WHERE exploration_id=? AND id=?",
+                    (exploration_id, source),
                 ).fetchone()
-                if root_row:
-                    raise ValidationError(
-                        f"Root node '{root_row['id']}' already exists; child nodes must specify a unique parentId."
-                    )
-                depth = 0
-            else:
-                if parent_id == node_id:
-                    raise ValidationError("Node cannot be its own parent (cycle detected)")
-                parent_row = conn.execute(
-                    "SELECT id, depth, parent_id FROM nodes WHERE exploration_id = ? AND id = ?",
-                    (exploration_id, parent_id),
-                ).fetchone()
-                if not parent_row:
-                    raise NotFoundError(f"Parent node '{parent_id}' not found")
-                depth = int(parent_row["depth"]) + 1
+                if not row:
+                    raise NotFoundError(f"Source node '{source}' not found")
+                depth = max(depth, int(row["depth"]) + 1)
 
             now = utc_now_iso()
             conn.execute(
@@ -567,16 +608,45 @@ class WorkbenchService:
                         if payload.get("pipelineMetrics")
                         else None
                     ),
-                    json.dumps(payload.get("missingStageReasons", {}), ensure_ascii=False),
+                    json.dumps(
+                        payload.get("missingStageReasons", {}), ensure_ascii=False
+                    ),
                     now,
                     now,
                 ),
             )
 
+            for source in parents:
+                if source == parent_id and payload.get("derivationReference"):
+                    continue
+                relation = dict(
+                    id=f"derive:{source}:{node_id}",
+                    kind="derivation",
+                    sourceType="node",
+                    sourceId=source,
+                    targetType="node",
+                    targetId=node_id,
+                    rationale=payload.get("sourceContributions", {}).get(source)
+                    or payload.get("derivationNote")
+                    or payload.get("changeSummary")
+                    or "方案派生（尚未补充贡献说明）",
+                )
+                conn.execute(
+                    "INSERT INTO graph_relations VALUES (?,?,?)",
+                    (
+                        relation["id"],
+                        exploration_id,
+                        json.dumps(relation, ensure_ascii=False),
+                    ),
+                )
+
             # Automatically register derivation ReferenceRecord if parent_id is present and derivationReference is provided
             derivation_ref = payload.get("derivationReference")
             if parent_id and derivation_ref:
-                ref_id = derivation_ref.get("id") or f"ref-{parent_id.lower()}-{node_id.lower()}-deriv"
+                ref_id = (
+                    derivation_ref.get("id")
+                    or f"ref-{parent_id.lower()}-{node_id.lower()}-deriv"
+                )
                 conn.execute(
                     """
                     INSERT INTO references_table (
@@ -596,7 +666,9 @@ class WorkbenchService:
                         derivation_ref.get("referencedKnowledgeVersion"),
                         derivation_ref.get("referencedResourceVersionId"),
                         derivation_ref.get("title", f"派生: {parent_id} → {node_id}"),
-                        derivation_ref.get("rationale", payload.get("derivationNote", "")),
+                        derivation_ref.get(
+                            "rationale", payload.get("derivationNote", "")
+                        ),
                         derivation_ref.get("reverifiedInAttemptId"),
                         derivation_ref.get("reverifiedStatus", "pending_reverify"),
                         now,
@@ -614,7 +686,7 @@ class WorkbenchService:
                     "nodeId": node_id,
                     "parentId": parent_id,
                     "depth": depth,
-                    "branchLabel": payload["branchLabel"],
+                    "branchLabel": payload.get("branchLabel", ""),
                     "title": payload["title"],
                 },
             )
@@ -640,7 +712,9 @@ class WorkbenchService:
         purpose = payload["purpose"]
 
         if source_node_id == target_node_id:
-            raise ValidationError("Reference sourceNodeId and targetNodeId cannot be identical")
+            raise ValidationError(
+                "Reference sourceNodeId and targetNodeId cannot be identical"
+            )
         if purpose not in ("derivation", "cross_branch"):
             raise ValidationError("purpose must be 'derivation' or 'cross_branch'")
 
@@ -662,11 +736,20 @@ class WorkbenchService:
             if not src_node or not tgt_node:
                 raise NotFoundError("Source or target node for reference not found")
 
-            # Enforce single-parent tree rule: cross_branch reference NEVER alters target_node.parent_id,
-            # and derivation reference must match target_node.parent_id.
-            if purpose == "derivation" and tgt_node["parent_id"] != source_node_id:
-                raise ValidationError(
-                    f"Derivation reference source '{source_node_id}' does not match target '{target_node_id}' parent '{tgt_node['parent_id']}'"
+            if purpose == "derivation":
+                from .graph import validate_relation
+
+                validate_relation(
+                    conn,
+                    exploration_id,
+                    dict(
+                        kind="derivation",
+                        sourceType="node",
+                        sourceId=source_node_id,
+                        targetType="node",
+                        targetId=target_node_id,
+                        rationale=payload.get("rationale") or "legacy derivation",
+                    ),
                 )
 
             # Enforce re-verification rule for cross_branch references:
@@ -726,7 +809,12 @@ class WorkbenchService:
                 "event": evt,
             }
             self.storage.save_idempotency(
-                conn, exploration_id, request_id, "create_reference", payload_hash, result
+                conn,
+                exploration_id,
+                request_id,
+                "create_reference",
+                payload_hash,
+                result,
             )
             return result
 
@@ -753,14 +841,14 @@ class WorkbenchService:
                 r["stage_type"] == "read_info" and r["status"] == "completed"
                 for r in upstream_rows
             ):
-                raise ValidationError(
-                    "plan_idea 阶段必须依赖已完成的 read_info 尝试"
-                )
+                raise ValidationError("plan_idea 阶段必须依赖已完成的 read_info 尝试")
             return
 
         if stage_type == "gen_kernel":
             if not kernel_ver_label:
-                raise ValidationError("gen_kernel 阶段必须明确指定 kernelVersionLabel (如 v1, v2)")
+                raise ValidationError(
+                    "gen_kernel 阶段必须明确指定 kernelVersionLabel (如 v1, v2)"
+                )
             has_plan = any(
                 r["stage_type"] == "plan_idea" and r["status"] == "completed"
                 for r in upstream_rows
@@ -832,12 +920,9 @@ class WorkbenchService:
                 )
         elif stage_type == "summarize":
             if not any(
-                r["status"] in ("completed", "failed", "stopped")
-                for r in upstream_rows
+                r["status"] in ("completed", "failed", "stopped") for r in upstream_rows
             ):
-                raise ValidationError(
-                    "summarize 阶段必须依赖已结束的上游阶段尝试"
-                )
+                raise ValidationError("summarize 阶段必须依赖已结束的上游阶段尝试")
 
     @staticmethod
     def _evaluate_node_active_chain(
@@ -865,7 +950,10 @@ class WorkbenchService:
             return (False, None)
 
         latest_gen = gen_attempts[-1]
-        if latest_gen["status"] != "completed" or not latest_gen["kernel_version_label"]:
+        if (
+            latest_gen["status"] != "completed"
+            or not latest_gen["kernel_version_label"]
+        ):
             return (False, None)
 
         active_kv = latest_gen["kernel_version_label"]
@@ -956,7 +1044,10 @@ class WorkbenchService:
             ).fetchone()
             if not exp:
                 raise NotFoundError(f"Exploration '{exploration_id}' not found")
-            if exp["coordinator_status"] in ("stopping", "stopped") and not _internal_seed:
+            if (
+                exp["coordinator_status"] in ("stopping", "stopped")
+                and not _internal_seed
+            ):
                 raise ValidationError(
                     f"Exploration is '{exp['coordinator_status']}'; new stage permits are rejected."
                 )
@@ -968,6 +1059,19 @@ class WorkbenchService:
             if not node:
                 raise NotFoundError(f"Node '{node_id}' not found")
 
+            if not conn.execute(
+                "SELECT 1 FROM agents WHERE exploration_id = ? AND id = ?",
+                (exploration_id, agent_id),
+            ).fetchone():
+                raise ValidationError(
+                    "Register the agent session through heartbeat before starting an attempt"
+                )
+
+            if conn.execute(
+                "SELECT 1 FROM closed_sessions WHERE exploration_id=? AND session_id=?",
+                (exploration_id, agent_id),
+            ).fetchone():
+                raise ConflictError("Session was closed; register a new session")
             # Single active executor check on this attempt_id
             existing_att = conn.execute(
                 "SELECT id, agent_id FROM stage_attempts WHERE exploration_id = ? AND id = ?",
@@ -1001,23 +1105,42 @@ class WorkbenchService:
             )
 
             input_ids = list(payload.get("inputResourceVersionIds", []))
-            if stage_type in ("compile", "verify_correctness", "bench_perf", "profiling"):
+            if stage_type in (
+                "compile",
+                "verify_correctness",
+                "bench_perf",
+                "profiling",
+            ):
                 inherited = set()
                 for dep_id in depends_on:
                     dep = conn.execute(
                         "SELECT input_resource_version_ids_json, output_resource_version_ids_json, stage_type FROM stage_attempts WHERE exploration_id = ? AND node_id = ? AND id = ?",
                         (exploration_id, node_id, dep_id),
                     ).fetchone()
-                    for rid in (json.loads(dep[1]) if dep[2] == "gen_kernel" else json.loads(dep[0])):
-                        res = conn.execute("SELECT category FROM resource_versions WHERE exploration_id = ? AND id = ?", (exploration_id, rid)).fetchone()
+                    for rid in (
+                        json.loads(dep[1])
+                        if dep[2] == "gen_kernel"
+                        else json.loads(dep[0])
+                    ):
+                        res = conn.execute(
+                            "SELECT category FROM resource_versions WHERE exploration_id = ? AND id = ?",
+                            (exploration_id, rid),
+                        ).fetchone()
                         if res and res[0] == "kernel":
                             inherited.add(rid)
                 if len(inherited) != 1:
-                    raise ValidationError("Stage dependencies must identify exactly one kernel resource version")
+                    raise ValidationError(
+                        "Stage dependencies must identify exactly one kernel resource version"
+                    )
                 for rid in input_ids:
-                    res = conn.execute("SELECT category FROM resource_versions WHERE exploration_id = ? AND id = ?", (exploration_id, rid)).fetchone()
+                    res = conn.execute(
+                        "SELECT category FROM resource_versions WHERE exploration_id = ? AND id = ?",
+                        (exploration_id, rid),
+                    ).fetchone()
                     if not res or (res[0] == "kernel" and rid not in inherited):
-                        raise ValidationError("Input resource is missing or mismatches upstream kernel")
+                        raise ValidationError(
+                            "Input resource is missing or mismatches upstream kernel"
+                        )
                 input_ids = list(dict.fromkeys([*input_ids, *sorted(inherited)]))
 
             if reused_from:
@@ -1062,9 +1185,16 @@ class WorkbenchService:
                         (utc_now_iso(), exploration_id),
                     )
                     self.storage.append_event(
-                        conn, exploration_id, "exploration", exploration_id,
-                        int(exp["version"]) + 1, "exploration.stopping",
-                        {"coordinatorStatus": "stopping", "reason": "evaluation_budget_exhausted"},
+                        conn,
+                        exploration_id,
+                        "exploration",
+                        exploration_id,
+                        int(exp["version"]) + 1,
+                        "exploration.stopping",
+                        {
+                            "coordinatorStatus": "stopping",
+                            "reason": "evaluation_budget_exhausted",
+                        },
                     )
                     # This is a persisted coordinator decision, not a failed mutation.
                     # Commit before rejecting the permit; write_tx's rollback is then a no-op.
@@ -1078,7 +1208,11 @@ class WorkbenchService:
                 reserve_slot = 1
                 conn.execute(
                     "UPDATE explorations SET budget_json = ?, version = version + 1, updated_at = ? WHERE id = ?",
-                    (json.dumps(budget, ensure_ascii=False), utc_now_iso(), exploration_id),
+                    (
+                        json.dumps(budget, ensure_ascii=False),
+                        utc_now_iso(),
+                        exploration_id,
+                    ),
                 )
 
             seq_row = conn.execute(
@@ -1111,7 +1245,10 @@ class WorkbenchService:
                     json.dumps(depends_on, ensure_ascii=False),
                     kernel_ver_label,
                     json.dumps(input_ids, ensure_ascii=False),
-                    payload.get("summary", f"{agent_id} 正在执行 {stage_type} ({payload['code']})..."),
+                    payload.get(
+                        "summary",
+                        f"{agent_id} 正在执行 {stage_type} ({payload['code']})...",
+                    ),
                     reused_from,
                     reserve_slot,
                     next_seq,
@@ -1252,7 +1389,12 @@ class WorkbenchService:
                 "event": evt,
             }
             self.storage.save_idempotency(
-                conn, exploration_id, request_id, "start_stage_attempt", payload_hash, result
+                conn,
+                exploration_id,
+                request_id,
+                "start_stage_attempt",
+                payload_hash,
+                result,
             )
             return result
 
@@ -1292,7 +1434,9 @@ class WorkbenchService:
                 raise NotFoundError(f"StageAttempt '{attempt_id}' not found")
 
             if att["status"] != "running":
-                raise ConflictError("Terminal attempts are immutable; retry with a new attempt ID")
+                raise ConflictError(
+                    "Terminal attempts are immutable; retry with a new attempt ID"
+                )
 
             expected_ver = payload.get("expectedVersion")
             if expected_ver is not None and int(att["version"]) != int(expected_ver):
@@ -1310,8 +1454,14 @@ class WorkbenchService:
             if not exp or not node:
                 raise NotFoundError("Exploration or Node not found")
 
-            if payload.get("primaryKernelVersionId") and payload["primaryKernelVersionId"] != node["primary_kernel_version_id"]:
-                raise ValidationError("Kernel changes must be recorded as gen_kernel outputs")
+            if (
+                payload.get("primaryKernelVersionId")
+                and payload["primaryKernelVersionId"]
+                != node["primary_kernel_version_id"]
+            ):
+                raise ValidationError(
+                    "Kernel changes must be recorded as gen_kernel outputs"
+                )
             stage_type = att["stage_type"]
             out_ver_ids: List[str] = payload.get("outputResourceVersionIds", [])
 
@@ -1341,7 +1491,9 @@ class WorkbenchService:
                 if not kernel_ids and node["primary_kernel_version_id"]:
                     kernel_ids = [node["primary_kernel_version_id"]]
                 if len(kernel_ids) != 1:
-                    raise ValidationError("gen_kernel must identify exactly one kernel resource version")
+                    raise ValidationError(
+                        "gen_kernel must identify exactly one kernel resource version"
+                    )
                 self._require_kernel(conn, exploration_id, kernel_ids[0])
                 if kernel_ids[0] not in out_ver_ids:
                     out_ver_ids = [*out_ver_ids, kernel_ids[0]]
@@ -1364,7 +1516,8 @@ class WorkbenchService:
                             c_row
                             and c_row["stage_type"] == "compile"
                             and c_row["status"] == "completed"
-                            and c_row["kernel_version_label"] == att["kernel_version_label"]
+                            and c_row["kernel_version_label"]
+                            == att["kernel_version_label"]
                         ):
                             comp_ok = True
                     if not comp_ok:
@@ -1452,7 +1605,10 @@ class WorkbenchService:
                 budget["usedEvaluations"] = int(budget.get("usedEvaluations", 0)) + 1
 
             # Update node fields based on strict version-bound attempt chain evaluation
-            primary_kernel = payload.get("primaryKernelVersionId") or node["primary_kernel_version_id"]
+            primary_kernel = (
+                payload.get("primaryKernelVersionId")
+                or node["primary_kernel_version_id"]
+            )
             if stage_type == "gen_kernel" and status == "completed" and out_ver_ids:
                 primary_kernel = kernel_ids[0]
 
@@ -1471,18 +1627,18 @@ class WorkbenchService:
                 )
 
             baseline_ref = json.loads(exp["baseline_ref_json"])
-            base_lat = float(baseline_ref.get("latencyUs") or 248.6)
-            if chain_latency is not None and chain_latency > 0:
-                speedup = payload.get("speedupVsBaseline") or round(
-                    base_lat / chain_latency, 2
-                )
+            base_lat = float(baseline_ref.get("latencyUs") or 0)
+            if chain_latency is not None and chain_latency > 0 and base_lat > 0:
+                speedup = round(base_lat / chain_latency, 2)
             else:
                 speedup = None
 
             pipeline_metrics = (
                 json.dumps(payload["pipelineMetrics"], ensure_ascii=False)
                 if payload.get("pipelineMetrics")
-                else (node["pipeline_metrics_json"] if chain_latency is not None else None)
+                else (
+                    node["pipeline_metrics_json"] if chain_latency is not None else None
+                )
             )
             node_exec_status = payload.get("nodeExecutionStatus")
             if not node_exec_status:
@@ -1493,8 +1649,12 @@ class WorkbenchService:
                 else:
                     node_exec_status = node["execution_status"]
 
-            node_content_status = payload.get("nodeContentStatus") or node["content_status"]
-            if node_content_status == "cooled" and not (_internal_seed or node_id == "N0"):
+            node_content_status = (
+                payload.get("nodeContentStatus") or node["content_status"]
+            )
+            if node_content_status == "cooled" and not (
+                _internal_seed or node_id == "N0"
+            ):
                 raise ValidationError("禁止将非基线节点直接标记为 cooled")
 
             stop_or_fail_reason = payload.get(
@@ -1550,9 +1710,7 @@ class WorkbenchService:
                 """,
                 (exploration_id,),
             ).fetchone()
-            best_valid_node_id = (
-                best_row["id"] if best_row else "N0"
-            )
+            best_valid_node_id = best_row["id"] if best_row else "N0"
 
             conn.execute(
                 """
@@ -1599,7 +1757,12 @@ class WorkbenchService:
                 "event": evt,
             }
             self.storage.save_idempotency(
-                conn, exploration_id, request_id, "finish_stage_attempt", payload_hash, result
+                conn,
+                exploration_id,
+                request_id,
+                "finish_stage_attempt",
+                payload_hash,
+                result,
             )
             return result
 
@@ -1630,6 +1793,24 @@ class WorkbenchService:
             if cached is not None:
                 return cached
 
+            existing = conn.execute(
+                "SELECT 1 FROM knowledge_items WHERE exploration_id=? AND id=?",
+                (exploration_id, item_id),
+            ).fetchone()
+            if existing and not _internal_seed:
+                linked = conn.execute(
+                    "SELECT 1 FROM graph_relations WHERE exploration_id=? AND (json_extract(payload_json,'$.sourceId')=? OR json_extract(payload_json,'$.targetId')=?)",
+                    (exploration_id, item_id, item_id),
+                ).fetchone()
+                legacy_link = conn.execute(
+                    "SELECT 1 FROM references_table WHERE exploration_id=? AND referenced_knowledge_id=?",
+                    (exploration_id, item_id),
+                ).fetchone()
+                if linked or legacy_link:
+                    raise ConflictError(
+                        "Referenced knowledge is immutable; create a new knowledge ID/version"
+                    )
+
             now = utc_now_iso()
             conn.execute(
                 """
@@ -1651,9 +1832,15 @@ class WorkbenchService:
                     payload["applicability"],
                     payload["unverifiedScope"],
                     payload["body"],
-                    json.dumps(payload.get("supportingNodeIds", []), ensure_ascii=False),
-                    json.dumps(payload.get("counterexampleNodeIds", []), ensure_ascii=False),
-                    json.dumps(payload.get("evidenceAttemptIds", []), ensure_ascii=False),
+                    json.dumps(
+                        payload.get("supportingNodeIds", []), ensure_ascii=False
+                    ),
+                    json.dumps(
+                        payload.get("counterexampleNodeIds", []), ensure_ascii=False
+                    ),
+                    json.dumps(
+                        payload.get("evidenceAttemptIds", []), ensure_ascii=False
+                    ),
                     now,
                     now,
                 ),
@@ -1672,9 +1859,18 @@ class WorkbenchService:
                     "contentStatus": content_status,
                 },
             )
-            result = {"knowledgeId": item_id, "contentStatus": content_status, "event": evt}
+            result = {
+                "knowledgeId": item_id,
+                "contentStatus": content_status,
+                "event": evt,
+            }
             self.storage.save_idempotency(
-                conn, exploration_id, request_id, "upsert_knowledge", payload_hash, result
+                conn,
+                exploration_id,
+                request_id,
+                "upsert_knowledge",
+                payload_hash,
+                result,
             )
             return result
 
@@ -1688,7 +1884,9 @@ class WorkbenchService:
         payload_hash = self.storage.compute_payload_hash(payload)
         target_status = payload.get("contentStatus", "ready-for-cool")
         if target_status not in ("hot", "ready-for-cool"):
-            raise ValidationError("当前仅支持标记为 ready-for-cool 或恢复为 hot，不支持转换为 cooled")
+            raise ValidationError(
+                "当前仅支持标记为 ready-for-cool 或恢复为 hot，不支持转换为 cooled"
+            )
 
         with self.storage.write_tx() as conn:
             cached = self.storage.check_idempotency(
@@ -1729,7 +1927,12 @@ class WorkbenchService:
             )
             result = {"contentStatus": target_status, "event": evt}
             self.storage.save_idempotency(
-                conn, exploration_id, request_id, "mark_ready_for_cool", payload_hash, result
+                conn,
+                exploration_id,
+                request_id,
+                "mark_ready_for_cool",
+                payload_hash,
+                result,
             )
             return result
 
@@ -1764,11 +1967,11 @@ class WorkbenchService:
                 (exploration_id,),
             ).fetchone()["cnt"]
 
-            new_status = (
-                "stopped"
-                if (running_cnt == 0 or finalize_immediately)
-                else "stopping"
-            )
+            if running_cnt and finalize_immediately:
+                raise ConflictError(
+                    "Cannot finalize stop while attempts are running; reconcile external work first"
+                )
+            new_status = "stopped" if running_cnt == 0 else "stopping"
             new_ver = int(exp["version"]) + 1
             conn.execute(
                 """
@@ -1826,6 +2029,22 @@ class WorkbenchService:
             if not exp:
                 raise NotFoundError(f"Exploration '{exploration_id}' not found")
 
+            if (
+                payload.get("expectedVersion") is not None
+                and payload["expectedVersion"] != exp["version"]
+            ):
+                raise ConflictError(
+                    "Project version changed; read context before resuming"
+                )
+            unresolved = conn.execute(
+                "SELECT COUNT(*) FROM stage_attempts WHERE exploration_id = ? AND (status = 'running' OR reserved_eval_slot != 0)",
+                (exploration_id,),
+            ).fetchone()[0]
+            if unresolved:
+                raise ConflictError(
+                    "Reconcile in-flight attempts and evaluation reservations before resuming with any session"
+                )
+
             new_ver = int(exp["version"]) + 1
             conn.execute(
                 """
@@ -1854,6 +2073,52 @@ class WorkbenchService:
             )
             result = {"coordinatorStatus": "running", "version": new_ver, "event": evt}
             self.storage.save_idempotency(
-                conn, exploration_id, request_id, "resume_exploration", payload_hash, result
+                conn,
+                exploration_id,
+                request_id,
+                "resume_exploration",
+                payload_hash,
+                result,
+            )
+            return result
+
+    def create_graph_relation(self, exploration_id, payload, request_id=None):
+        from .graph import validate_relation
+
+        payload_hash = self.storage.compute_payload_hash(payload)
+        with self.storage.write_tx() as conn:
+            cached = self.storage.check_idempotency(
+                conn, exploration_id, request_id, "graph_relation", payload_hash
+            )
+            if cached is not None:
+                return cached
+            if not isinstance(payload.get("id"), str) or not payload["id"]:
+                raise ValidationError("Relation id required")
+            validate_relation(conn, exploration_id, payload)
+            if conn.execute(
+                "SELECT 1 FROM graph_relations WHERE exploration_id=? AND id=?",
+                (exploration_id, payload["id"]),
+            ).fetchone():
+                raise ConflictError("Relation is immutable; use a new relation ID")
+            conn.execute(
+                "INSERT INTO graph_relations VALUES (?,?,?)",
+                (
+                    payload["id"],
+                    exploration_id,
+                    json.dumps(payload, ensure_ascii=False),
+                ),
+            )
+            evt = self.storage.append_event(
+                conn,
+                exploration_id=exploration_id,
+                entity_type="relation",
+                entity_id=payload["id"],
+                entity_version=1,
+                event_type="relation.created",
+                payload=payload,
+            )
+            result = {"relationId": payload["id"], "event": evt}
+            self.storage.save_idempotency(
+                conn, exploration_id, request_id, "graph_relation", payload_hash, result
             )
             return result

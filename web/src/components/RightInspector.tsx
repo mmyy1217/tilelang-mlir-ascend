@@ -1,3 +1,5 @@
+import { graphRelations, relationLabels } from '../graph';
+import { MarkdownContent } from './MarkdownContent';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Exploration,
@@ -62,9 +64,8 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
 
   const compareNode: NodeRecord = useMemo(() => {
     const found = exploration.nodes.find((n) => n.id === selection.compareNodeId);
-    if (found && found.id !== activeNode.id) return found;
-    return exploration.nodes.find((n) => n.id !== activeNode.id) || exploration.nodes[0];
-  }, [exploration.nodes, selection.compareNodeId, activeNode.id]);
+    return found || exploration.nodes[0];
+  }, [exploration.nodes, selection.compareNodeId]);
 
   const nodeResourceLinks = useMemo(() => {
     const allForNode = exploration.resourceLinks.filter((l) => l.nodeId === activeNode.id);
@@ -161,7 +162,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
               onChangeTab('candidates');
             }}
           >
-            探索总结与待冷却候选 (ready-for-cool)
+            总结与待冷却候选
           </button>
         </div>
       </div>
@@ -185,7 +186,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                 <span className="meta-label">关联关系类型</span>
                 <strong className="meta-val">
                   {activeEdge.purpose === 'cross_branch'
-                    ? '跨分支引用边 (Cross-Branch Reference · 不增加父节点)'
+                    ? '参考边 (Cross-Branch Reference · 不增加父节点)'
                     : '父子派生边 (Parent-Child Derivation)'}
                 </strong>
               </div>
@@ -300,18 +301,9 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
 
             <div className="node-lineage-bar">
               <span>
-                父节点:{' '}
-                {activeNode.parentId ? (
-                  <button
-                    type="button"
-                    className="inline-link-btn"
-                    onClick={() => onSelectNode(activeNode.parentId!)}
-                  >
-                    {activeNode.parentId}
-                  </button>
-                ) : (
-                  '无 (Root 根节点)'
-                )}
+                来源方案：{' '}
+                {graphRelations(exploration).filter(r=>r.kind==='derivation' && r.targetId===activeNode.id).map(r=><button key={r.id} className="inline-link-btn" onClick={()=>onSelectNode(r.sourceId)}>{r.sourceId}</button>)}
+                {!graphRelations(exploration).some(r=>r.kind==='derivation' && r.targetId===activeNode.id) && '无（独立起点）'}
               </span>
               {nodeDerivationRef && (
                 <button
@@ -319,7 +311,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                   className="inline-link-btn"
                   onClick={() => onSelectEdge(nodeDerivationRef.id)}
                 >
-                  查看父子派生依据 ({nodeDerivationRef.sourceNodeId}→{nodeDerivationRef.targetNodeId})
+                  查看来源贡献 ({nodeDerivationRef.sourceNodeId}→{nodeDerivationRef.targetNodeId})
                 </button>
               )}
               {nodeCrossRefs.map((xref) => (
@@ -329,11 +321,27 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                   className="inline-link-btn xref-btn"
                   onClick={() => onSelectEdge(xref.id)}
                 >
-                  跨分支引用: {xref.sourceNodeId}→{xref.targetNodeId} (
+                  参考: {xref.sourceNodeId}→{xref.targetNodeId} (
                   {xref.referencedKnowledgeId || '实验结论'})
                 </button>
               ))}
             </div>
+          </section>
+
+          <section className="node-knowledge-section">
+            <details>
+              <summary>基础知识与优化经验 · {exploration.knowledgeItems.filter(k => graphRelations(exploration).some(r =>
+                (r.sourceType==='node' && r.sourceId===activeNode.id && r.targetType==='knowledge' && r.targetId===k.id) ||
+                (r.targetType==='node' && r.targetId===activeNode.id && r.sourceType==='knowledge' && r.sourceId===k.id))).length}</summary>
+              {exploration.knowledgeItems.filter(k => graphRelations(exploration).some(r =>
+                (r.sourceType==='node' && r.sourceId===activeNode.id && r.targetType==='knowledge' && r.targetId===k.id) ||
+                (r.targetType==='node' && r.targetId===activeNode.id && r.sourceType==='knowledge' && r.sourceId===k.id))).map(k => <article className="node-knowledge-entry" key={k.id}>
+                  <strong>{k.title}</strong><small>{k.id} · {k.version} · {k.claimType}</small>
+                  <MarkdownContent content={k.body}/>
+                  <p>适用条件：{k.applicability}</p><p>未验证范围：{k.unverifiedScope}</p>
+                  {graphRelations(exploration).filter(r => (r.sourceType==='knowledge'&&r.sourceId===k.id)||(r.targetType==='knowledge'&&r.targetId===k.id)).map(r=><button className="graph-relation-row" key={r.id} onClick={()=>onSelectEdge(r.id)}>{relationLabels[r.kind]} · {r.sourceId} → {r.targetId}</button>)}
+                </article>)}
+            </details>
           </section>
 
           <section className="stage-machine-section">
@@ -731,7 +739,9 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                     </div>
                   )}
 
-                  <pre className="preview-code-box">{activeResource.content}</pre>
+                  {activeResource.category === 'summary' || /\.(md|markdown)$/i.test(activeResource.filename)
+                    ? <MarkdownContent content={activeResource.content} />
+                    : <pre className="preview-code-box">{activeResource.content}</pre>}
                 </div>
               )}
             </div>
@@ -754,7 +764,6 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                   onChange={(e) => onChangeCompareNode(e.target.value)}
                 >
                   {exploration.nodes
-                    .filter((n) => n.id !== activeNode.id)
                     .map((n) => (
                       <option key={n.id} value={n.id}>
                         {n.id} — {n.branchLabel} (
@@ -850,47 +859,17 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
       {selection.rightTab === 'candidates' && (
         <div className="inspector-scroll">
           <section className="candidates-sheet">
-            <h2 className="sheet-title">搜索树总结与待冷却候选 (ready-for-cool)</h2>
+            <h2 className="sheet-title">探索图总结与待冷却候选 (ready-for-cool)</h2>
             <p className="sheet-desc">
               当前原型流程收尾于整理 <strong>ready-for-cool</strong> 候选（仍属于 hot，不代表已审批或已合入远端 cooled 主线）。耗时改善与原因解释分别记录，未经证实的原因保留为假设。
             </p>
 
             <div className="coord-rules-box">
-              <h3 className="sub-heading">统一协调者：继续与停止判定记录</h3>
-              <ul className="coord-list">
-                <li>
-                  <strong>目标达成判定：</strong> 节点{' '}
-                  <button
-                    type="button"
-                    className="inline-link-btn"
-                    onClick={() => {
-                      onChangeTab('inspector');
-                      onSelectNode('N4');
-                    }}
-                  >
-                    N4 (132.4 us)
-                  </button>{' '}
-                  已满足精度容差 (&lt;= 1e-3) 与耗时目标 (&lt;= 135 us)。
-                </li>
-                <li>
-                  <strong>单分支停止记录：</strong> 分支{' '}
-                  <button
-                    type="button"
-                    className="inline-link-btn"
-                    onClick={() => {
-                      onChangeTab('inspector');
-                      onSelectNode('N2');
-                    }}
-                  >
-                    N2 (256x128 分块)
-                  </button>{' '}
-                  因连续 2 次触发 192KB UB 物理上限被协调者终止，作为反例保留。
-                </li>
-                <li>
-                  <strong>未完成方向保留：</strong>{' '}
-                  {exploration.unfinishedDirections.join('；')}
-                </li>
-              </ul>
+              <h3 className="sub-heading">探索状态与证据</h3>
+              <p>{exploration.coordinatorStatus} · {exploration.stopReason || '尚未记录停止原因'}</p>
+              <p>最佳有效方案：{exploration.bestValidNodeId || '暂无'}</p>
+              <p>未完成方向：{exploration.unfinishedDirections.join('；') || '尚未记录'}</p>
+              <p>知识与经验的支持、反驳及参考关系请在探索图中点击查看；引用不代表已证实的性能归因。</p>
             </div>
 
             <div className="knowledge-candidates-list">
@@ -909,7 +888,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                       </span>
                     </div>
                   </div>
-                  <p className="k-body">{k.body}</p>
+                  <MarkdownContent content={k.body} />
                   <div className="k-meta-grid">
                     <div>
                       <strong>适用条件：</strong> {k.applicability}

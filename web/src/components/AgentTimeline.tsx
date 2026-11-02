@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Exploration,
   NodeRecord,
@@ -7,9 +7,10 @@ import {
   StageAttempt,
   StageType,
 } from '../types';
-import { ContentStateIcon, StatusIcon } from '../icons';
+import { ChevronIcon, ContentStateIcon, StatusIcon } from '../icons';
 
 interface AgentTimelineProps {
+  projectId?: string;
   exploration: Exploration;
   selection: SelectionState;
   onSelectNode: (nodeId: string) => void;
@@ -27,10 +28,19 @@ const STATUS_LABELS: Record<string, string> = {
 
 export const AgentTimeline: React.FC<AgentTimelineProps> = ({
   exploration,
+  projectId,
   selection,
   onSelectNode,
   onSelectAttempt,
 }) => {
+  const storageKey = `agent-folds:${projectId || exploration.id}`;
+  const [collapsed, setCollapsed] = useState<string[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem(storageKey) || '[]'); } catch { return []; }
+  });
+  const updateCollapsed = (ids: string[]) => {
+    setCollapsed(ids);
+    try { sessionStorage.setItem(storageKey, JSON.stringify(ids)); } catch { /* storage optional */ }
+  };
   const nodeMap = useMemo(() => {
     const map: Record<string, NodeRecord> = {};
     exploration.nodes.forEach((n) => {
@@ -81,10 +91,14 @@ export const AgentTimeline: React.FC<AgentTimelineProps> = ({
     <div className="agent-timeline-container">
       <div className="agent-timeline-toolbar">
         <div className="agent-toolbar-info">
-          <strong>多 Agent 协同轨迹视图</strong>
+          <strong>Agent Session 轨迹</strong>
           <span>
-            按时间轴展示各 Agent 在不同搜索树节点内执行的 StageAttempt；多 Agent 协同同一节点时共享唯一节点 ID，不复制节点或资源。
+            一个 Agent 对应一个 session；按节点与阶段查看其迭代和交付。
           </span>
+        </div>
+        <div className="agent-fold-actions">
+          <button className="toolbar-btn" onClick={() => updateCollapsed([])}>全部展开</button>
+          <button className="toolbar-btn" onClick={() => updateCollapsed(exploration.agents.map(a => a.id))}>全部折叠</button>
         </div>
       </div>
 
@@ -94,23 +108,30 @@ export const AgentTimeline: React.FC<AgentTimelineProps> = ({
             selection.nodeId !== null &&
             participatedNodes.some((n) => n?.id === selection.nodeId);
 
+          const folded = collapsed.includes(agent.id);
           return (
             <section
               key={agent.id}
-              className={`agent-lane ${isAgentHighlighted ? 'lane-highlighted' : ''}`}
+              className={`agent-lane ${folded ? 'lane-collapsed' : ''} ${isAgentHighlighted ? 'lane-highlighted' : ''}`}
             >
               <div className="agent-lane-header">
                 <div className="agent-title-row">
-                  <h3 className="agent-name">{agent.name}</h3>
+                  <button className="agent-fold-toggle" aria-expanded={!folded}
+                    aria-controls={`agent-track-${agent.id}`}
+                    onClick={() => updateCollapsed(folded ? collapsed.filter(id => id !== agent.id) : [...collapsed, agent.id])}>
+                    <ChevronIcon direction={folded ? 'right' : 'down'} size={14} />
+                    <strong title={`Session: ${agent.id} · ${agent.role} · 心跳: ${agent.lastHeartbeat}`}>{agent.name}</strong>
+                    <span>{participatedNodes.length} 节点 · {attempts.length} 次执行</span>
+                  </button>
                   <span className={`agent-status-pill agent-${agent.status}`}>
-                    {agent.status === 'active' ? '在线运行' : '空闲待命'}
+                    {agent.historicalOnly ? '历史 session' : agent.status === 'active' ? '在线运行' : agent.status === 'stopped' ? '已结束' : '空闲待命'}
                   </span>
-                  <span className="agent-heartbeat">心跳: {agent.lastHeartbeat}</span>
-                </div>
-                <p className="agent-role">{agent.role}</p>
 
-                <div className="agent-nodes-bar">
-                  <span className="nodes-bar-label">参与节点 (共享节点身份):</span>
+                </div>
+                <p className="agent-role" hidden={folded} title={`Session: ${agent.id} · ${agent.role}`}>Session: {agent.id} · {agent.role}</p>
+
+                <div className="agent-nodes-bar" hidden={folded}>
+                  <span className="nodes-bar-label">节点：</span>
                   {participatedNodes.map((node) => {
                     if (!node) return null;
                     const isNodeSelected = selection.nodeId === node.id;
@@ -142,7 +163,7 @@ export const AgentTimeline: React.FC<AgentTimelineProps> = ({
                 </div>
               </div>
 
-              <div className="agent-attempts-track" role="list">
+              <div id={`agent-track-${agent.id}`} className="agent-attempts-track" role="list" hidden={folded}>
                 {attempts.map((att) => {
                   const owningNode = nodeMap[att.nodeId];
                   const stageMeta = stageMetaMap[att.stageType];
@@ -175,10 +196,10 @@ export const AgentTimeline: React.FC<AgentTimelineProps> = ({
                       <div className="attempt-body">
                         <div className="attempt-top-row">
                           <span className="attempt-owner-node">
-                            归属节点 {att.nodeId}
+                            {att.nodeId}
                           </span>
                           <span className="attempt-stage-name">
-                            Stage {stageMeta?.index}. {stageMeta?.label} · Attempt{' '}
+                            {stageMeta?.index}. {stageMeta?.label} ·{' '}
                             <strong>{att.code}</strong>
                             {att.kernelVersionLabel ? ` (@${att.kernelVersionLabel})` : ''}
                           </span>

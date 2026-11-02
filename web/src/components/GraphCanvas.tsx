@@ -1,5 +1,7 @@
+import { graphRelations, graphDepths, graphId, relationLabels } from '../graph';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
+  MarkerType,
   Background,
   BackgroundVariant,
   BaseEdge,
@@ -14,6 +16,7 @@ import {
   Position,
   ReactFlow,
   useNodesState,
+  useNodes,
   useEdgesState,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -29,12 +32,14 @@ import { ChevronIcon, ContentStateIcon, StatusIcon } from '../icons';
 
 interface StratNodeData extends Record<string, unknown> {
   node: NodeRecord;
+  agentNames: Record<string, string>;
   isBestValid: boolean;
   isSelected: boolean;
   selectedStageType: StageType | null;
   isExpanded: boolean;
   isDimmed: boolean;
   crossRefCount: number;
+  onSelectKnowledge?: (id: string) => void;
   onSelectNode: (nodeId: string) => void;
   onSelectStage: (nodeId: string, stageType: StageType) => void;
   onToggleExpand: (nodeId: string) => void;
@@ -47,28 +52,27 @@ interface RefEdgeData extends Record<string, unknown> {
   onSelectEdge: (edgeId: string) => void;
 }
 
-interface StratumBandData extends Record<string, unknown> {
-  code: string;
-  title: string;
-  subtitle: string;
-  height: number;
+function layoutGraphNodes(prev: Node[]): Node[] {
+  const levels = new Map<number, Node[]>();
+  for (const n of prev) {
+    const depth = Number(n.data.depth ?? (n.data.node as NodeRecord)?.depth ?? 0);
+    levels.set(depth, [...(levels.get(depth) || []), n]);
+  }
+  const positions = new Map<string, {x: number; y: number}>();
+  let y = 24;
+  for (const depth of [...levels.keys()].sort((a, b) => a - b)) {
+    const row = levels.get(depth)!;
+    let x = 24;
+    let height = 0;
+    for (const n of row) {
+      positions.set(n.id, {x, y});
+      x += (n.measured?.width || 326) + 32;
+      height = Math.max(height, n.measured?.height || 300);
+    }
+    y += height + 80;
+  }
+  return prev.map(n => ({...n, position: positions.get(n.id)!}));
 }
-
-const StratumBandNode: React.FC<NodeProps<Node<StratumBandData>>> = ({ data }) => {
-  return (
-    <div
-      className="stratum-band-node"
-      style={{ height: `${data.height}px` }}
-      aria-hidden="true"
-    >
-      <div className="stratum-band-header">
-        <span className="stratum-code">{data.code}</span>
-        <strong className="stratum-title">{data.title}</strong>
-        <span className="stratum-sub">{data.subtitle}</span>
-      </div>
-    </div>
-  );
-};
 
 const NODE_POSITIONS: Record<string, { x: number; y: number }> = {
   N0: { x: 350, y: 26 },
@@ -91,6 +95,7 @@ const STATUS_LABELS: Record<string, string> = {
 const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) => {
   const {
     node,
+    agentNames,
     isBestValid,
     isSelected,
     selectedStageType,
@@ -169,6 +174,9 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
             >
               <span className="cell-short">{meta.shortLabel}</span>
               <span className="cell-code">{latestAttempt ? latestAttempt.code : '-'}</span>
+              <span className="cell-agent" title={latestAttempt ? `${agentNames[latestAttempt.agentId] || latestAttempt.agentId} · Session ${latestAttempt.agentId}` : '尚未分配执行 Agent'}>
+                {latestAttempt ? latestAttempt.agentId.replace(/^agent-/, '') : '未分配'}
+              </span>
             </button>
           );
         })}
@@ -204,11 +212,11 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
         <div className="strat-agents-row">
           {node.agentIds.map((aid) => (
             <span key={aid} className="agent-chip">
-              {aid.replace('agent-', 'Agent-')}
+              {agentNames[aid] || aid}
             </span>
           ))}
           {crossRefCount > 0 && (
-            <span className="xref-chip">跨分支引用 ×{crossRefCount}</span>
+            <span className="xref-chip">证据与引用 ×{crossRefCount}</span>
           )}
         </div>
         <button
@@ -250,7 +258,7 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
                             : ''
                         }`}
                       >
-                        {att.code}
+                        <span title={`Session ${att.agentId}`}>{agentNames[att.agentId] || att.agentId}</span> · {att.code}
                         {att.kernelVersionLabel ? `@${att.kernelVersionLabel}` : ''}
                       </span>
                     ))
@@ -278,7 +286,9 @@ const ReferenceEdge: React.FC<EdgeProps<Edge<RefEdgeData>>> = ({
   sourcePosition,
   targetPosition,
   data,
+  markerEnd,
 }) => {
+  const graphNodes = useNodes();
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -291,17 +301,30 @@ const ReferenceEdge: React.FC<EdgeProps<Edge<RefEdgeData>>> = ({
 
   if (!data) return null;
   const { reference, isSelected, isDimmed, onSelectEdge } = data;
-  const isCrossBranch = reference.purpose === 'cross_branch';
+  const isCrossBranch = reference.purpose !== 'derivation';
+  let safeLabelY = labelY + (isCrossBranch ? 24 : 0);
+  // Keep the label outside measured solution cards, even for long crossing edges.
+  for (let i = 0; i < graphNodes.length + 1; i++) {
+    const obstacle = graphNodes.find(n => {
+      const width = n.measured?.width || 326, height = n.measured?.height || 300;
+      return labelX + 120 > n.position.x && labelX - 120 < n.position.x + width &&
+        safeLabelY + 14 > n.position.y && safeLabelY - 14 < n.position.y + height;
+    });
+    if (!obstacle) break;
+    safeLabelY = obstacle.position.y - 22;
+  }
+
 
   return (
     <>
       <BaseEdge
         id={id}
         path={edgePath}
+        markerEnd={markerEnd}
         style={{
           stroke: isSelected
             ? '#9A3412'
-            : isCrossBranch
+            : reference.purpose === 'support' ? '#047857' : reference.purpose === 'refute' ? '#B91C1C' : isCrossBranch
             ? '#1D4ED8'
             : '#1C1917',
           strokeWidth: isSelected ? 2.8 : isCrossBranch ? 2 : 1.7,
@@ -313,8 +336,9 @@ const ReferenceEdge: React.FC<EdgeProps<Edge<RefEdgeData>>> = ({
         <div
           style={{
             position: 'absolute',
-            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            transform: `translate(-50%, -50%) translate(${labelX}px,${safeLabelY}px)`,
             pointerEvents: 'all',
+            zIndex: 6,
           }}
           className="nodrag nopan"
         >
@@ -330,8 +354,8 @@ const ReferenceEdge: React.FC<EdgeProps<Edge<RefEdgeData>>> = ({
             title="点击查看关联边类型、引用知识与具体版本"
           >
             <span>
-              {isCrossBranch ? '跨分支引用' : '派生'}: {reference.sourceNodeId}→
-              {reference.targetNodeId}
+              {reference.purpose === 'cross_branch' ? '参考' : relationLabels[reference.purpose]}: {reference.sourceNodeId.replace(/^knowledge:/, '')}→
+              {reference.targetNodeId.replace(/^knowledge:/, '')}
             </span>
             {reference.referencedKnowledgeId && (
               <span className="edge-k-tag">{reference.referencedKnowledgeId}</span>
@@ -343,15 +367,13 @@ const ReferenceEdge: React.FC<EdgeProps<Edge<RefEdgeData>>> = ({
   );
 };
 
-const nodeTypes = {
-  stratigraphic: StratigraphicNode,
-  stratumBand: StratumBandNode,
-};
+const nodeTypes = { stratigraphic: StratigraphicNode };
 const edgeTypes = { referenceEdge: ReferenceEdge };
 
-interface TreeCanvasProps {
+interface GraphCanvasProps {
   exploration: Exploration;
   selection: SelectionState;
+  onSelectKnowledge?: (id: string) => void;
   onSelectNode: (nodeId: string) => void;
   onSelectStage: (nodeId: string, stageType: StageType) => void;
   onSelectEdge: (edgeId: string) => void;
@@ -359,9 +381,10 @@ interface TreeCanvasProps {
   onToggleAllCrossRefs: () => void;
 }
 
-export const TreeCanvas: React.FC<TreeCanvasProps> = ({
+export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   exploration,
   selection,
+  onSelectKnowledge,
   onSelectNode,
   onSelectStage,
   onSelectEdge,
@@ -371,24 +394,25 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
   const activeRelatedNodeIds = useMemo(() => {
     const set = new Set<string>();
     if (selection.edgeId) {
-      const ref = exploration.references.find((r) => r.id === selection.edgeId);
+      const ref = graphRelations(exploration).find((r) => r.id === selection.edgeId);
       if (ref) {
-        set.add(ref.sourceNodeId);
-        set.add(ref.targetNodeId);
+        set.add(graphId(ref.sourceType,ref.sourceId));
+        set.add(graphId(ref.targetType,ref.targetId));
       }
       return set;
     }
     if (!selection.nodeId) return set;
 
-    // Include ancestors, direct children, and cross-branch peers of selected node
-    let curr: string | null = selection.nodeId;
-    while (curr) {
-      set.add(curr);
-      const found = exploration.nodes.find((n) => n.id === curr);
-      curr = found ? found.parentId : null;
+    const relations=graphRelations(exploration);
+    const pending=[selection.knowledgeId ? graphId('knowledge',selection.knowledgeId) : selection.nodeId];
+    while(pending.length) {
+      const current=pending.pop(); if(!current || set.has(current)) continue;
+      set.add(current);
+      relations.filter(r=>r.kind==='derivation' && r.targetId===current).forEach(r=>pending.push(r.sourceId));
     }
-    exploration.nodes.forEach((n) => {
-      if (n.parentId === selection.nodeId) set.add(n.id);
+    relations.forEach(r=>{
+      const source=graphId(r.sourceType,r.sourceId), target=graphId(r.targetType,r.targetId);
+      if(source===selection.nodeId || target===selection.nodeId || source===graphId('knowledge',selection.knowledgeId || '') || target===graphId('knowledge',selection.knowledgeId || '')) {set.add(source);set.add(target);}
     });
     exploration.references.forEach((r) => {
       if (r.sourceNodeId === selection.nodeId || r.targetNodeId === selection.nodeId) {
@@ -400,52 +424,8 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
   }, [exploration, selection.nodeId, selection.edgeId]);
 
   const computedNodes: Node[] = useMemo(() => {
-    const stratumBands: Node<StratumBandData>[] = [
-      {
-        id: 'stratum-d0',
-        type: 'stratumBand',
-        position: { x: -10, y: -12 },
-        selectable: false,
-        draggable: false,
-        zIndex: -1,
-        data: {
-          code: 'STRATUM D0',
-          title: 'Depth 0 · 根节点固定基线层 (Cooled Baseline)',
-          subtitle: '绑定 cooled@v1.4 与共享算子契约 fa2_task_spec@v1',
-          height: 238,
-        },
-      },
-      {
-        id: 'stratum-d1',
-        type: 'stratumBand',
-        position: { x: -10, y: 312 },
-        selectable: false,
-        draggable: false,
-        zIndex: -1,
-        data: {
-          code: 'STRATUM D1',
-          title: 'Depth 1 · 多 Agent 正交分支探索层 (Tiling / UB 边界 / 跨核同步)',
-          subtitle: 'N1 (128x128 提速) · N2 (UB 溢出反例早停) · N3 (双缓冲同步验证)',
-          height: 244,
-        },
-      },
-      {
-        id: 'stratum-d2',
-        type: 'stratumBand',
-        position: { x: -10, y: 636 },
-        selectable: false,
-        draggable: false,
-        zIndex: -1,
-        data: {
-          code: 'STRATUM D2–D3',
-          title: 'Depth 2–3 · 跨分支双缓冲融合与在途精度验证层 (Crossover & Active Frontier)',
-          subtitle: 'N4 (融合 N1+N3 · G1→C1/C2 fail → G2→C3→V2 pass · 132.4 us) · N5 (Depth 3 在途 V1)',
-          height: 268,
-        },
-      },
-    ];
-
-    const treeNodes: Node<StratNodeData>[] = exploration.nodes.map((n) => {
+    const depths = graphDepths(exploration);
+    const solutionNodes: Node<StratNodeData>[] = exploration.nodes.map((n) => {
       const pos = NODE_POSITIONS[n.id] || { x: n.depth * 260, y: n.depth * 240 };
       const crossRefCount = exploration.references.filter(
         (r) =>
@@ -461,7 +441,8 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
         position: pos,
         zIndex: 2,
         data: {
-          node: n,
+          node: {...n, depth: depths.get(n.id) || 0},
+          agentNames: Object.fromEntries(exploration.agents.map(a => [a.id, a.name])),
           isBestValid: exploration.bestValidNodeId === n.id,
           isSelected: selection.nodeId === n.id && !selection.edgeId,
           selectedStageType: selection.nodeId === n.id ? selection.stageType : null,
@@ -475,7 +456,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
       };
     });
 
-    return [...stratumBands, ...treeNodes];
+    return solutionNodes;
   }, [
     exploration,
     selection,
@@ -486,9 +467,10 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
   ]);
 
   const computedEdges: Edge<RefEdgeData>[] = useMemo(() => {
-    return exploration.references
+    return graphRelations(exploration).filter(r=>r.sourceType==='node' && r.targetType==='node').map(r=>({id:r.id,explorationId:exploration.id,sourceNodeId:graphId(r.sourceType,r.sourceId),targetNodeId:graphId(r.targetType,r.targetId),purpose:r.kind,title:relationLabels[r.kind],rationale:r.rationale,reverifiedStatus:'pending_reverify' as const}))
       .filter((ref) => {
         if (ref.purpose === 'derivation') return true;
+        if (selection.knowledgeId && [ref.sourceNodeId,ref.targetNodeId].includes(graphId('knowledge',selection.knowledgeId))) return true;
         if (selection.showAllCrossRefs) return true;
         if (selection.edgeId === ref.id) return true;
         if (
@@ -515,7 +497,8 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
           source: ref.sourceNodeId,
           target: ref.targetNodeId,
           type: 'referenceEdge',
-          animated: ref.purpose === 'cross_branch' || ref.targetNodeId === 'N5',
+          markerEnd: {type: MarkerType.ArrowClosed},
+          animated: false,
           data: {
             reference: ref,
             isSelected,
@@ -524,7 +507,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
           },
         };
       });
-  }, [exploration.references, selection, activeRelatedNodeIds, onSelectEdge]);
+  }, [exploration, selection, activeRelatedNodeIds, onSelectEdge]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(computedNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(computedEdges);
@@ -533,7 +516,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
     setNodes((prev) =>
       computedNodes.map((cn) => {
         const existing = prev.find((p) => p.id === cn.id);
-        return existing ? { ...cn, position: existing.position } : cn;
+        return existing ? { ...existing, ...cn, position: existing.position } : cn;
       })
     );
   }, [computedNodes, setNodes]);
@@ -542,12 +525,19 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
     setEdges(computedEdges);
   }, [computedEdges, setEdges]);
 
+  const dimensionKey = nodes.map(n => `${n.id}:${n.measured?.height || 0}:${n.measured?.width || 0}`).join('|');
+  useEffect(() => {
+    setNodes(prev => {
+      return layoutGraphNodes(prev);
+    });
+  }, [dimensionKey, selection.expandedNodeIds.join('|'), setNodes]);
+
   const handleResetLayout = useCallback(() => {
-    setNodes(computedNodes);
+    setNodes(prev => layoutGraphNodes(computedNodes.map(n => ({ ...n, measured: prev.find(p => p.id === n.id)?.measured }))));
   }, [computedNodes, setNodes]);
 
   return (
-    <div className="tree-canvas-container">
+    <div className="graph-canvas-container">
       <div className="canvas-toolbar">
         <div className="canvas-toolbar-left">
           <label className="xref-toggle-label">
@@ -556,18 +546,18 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
               checked={selection.showAllCrossRefs}
               onChange={onToggleAllCrossRefs}
             />
-            <span>始终显示跨分支引用边 (Cross-Branch Refs)</span>
+            <span>证据与引用</span>
           </label>
           <button type="button" className="toolbar-btn" onClick={handleResetLayout}>
-            重置分层树布局
+            重置布局
           </button>
         </div>
         <div className="canvas-legend" aria-label="状态与边图例">
           <span className="legend-item">
-            <span className="legend-line line-der" /> 父子派生边
+            <span className="legend-line line-der" /> 派生／融合
           </span>
           <span className="legend-item">
-            <span className="legend-line line-xref" /> 跨分支参考边
+            <span className="legend-line line-xref" /> 参考
           </span>
           <span className="legend-item">
             <span className="legend-dot dot-cooled" /> cooled

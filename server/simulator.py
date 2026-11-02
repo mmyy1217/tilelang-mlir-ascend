@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import uuid
-from typing import Any, Callable, Coroutine, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 
@@ -35,7 +34,9 @@ class SimulationClient:
             "X-Request-Id": f"{self.agent_id}-{req_key}",
         }
 
-    async def create_exploration(self, payload: Dict[str, Any], req_key: str) -> Dict[str, Any]:
+    async def create_exploration(
+        self, payload: Dict[str, Any], req_key: str
+    ) -> Dict[str, Any]:
         if self.http_client and not self.internal_seed:
             resp = await self.http_client.post(
                 "/api/explorations", json=payload, headers=self._headers(req_key)
@@ -50,7 +51,9 @@ class SimulationClient:
             _internal_seed=self.internal_seed,
         )
 
-    async def heartbeat(self, exp_id: str, payload: Dict[str, Any], req_key: str) -> Dict[str, Any]:
+    async def heartbeat(
+        self, exp_id: str, payload: Dict[str, Any], req_key: str
+    ) -> Dict[str, Any]:
         if self.http_client and not self.internal_seed:
             resp = await self.http_client.post(
                 f"/api/explorations/{exp_id}/agents/heartbeat",
@@ -61,7 +64,10 @@ class SimulationClient:
             return resp.json()
         assert self.service is not None
         return await asyncio.to_thread(
-            self.service.upsert_agent_heartbeat, exp_id, payload, f"{self.agent_id}-{req_key}"
+            self.service.upsert_agent_heartbeat,
+            exp_id,
+            payload,
+            f"{self.agent_id}-{req_key}",
         )
 
     async def upload_resource(
@@ -100,7 +106,10 @@ class SimulationClient:
             return resp.json()
         assert self.service is not None
         return await asyncio.to_thread(
-            self.service.create_resource_link, exp_id, payload, f"{self.agent_id}-{req_key}"
+            self.service.create_resource_link,
+            exp_id,
+            payload,
+            f"{self.agent_id}-{req_key}",
         )
 
     async def create_node(
@@ -250,7 +259,9 @@ async def _run_single_attempt(
             "dependsOnAttemptIds": depends_on,
             "kernelVersionLabel": kernel_ver,
             "inputResourceVersionIds": in_res or [],
-            "summary": summary if status == "running" else f"正在执行 {code} ({stage_type})...",
+            "summary": summary
+            if status == "running"
+            else f"正在执行 {code} ({stage_type})...",
             "reusedFromAttemptId": reused_from,
         },
         req_key=f"start-{att_id}",
@@ -310,8 +321,12 @@ async def run_two_agent_simulation(
     seed_client = SimulationClient(
         "agent-coord", service=service, http_client=http_client, internal_seed=True
     )
-    coord_client = SimulationClient("agent-coord", service=service, http_client=http_client)
-    cube_client = SimulationClient("agent-cube", service=service, http_client=http_client)
+    coord_client = SimulationClient(
+        "agent-coord", service=service, http_client=http_client
+    )
+    cube_client = SimulationClient(
+        "agent-cube", service=service, http_client=http_client
+    )
     vec_client = SimulationClient("agent-vec", service=service, http_client=http_client)
 
     # 1. Create / Reset Exploration & Register Agents (Internal seed bootstrap)
@@ -334,7 +349,7 @@ async def run_two_agent_simulation(
             "parentId": None,
             "branchLabel": "Root Baseline",
             "title": "N0 · Cooled 基线 (64x64 单缓冲顺序流水)",
-            "hypothesis": "固定 cooled@v1.4 基线，采集初始耗时与 msprof 流水线瓶颈作为整棵搜索树起点。",
+            "hypothesis": "固定 cooled@v1.4 基线，采集初始耗时与 msprof 流水线瓶颈作为整棵探索图起点。",
             "changeSummary": "初始 64x64 分块，Q/K 在内层循环重复搬运，Cube 与 Vector 使用单 event_id=0 串行等待。",
             "derivationNote": "根节点：绑定固定 cooled 基线 @v1.4 与共享评测契约 fa2_task_spec@v1.yaml。",
             "primaryKernelVersionId": "res-n0-kernel-v1",
@@ -362,14 +377,94 @@ async def run_two_agent_simulation(
 
     # Complete N0 8 stages
     n0_stages = [
-        ("N0-R1", "read_info", "R1", "agent-coord", [], ["res-cfg-v1"], [], "读取共享算子契约 fa2_task_spec@v1 与上游节点瓶颈证据", None),
-        ("N0-P1", "plan_idea", "P1", "agent-coord", ["N0-R1"], ["res-cfg-v1"], [], "完成当前分支改动方案设计与硬件容量校核", None),
-        ("N0-G1", "gen_kernel", "G1", "agent-coord", ["N0-P1"], [], ["res-n0-kernel-v1"], "生成 TileLang NPUIR 算子内核源码 @v1", "v1"),
-        ("N0-C1", "compile", "C1", "agent-eval", ["N0-G1"], ["res-n0-kernel-v1"], [], "tilelangir-opt + bishengir-compile 编译通过 (0 errors)", "v1"),
-        ("N0-V1", "verify_correctness", "V1", "agent-eval", ["N0-C1"], ["res-n0-kernel-v1"], [], "对标 FP32 Golden 精度校验通过 (max_abs_diff <= 1.4e-4)", "v1"),
-        ("N0-B1", "bench_perf", "B1", "agent-eval", ["N0-V1"], ["res-n0-kernel-v1"], ["res-n0-exp-v1"], "预热 20 次 + 测量 100 次 + npu.synchronize 计时完成", "v1"),
-        ("N0-F1", "profiling", "F1", "agent-eval", ["N0-B1"], ["res-n0-exp-v1"], ["res-n0-prof-v1"], "msprof 采集 Cube / Vector / MTE2 / PIPE_FIX 流水线占比完成", "v1"),
-        ("N0-S1", "summarize", "S1", "agent-coord", ["N0-F1"], ["res-n0-prof-v1"], [], "完成阶段总结与下一步分支建议记录", None),
+        (
+            "N0-R1",
+            "read_info",
+            "R1",
+            "agent-coord",
+            [],
+            ["res-cfg-v1"],
+            [],
+            "读取共享算子契约 fa2_task_spec@v1 与上游节点瓶颈证据",
+            None,
+        ),
+        (
+            "N0-P1",
+            "plan_idea",
+            "P1",
+            "agent-coord",
+            ["N0-R1"],
+            ["res-cfg-v1"],
+            [],
+            "完成当前分支改动方案设计与硬件容量校核",
+            None,
+        ),
+        (
+            "N0-G1",
+            "gen_kernel",
+            "G1",
+            "agent-coord",
+            ["N0-P1"],
+            [],
+            ["res-n0-kernel-v1"],
+            "生成 TileLang NPUIR 算子内核源码 @v1",
+            "v1",
+        ),
+        (
+            "N0-C1",
+            "compile",
+            "C1",
+            "agent-eval",
+            ["N0-G1"],
+            ["res-n0-kernel-v1"],
+            [],
+            "tilelangir-opt + bishengir-compile 编译通过 (0 errors)",
+            "v1",
+        ),
+        (
+            "N0-V1",
+            "verify_correctness",
+            "V1",
+            "agent-eval",
+            ["N0-C1"],
+            ["res-n0-kernel-v1"],
+            [],
+            "对标 FP32 Golden 精度校验通过 (max_abs_diff <= 1.4e-4)",
+            "v1",
+        ),
+        (
+            "N0-B1",
+            "bench_perf",
+            "B1",
+            "agent-eval",
+            ["N0-V1"],
+            ["res-n0-kernel-v1"],
+            ["res-n0-exp-v1"],
+            "预热 20 次 + 测量 100 次 + npu.synchronize 计时完成",
+            "v1",
+        ),
+        (
+            "N0-F1",
+            "profiling",
+            "F1",
+            "agent-eval",
+            ["N0-B1"],
+            ["res-n0-exp-v1"],
+            ["res-n0-prof-v1"],
+            "msprof 采集 Cube / Vector / MTE2 / PIPE_FIX 流水线占比完成",
+            "v1",
+        ),
+        (
+            "N0-S1",
+            "summarize",
+            "S1",
+            "agent-coord",
+            ["N0-F1"],
+            ["res-n0-prof-v1"],
+            [],
+            "完成阶段总结与下一步分支建议记录",
+            None,
+        ),
     ]
     for idx, (aid, st, code, ag, deps, in_r, out_r, summ, kv) in enumerate(n0_stages):
         await _run_single_attempt(
@@ -447,20 +542,109 @@ async def run_two_agent_simulation(
             },
             req_key="lnk-05",
         )
-        for rid in ["res-n1-idea-v1", "res-n1-kernel-v1", "res-n1-exp-v1", "res-n1-prof-v1"]:
-            await cube_client.upload_resource(exp_id, res_by_id[rid], req_key=f"up-{rid}")
+        for rid in [
+            "res-n1-idea-v1",
+            "res-n1-kernel-v1",
+            "res-n1-exp-v1",
+            "res-n1-prof-v1",
+        ]:
+            await cube_client.upload_resource(
+                exp_id, res_by_id[rid], req_key=f"up-{rid}"
+            )
 
         n1_stages = [
-            ("N1-R1", "read_info", "R1", "agent-cube", [], ["res-cfg-v1", "res-n0-prof-v1"], [], "读取共享算子契约 fa2_task_spec@v1 与上游节点瓶颈证据", None),
-            ("N1-P1", "plan_idea", "P1", "agent-cube", ["N1-R1"], ["res-cfg-v1"], ["res-n1-idea-v1"], "完成当前分支改动方案设计与硬件容量校核", None),
-            ("N1-G1", "gen_kernel", "G1", "agent-cube", ["N1-P1"], ["res-n1-idea-v1"], ["res-n1-kernel-v1"], "生成 TileLang NPUIR 算子内核源码 @v1", "v1"),
-            ("N1-C1", "compile", "C1", "agent-eval", ["N1-G1"], ["res-n1-kernel-v1"], [], "tilelangir-opt + bishengir-compile 编译通过 (0 errors)", "v1"),
-            ("N1-V1", "verify_correctness", "V1", "agent-eval", ["N1-C1"], ["res-n1-kernel-v1"], [], "对标 FP32 Golden 精度校验通过 (max_abs_diff <= 1.4e-4)", "v1"),
-            ("N1-B1", "bench_perf", "B1", "agent-eval", ["N1-V1"], ["res-n1-kernel-v1"], ["res-n1-exp-v1"], "预热 20 次 + 测量 100 次 + npu.synchronize 计时完成", "v1"),
-            ("N1-F1", "profiling", "F1", "agent-eval", ["N1-B1"], ["res-n1-exp-v1"], ["res-n1-prof-v1"], "msprof 采集 Cube / Vector / MTE2 / PIPE_FIX 流水线占比完成", "v1"),
-            ("N1-S1", "summarize", "S1", "agent-cube", ["N1-F1"], ["res-n1-prof-v1"], [], "完成阶段总结与下一步分支建议记录", None),
+            (
+                "N1-R1",
+                "read_info",
+                "R1",
+                "agent-cube",
+                [],
+                ["res-cfg-v1", "res-n0-prof-v1"],
+                [],
+                "读取共享算子契约 fa2_task_spec@v1 与上游节点瓶颈证据",
+                None,
+            ),
+            (
+                "N1-P1",
+                "plan_idea",
+                "P1",
+                "agent-cube",
+                ["N1-R1"],
+                ["res-cfg-v1"],
+                ["res-n1-idea-v1"],
+                "完成当前分支改动方案设计与硬件容量校核",
+                None,
+            ),
+            (
+                "N1-G1",
+                "gen_kernel",
+                "G1",
+                "agent-cube",
+                ["N1-P1"],
+                ["res-n1-idea-v1"],
+                ["res-n1-kernel-v1"],
+                "生成 TileLang NPUIR 算子内核源码 @v1",
+                "v1",
+            ),
+            (
+                "N1-C1",
+                "compile",
+                "C1",
+                "agent-eval",
+                ["N1-G1"],
+                ["res-n1-kernel-v1"],
+                [],
+                "tilelangir-opt + bishengir-compile 编译通过 (0 errors)",
+                "v1",
+            ),
+            (
+                "N1-V1",
+                "verify_correctness",
+                "V1",
+                "agent-eval",
+                ["N1-C1"],
+                ["res-n1-kernel-v1"],
+                [],
+                "对标 FP32 Golden 精度校验通过 (max_abs_diff <= 1.4e-4)",
+                "v1",
+            ),
+            (
+                "N1-B1",
+                "bench_perf",
+                "B1",
+                "agent-eval",
+                ["N1-V1"],
+                ["res-n1-kernel-v1"],
+                ["res-n1-exp-v1"],
+                "预热 20 次 + 测量 100 次 + npu.synchronize 计时完成",
+                "v1",
+            ),
+            (
+                "N1-F1",
+                "profiling",
+                "F1",
+                "agent-eval",
+                ["N1-B1"],
+                ["res-n1-exp-v1"],
+                ["res-n1-prof-v1"],
+                "msprof 采集 Cube / Vector / MTE2 / PIPE_FIX 流水线占比完成",
+                "v1",
+            ),
+            (
+                "N1-S1",
+                "summarize",
+                "S1",
+                "agent-cube",
+                ["N1-F1"],
+                ["res-n1-prof-v1"],
+                [],
+                "完成阶段总结与下一步分支建议记录",
+                None,
+            ),
         ]
-        for idx, (aid, st, code, ag, deps, in_r, out_r, summ, kv) in enumerate(n1_stages):
+        for idx, (aid, st, code, ag, deps, in_r, out_r, summ, kv) in enumerate(
+            n1_stages
+        ):
             await _run_single_attempt(
                 cube_client,
                 exp_id,
@@ -519,14 +703,113 @@ async def run_two_agent_simulation(
             req_key="create-N2",
         )
         for rid in ["res-n2-kernel-v1", "res-n2-summary-v1"]:
-            await cube_client.upload_resource(exp_id, res_by_id[rid], req_key=f"up-{rid}")
+            await cube_client.upload_resource(
+                exp_id, res_by_id[rid], req_key=f"up-{rid}"
+            )
 
-        await _run_single_attempt(cube_client, exp_id, "N2", "N2-R1", "read_info", "R1", 1, "agent-cube", "10:06:00", "10:06:20", [], "读取 N0 基线配置与 L1/UB 参数", in_res=["res-cfg-v1"], delay_sec=delay_sec)
-        await _run_single_attempt(cube_client, exp_id, "N2", "N2-P1", "plan_idea", "P1", 1, "agent-cube", "10:06:20", "10:07:00", ["N2-R1"], "设计 256x128 极限分块方案", delay_sec=delay_sec)
-        await _run_single_attempt(cube_client, exp_id, "N2", "N2-G1", "gen_kernel", "G1", 1, "agent-cube", "10:07:00", "10:07:30", ["N2-P1"], "生成 256x128 初版内核 (请求 320KB UB)", kernel_ver="v1", out_res=["res-n2-kernel-v1"], delay_sec=delay_sec)
-        await _run_single_attempt(cube_client, exp_id, "N2", "N2-C1", "compile", "C1", 1, "agent-eval", "10:07:30", "10:08:15", ["N2-G1"], "编译失败：UB allocation 327,680B > 196,608B (192KB)", status="failed", kernel_ver="v1", in_res=["res-n2-kernel-v1"], fail_reason="超出 Ascend 910B2 单核 UB 192KB 物理上限", delay_sec=delay_sec)
-        await _run_single_attempt(cube_client, exp_id, "N2", "N2-G2", "gen_kernel", "G2", 2, "agent-cube", "10:08:20", "10:09:00", ["N2-C1"], "回退尝试复用 P_ub 压缩缓冲，仍需 224KB UB", kernel_ver="v2", out_res=["res-n2-kernel-v1"], delay_sec=delay_sec)
-        await _run_single_attempt(cube_client, exp_id, "N2", "N2-C2", "compile", "C2", 2, "agent-eval", "10:09:05", "10:09:50", ["N2-G2"], "编译仍失败：224KB > 192KB，证明 256x128 在 FP32 累加下不可行", status="failed", kernel_ver="v2", in_res=["res-n2-kernel-v1"], fail_reason="硬件容量硬约束限制，协调者裁定停止该分支", delay_sec=delay_sec)
+        await _run_single_attempt(
+            cube_client,
+            exp_id,
+            "N2",
+            "N2-R1",
+            "read_info",
+            "R1",
+            1,
+            "agent-cube",
+            "10:06:00",
+            "10:06:20",
+            [],
+            "读取 N0 基线配置与 L1/UB 参数",
+            in_res=["res-cfg-v1"],
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            cube_client,
+            exp_id,
+            "N2",
+            "N2-P1",
+            "plan_idea",
+            "P1",
+            1,
+            "agent-cube",
+            "10:06:20",
+            "10:07:00",
+            ["N2-R1"],
+            "设计 256x128 极限分块方案",
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            cube_client,
+            exp_id,
+            "N2",
+            "N2-G1",
+            "gen_kernel",
+            "G1",
+            1,
+            "agent-cube",
+            "10:07:00",
+            "10:07:30",
+            ["N2-P1"],
+            "生成 256x128 初版内核 (请求 320KB UB)",
+            kernel_ver="v1",
+            out_res=["res-n2-kernel-v1"],
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            cube_client,
+            exp_id,
+            "N2",
+            "N2-C1",
+            "compile",
+            "C1",
+            1,
+            "agent-eval",
+            "10:07:30",
+            "10:08:15",
+            ["N2-G1"],
+            "编译失败：UB allocation 327,680B > 196,608B (192KB)",
+            status="failed",
+            kernel_ver="v1",
+            in_res=["res-n2-kernel-v1"],
+            fail_reason="超出 Ascend 910B2 单核 UB 192KB 物理上限",
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            cube_client,
+            exp_id,
+            "N2",
+            "N2-G2",
+            "gen_kernel",
+            "G2",
+            2,
+            "agent-cube",
+            "10:08:20",
+            "10:09:00",
+            ["N2-C1"],
+            "回退尝试复用 P_ub 压缩缓冲，仍需 224KB UB",
+            kernel_ver="v2",
+            out_res=["res-n2-kernel-v1"],
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            cube_client,
+            exp_id,
+            "N2",
+            "N2-C2",
+            "compile",
+            "C2",
+            2,
+            "agent-eval",
+            "10:09:05",
+            "10:09:50",
+            ["N2-G2"],
+            "编译仍失败：224KB > 192KB，证明 256x128 在 FP32 累加下不可行",
+            status="failed",
+            kernel_ver="v2",
+            in_res=["res-n2-kernel-v1"],
+            fail_reason="硬件容量硬约束限制，协调者裁定停止该分支",
+            delay_sec=delay_sec,
+        )
         await _run_single_attempt(
             cube_client,
             exp_id,
@@ -584,15 +867,156 @@ async def run_two_agent_simulation(
             exp_id, res_by_id["res-n3-summary-v1"], req_key="up-res-n3-summary-v1"
         )
 
-        await _run_single_attempt(vec_client, exp_id, "N3", "N3-R1", "read_info", "R1", 1, "agent-vec", "10:10:10", "10:10:30", [], "读取共享算子契约 fa2_task_spec@v1 与上游节点瓶颈证据", in_res=["res-cfg-v1"], delay_sec=delay_sec)
-        await _run_single_attempt(vec_client, exp_id, "N3", "N3-P1", "plan_idea", "P1", 1, "agent-vec", "10:10:30", "10:10:55", ["N3-R1"], "完成当前分支改动方案设计与硬件容量校核", in_res=["res-cfg-v1"], delay_sec=delay_sec)
-        await _run_single_attempt(vec_client, exp_id, "N3", "N3-G1", "gen_kernel", "G1", 1, "agent-vec", "10:11:00", "10:11:45", ["N3-P1"], "生成初版单向 Ping-Pong 同步内核 @v1", kernel_ver="v1", delay_sec=delay_sec)
-        await _run_single_attempt(vec_client, exp_id, "N3", "N3-C1", "compile", "C1", 1, "agent-eval", "10:11:50", "10:12:20", ["N3-G1"], "编译 @v1 通过", kernel_ver="v1", delay_sec=delay_sec)
-        await _run_single_attempt(vec_client, exp_id, "N3", "N3-V1", "verify_correctness", "V1", 1, "agent-eval", "10:12:25", "10:13:05", ["N3-C1"], "精度验证失败：max_abs_diff = 0.842 > atol 1e-3", status="failed", kernel_ver="v1", fail_reason="ko>=2 时 Cube 提前覆写了 Vector 尚未消费完的 S_ub[0]", correctness_passed=False, delay_sec=delay_sec)
-        await _run_single_attempt(vec_client, exp_id, "N3", "N3-G2", "gen_kernel", "G2", 2, "agent-vec", "10:13:10", "10:13:50", ["N3-V1"], "回退修复：补齐 ko>=2 时 Vector->Cube 反向 sync_block_wait 配对 (@v2)", kernel_ver="v2", delay_sec=delay_sec)
-        await _run_single_attempt(vec_client, exp_id, "N3", "N3-C2", "compile", "C2", 2, "agent-eval", "10:13:55", "10:14:25", ["N3-G2"], "编译修复版 @v2 通过", kernel_ver="v2", delay_sec=delay_sec)
-        await _run_single_attempt(vec_client, exp_id, "N3", "N3-V2", "verify_correctness", "V2", 2, "agent-eval", "10:14:30", "10:15:00", ["N3-C2"], "精度验证通过：双向 event_id=ko%2 修复后 max_abs_diff = 1.3e-4", kernel_ver="v2", correctness_passed=True, delay_sec=delay_sec)
-        await _run_single_attempt(vec_client, exp_id, "N3", "N3-B1", "bench_perf", "B1", 1, "agent-eval", "10:15:10", "10:15:30", ["N3-V2"], "预热 20 次 + 测量 100 次 + npu.synchronize 计时完成", kernel_ver="v2", latency_us=192.4, speedup=1.29, delay_sec=delay_sec)
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N3",
+            "N3-R1",
+            "read_info",
+            "R1",
+            1,
+            "agent-vec",
+            "10:10:10",
+            "10:10:30",
+            [],
+            "读取共享算子契约 fa2_task_spec@v1 与上游节点瓶颈证据",
+            in_res=["res-cfg-v1"],
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N3",
+            "N3-P1",
+            "plan_idea",
+            "P1",
+            1,
+            "agent-vec",
+            "10:10:30",
+            "10:10:55",
+            ["N3-R1"],
+            "完成当前分支改动方案设计与硬件容量校核",
+            in_res=["res-cfg-v1"],
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N3",
+            "N3-G1",
+            "gen_kernel",
+            "G1",
+            1,
+            "agent-vec",
+            "10:11:00",
+            "10:11:45",
+            ["N3-P1"],
+            "生成初版单向 Ping-Pong 同步内核 @v1",
+            kernel_ver="v1",
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N3",
+            "N3-C1",
+            "compile",
+            "C1",
+            1,
+            "agent-eval",
+            "10:11:50",
+            "10:12:20",
+            ["N3-G1"],
+            "编译 @v1 通过",
+            kernel_ver="v1",
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N3",
+            "N3-V1",
+            "verify_correctness",
+            "V1",
+            1,
+            "agent-eval",
+            "10:12:25",
+            "10:13:05",
+            ["N3-C1"],
+            "精度验证失败：max_abs_diff = 0.842 > atol 1e-3",
+            status="failed",
+            kernel_ver="v1",
+            fail_reason="ko>=2 时 Cube 提前覆写了 Vector 尚未消费完的 S_ub[0]",
+            correctness_passed=False,
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N3",
+            "N3-G2",
+            "gen_kernel",
+            "G2",
+            2,
+            "agent-vec",
+            "10:13:10",
+            "10:13:50",
+            ["N3-V1"],
+            "回退修复：补齐 ko>=2 时 Vector->Cube 反向 sync_block_wait 配对 (@v2)",
+            kernel_ver="v2",
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N3",
+            "N3-C2",
+            "compile",
+            "C2",
+            2,
+            "agent-eval",
+            "10:13:55",
+            "10:14:25",
+            ["N3-G2"],
+            "编译修复版 @v2 通过",
+            kernel_ver="v2",
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N3",
+            "N3-V2",
+            "verify_correctness",
+            "V2",
+            2,
+            "agent-eval",
+            "10:14:30",
+            "10:15:00",
+            ["N3-C2"],
+            "精度验证通过：双向 event_id=ko%2 修复后 max_abs_diff = 1.3e-4",
+            kernel_ver="v2",
+            correctness_passed=True,
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N3",
+            "N3-B1",
+            "bench_perf",
+            "B1",
+            1,
+            "agent-eval",
+            "10:15:10",
+            "10:15:30",
+            ["N3-V2"],
+            "预热 20 次 + 测量 100 次 + npu.synchronize 计时完成",
+            kernel_ver="v2",
+            latency_us=192.4,
+            speedup=1.29,
+            delay_sec=delay_sec,
+        )
         await _run_single_attempt(
             vec_client,
             exp_id,
@@ -652,7 +1076,11 @@ async def run_two_agent_simulation(
         exp_id,
         {
             "id": "N4",
-            "parentId": "N1",
+            "parentIds": ["N1", "N3"],
+            "sourceContributions": {
+                "N1": "继承 128x128 分块方案",
+                "N3": "融合双缓冲流水与同步修复；在 N4 重新验证",
+            },
             "branchLabel": "Branch A1 · 跨分支融合 (当前最佳)",
             "title": "N4 · 128x128 分块 + 跨分支双缓冲流水融合",
             "hypothesis": "将父节点 N1 的 128x128 L1 驻留分块与分支 N3 验证通过的双缓冲同步配对融合，同时解决 MTE2 带宽与 PIPE_FIX 串行等待两大瓶颈。",
@@ -954,7 +1382,9 @@ async def run_two_agent_simulation(
             node_content_status="ready-for-cool",
             delay_sec=delay_sec,
         )
-        await coord_client.upsert_knowledge(exp_id, know_by_id["K-03"], req_key="know-K03")
+        await coord_client.upsert_knowledge(
+            exp_id, know_by_id["K-03"], req_key="know-K03"
+        )
 
     async def launch_n5_by_vec() -> None:
         await vec_client.create_node(
@@ -988,10 +1418,72 @@ async def run_two_agent_simulation(
             },
             req_key="create-N5",
         )
-        await _run_single_attempt(vec_client, exp_id, "N5", "N5-R1", "read_info", "R1", 1, "agent-vec", "10:29:10", "10:30:10", [], "读取共享算子契约 fa2_task_spec@v1 与上游节点瓶颈证据", in_res=["res-cfg-v1"], delay_sec=delay_sec)
-        await _run_single_attempt(vec_client, exp_id, "N5", "N5-P1", "plan_idea", "P1", 1, "agent-vec", "10:30:10", "10:31:10", ["N5-R1"], "完成当前分支改动方案设计与硬件容量校核", in_res=["res-cfg-v1"], delay_sec=delay_sec)
-        await _run_single_attempt(vec_client, exp_id, "N5", "N5-G1", "gen_kernel", "G1", 1, "agent-vec", "10:31:10", "10:32:10", ["N5-P1"], "生成 TileLang NPUIR 算子内核源码 @v1", kernel_ver="v1", out_res=["res-n4-kernel-v2"], delay_sec=delay_sec)
-        await _run_single_attempt(vec_client, exp_id, "N5", "N5-C1", "compile", "C1", 1, "agent-eval", "10:32:10", "10:33:10", ["N5-G1"], "tilelangir-opt + bishengir-compile 编译通过 (0 errors)", kernel_ver="v1", in_res=["res-n4-kernel-v2"], delay_sec=delay_sec)
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N5",
+            "N5-R1",
+            "read_info",
+            "R1",
+            1,
+            "agent-vec",
+            "10:29:10",
+            "10:30:10",
+            [],
+            "读取共享算子契约 fa2_task_spec@v1 与上游节点瓶颈证据",
+            in_res=["res-cfg-v1"],
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N5",
+            "N5-P1",
+            "plan_idea",
+            "P1",
+            1,
+            "agent-vec",
+            "10:30:10",
+            "10:31:10",
+            ["N5-R1"],
+            "完成当前分支改动方案设计与硬件容量校核",
+            in_res=["res-cfg-v1"],
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N5",
+            "N5-G1",
+            "gen_kernel",
+            "G1",
+            1,
+            "agent-vec",
+            "10:31:10",
+            "10:32:10",
+            ["N5-P1"],
+            "生成 TileLang NPUIR 算子内核源码 @v1",
+            kernel_ver="v1",
+            out_res=["res-n4-kernel-v2"],
+            delay_sec=delay_sec,
+        )
+        await _run_single_attempt(
+            vec_client,
+            exp_id,
+            "N5",
+            "N5-C1",
+            "compile",
+            "C1",
+            1,
+            "agent-eval",
+            "10:32:10",
+            "10:33:10",
+            ["N5-G1"],
+            "tilelangir-opt + bishengir-compile 编译通过 (0 errors)",
+            kernel_ver="v1",
+            in_res=["res-n4-kernel-v2"],
+            delay_sec=delay_sec,
+        )
         # N5-V1 stays 'running' (in-flight evaluation reserving 1 budget slot!)
         await _run_single_attempt(
             vec_client,

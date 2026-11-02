@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 EXPLORATION_META: Dict[str, Any] = {
     "id": "exp-fa2-mixcv",
-    "title": "Ascend 910B2 FlashAttention-2 MixCV 算子搜索树",
+    "title": "Ascend 910B2 FlashAttention-2 MixCV 算子探索图",
     "operatorName": "flash_attention_v2_fwd (Cube + Vector 融合)",
     "targetGoal": "在 B=4, H=32, S=4096, D=128 (fp16) 下通过精度校验 (1e-3) 并将耗时压降至 <= 135 us",
     "inputDomain": "B=4, H=32, Sq=4096, Skv=4096, D=128 · float16 (FP32 L0C/UB 累加)",
@@ -526,7 +526,7 @@ KNOWLEDGE_SEED: List[Dict[str, Any]] = [
         "contentStatus": "ready-for-cool",
         "applicability": "包含 T.gemm + T.store_fixpipe + Vector 后处理的 MixCV 算子，且 L1/UB 具备双份 Ping-Pong 容量（如 128x128 FP16/FP32）",
         "unverifiedScope": "3-stage 环形缓冲（Triple Buffering）在 S < 1024 短序列下的收益尚未验证",
-        "body": "当 msprof 显示 PIPE_FIX 等待 > 25% 时，将 UB 缓冲扩为 (2, block_M, block_N) 并按 buf = ko % 2 交替：除正向 sync_block_set/wait(\"Cube\", \"Vector\", buf) 外，必须在 ko >= 2 时于 Cube 写入前执行 sync_block_wait(\"Vector\", \"Cube\", buf)，否则将发生跨轮次 UB 覆写导致精度崩溃。",
+        "body": '当 msprof 显示 PIPE_FIX 等待 > 25% 时，将 UB 缓冲扩为 (2, block_M, block_N) 并按 buf = ko % 2 交替：除正向 sync_block_set/wait("Cube", "Vector", buf) 外，必须在 ko >= 2 时于 Cube 写入前执行 sync_block_wait("Vector", "Cube", buf)，否则将发生跨轮次 UB 覆写导致精度崩溃。',
         "supportingNodeIds": ["N3", "N4"],
         "counterexampleNodeIds": ["N2"],
         "evidenceAttemptIds": ["N3-V1", "N3-V2", "N4-V2", "N4-B2", "N4-F1"],

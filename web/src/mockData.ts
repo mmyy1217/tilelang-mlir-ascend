@@ -211,7 +211,7 @@ const FA2_NODES: NodeRecord[] = [
     depth: 0,
     branchLabel: 'Root Baseline',
     title: 'N0 · Cooled 基线 (64x64 单缓冲顺序流水)',
-    hypothesis: '固定 cooled@v1.4 基线，采集初始耗时与 msprof 流水线瓶颈作为整棵搜索树起点。',
+    hypothesis: '固定 cooled@v1.4 基线，采集初始耗时与 msprof 流水线瓶颈作为整棵探索图起点。',
     changeSummary: '初始 64x64 分块，Q/K 在内层循环重复搬运，Cube 与 Vector 使用单 event_id=0 串行等待。',
     derivationNote: '根节点：绑定固定 cooled 基线 @v1.4 与共享评测契约 fa2_task_spec@v1.yaml。',
     primaryKernelVersionId: 'res-n0-kernel-v1',
@@ -605,6 +605,7 @@ const FA2_NODES: NodeRecord[] = [
   },
   {
     id: 'N4',
+    parentIds: ['N1', 'N3'],
     explorationId: 'exp-fa2-mixcv',
     parentId: 'N1',
     depth: 2,
@@ -961,7 +962,7 @@ const FA2_NODES: NodeRecord[] = [
 export const EXPLORATIONS: Exploration[] = [
   {
     id: 'exp-fa2-mixcv',
-    title: 'Ascend 910B2 FlashAttention-2 MixCV 算子搜索树',
+    title: 'Ascend 910B2 FlashAttention-2 MixCV 算子探索图',
     operatorName: 'flash_attention_v2_fwd (Cube + Vector 融合)',
     targetGoal: '在 B=4, H=32, S=4096, D=128 (fp16) 下通过精度校验 (1e-3) 并将耗时压降至 <= 135 us',
     inputDomain: 'B=4, H=32, Sq=4096, Skv=4096, D=128 · float16 (FP32 L0C/UB 累加)',

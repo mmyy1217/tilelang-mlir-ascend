@@ -112,6 +112,7 @@ export interface ResourceLink {
 }
 
 export interface StageAttempt {
+  sourceStatus?: ExecutionStatus;
   id: string;
   code: string;
   nodeId: string;
@@ -141,7 +142,8 @@ export interface StageRecord {
 export interface NodeRecord {
   id: string;
   explorationId: string;
-  parentId: string | null;
+  parentId: string | null; // Legacy snapshot compatibility
+  parentIds?: string[];
   depth: number;
   branchLabel: string;
   title: string;
@@ -171,7 +173,7 @@ export interface ReferenceRecord {
   explorationId: string;
   sourceNodeId: string;
   targetNodeId: string;
-  purpose: 'derivation' | 'cross_branch';
+  purpose: 'derivation' | 'cross_branch' | 'reference' | 'support' | 'refute';
   referencedNodeId?: string;
   referencedKnowledgeId?: string;
   referencedKnowledgeVersion?: string;
@@ -183,6 +185,7 @@ export interface ReferenceRecord {
 }
 
 export interface AgentRecord {
+  historicalOnly?: boolean;
   id: string;
   name: string;
   role: string;
@@ -208,12 +211,25 @@ export interface KnowledgeRecord {
   evidenceAttemptIds: string[];
 }
 
+export interface GraphRelation {
+  id: string;
+  kind: 'derivation' | 'reference' | 'support' | 'refute';
+  sourceType: 'node' | 'knowledge'; sourceId: string;
+  targetType: 'node' | 'knowledge'; targetId: string;
+  rationale: string;
+  resourceVersionId?: string;
+  knowledgeVersion?: string;
+  evidenceAttemptIds?: string[];
+}
 export interface Exploration {
+  graphRelations?: GraphRelation[];
+  forkSource?: { explorationId: string; title: string; eventSeq: number; capturedAt: string };
   id: string;
   title: string;
   operatorName: string;
   targetGoal: string;
   inputDomain: string;
+  inputShapes?: string[];
   environment: string;
   baselineRef: {
     id: string;
@@ -245,6 +261,7 @@ export interface Exploration {
 }
 
 export interface SelectionState {
+  knowledgeId?: string | null;
   explorationId: string;
   viewMode: 'tree' | 'agent';
   nodeId: string | null;

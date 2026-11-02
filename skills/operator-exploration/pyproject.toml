@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opwork"
+version = "0.1.0"
+description = "CLI for persistent operator exploration graphs"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+yaml = ["PyYAML>=6"]
+
+[project.scripts]
+opwork = "opwork:main"
+
+[tool.setuptools]
+py-modules = ["opwork"]
+package-dir = {"" = "scripts"}

@@ -110,3 +110,7 @@ CLAUDE.md
 data/
 .worktree/
 
+# Local CLI session state (may contain experiment payloads)
+.sessions/
+.opwork-requests/
+*.heartbeat.json

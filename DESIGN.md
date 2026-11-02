@@ -2,100 +2,100 @@
 name: TileLang-Ascend Multi-Agent Operator Optimization Workbench
 description: Geological and Stratigraphic Core Log Folio for inspecting multi-agent operator search trees, 8-stage attempt trajectories, and versioned NPU artifacts.
 colors:
-  primary: "#8c2f1b"
-  primary-soft: "#faeae6"
-  secondary: "#0e6b48"
-  secondary-soft: "#e3f5ed"
-  tertiary: "#1b4d8c"
-  tertiary-soft: "#e5eef9"
-  amber-running: "#9a6112"
-  amber-soft: "#fcf2e3"
-  danger-failed: "#a32424"
-  danger-soft: "#fbe8e8"
-  paper-bg: "#f4f1ea"
-  paper-elevated: "#fbf9f4"
-  paper-recessed: "#ede8dc"
-  code-obsidian: "#1b1916"
-  ink-primary: "#191714"
-  ink-secondary: "#3e3a32"
-  ink-muted: "#6d6658"
-  border-strong: "#191714"
-  border-hairline: "#cfc8b8"
+primary: "#8c2f1b"
+primary-soft: "#faeae6"
+secondary: "#0e6b48"
+secondary-soft: "#e3f5ed"
+tertiary: "#1b4d8c"
+tertiary-soft: "#e5eef9"
+amber-running: "#9a6112"
+amber-soft: "#fcf2e3"
+danger-failed: "#a32424"
+danger-soft: "#fbe8e8"
+paper-bg: "#f4f1ea"
+paper-elevated: "#fbf9f4"
+paper-recessed: "#ede8dc"
+code-obsidian: "#1b1916"
+ink-primary: "#191714"
+ink-secondary: "#3e3a32"
+ink-muted: "#6d6658"
+border-strong: "#191714"
+border-hairline: "#cfc8b8"
 typography:
-  display:
-    fontFamily: "'IBM Plex Sans', 'PingFang SC', 'Noto Sans SC', system-ui, sans-serif"
-    fontSize: "1.15rem"
-    fontWeight: 700
-    lineHeight: 1.25
-    letterSpacing: "-0.01em"
-  headline:
-    fontFamily: "'IBM Plex Sans', 'PingFang SC', 'Noto Sans SC', system-ui, sans-serif"
-    fontSize: "0.95rem"
-    fontWeight: 700
-    lineHeight: 1.3
-    letterSpacing: "-0.005em"
-  title:
-    fontFamily: "'IBM Plex Sans', 'PingFang SC', 'Noto Sans SC', system-ui, sans-serif"
-    fontSize: "0.82rem"
-    fontWeight: 700
-    lineHeight: 1.35
-    letterSpacing: "0em"
-  body:
-    fontFamily: "'IBM Plex Sans', 'PingFang SC', 'Noto Sans SC', system-ui, sans-serif"
-    fontSize: "0.8125rem"
-    fontWeight: 400
-    lineHeight: 1.45
-    letterSpacing: "0em"
-  label:
-    fontFamily: "'JetBrains Mono', 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace"
-    fontSize: "0.72rem"
-    fontWeight: 600
-    lineHeight: 1.2
-    letterSpacing: "0.02em"
+display:
+fontFamily: "'IBM Plex Sans', 'PingFang SC', 'Noto Sans SC', system-ui, sans-serif"
+fontSize: "1.15rem"
+fontWeight: 700
+lineHeight: 1.25
+letterSpacing: "-0.01em"
+headline:
+fontFamily: "'IBM Plex Sans', 'PingFang SC', 'Noto Sans SC', system-ui, sans-serif"
+fontSize: "0.95rem"
+fontWeight: 700
+lineHeight: 1.3
+letterSpacing: "-0.005em"
+title:
+fontFamily: "'IBM Plex Sans', 'PingFang SC', 'Noto Sans SC', system-ui, sans-serif"
+fontSize: "0.82rem"
+fontWeight: 700
+lineHeight: 1.35
+letterSpacing: "0em"
+body:
+fontFamily: "'IBM Plex Sans', 'PingFang SC', 'Noto Sans SC', system-ui, sans-serif"
+fontSize: "0.8125rem"
+fontWeight: 400
+lineHeight: 1.45
+letterSpacing: "0em"
+label:
+fontFamily: "'JetBrains Mono', 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace"
+fontSize: "0.72rem"
+fontWeight: 600
+lineHeight: 1.2
+letterSpacing: "0.02em"
 rounded:
-  none: "0px"
-  sm: "2px"
-  md: "4px"
+none: "0px"
+sm: "2px"
+md: "4px"
 spacing:
-  xs: "4px"
-  sm: "8px"
-  md: "12px"
-  lg: "16px"
-  xl: "24px"
+xs: "4px"
+sm: "8px"
+md: "12px"
+lg: "16px"
+xl: "24px"
 components:
-  button-primary:
-    backgroundColor: "{colors.ink-primary}"
-    textColor: "{colors.paper-elevated}"
-    typography: "{typography.body}"
-    rounded: "{rounded.sm}"
-    padding: "6px 12px"
-  button-primary-hover:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.paper-elevated}"
-  button-secondary:
-    backgroundColor: "{colors.paper-elevated}"
-    textColor: "{colors.ink-primary}"
-    typography: "{typography.body}"
-    rounded: "{rounded.sm}"
-    padding: "5px 10px"
-  badge-ready-for-cool:
-    backgroundColor: "{colors.secondary-soft}"
-    textColor: "{colors.secondary}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
-    padding: "2px 6px"
-  badge-cooled:
-    backgroundColor: "{colors.tertiary-soft}"
-    textColor: "{colors.tertiary}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
-    padding: "2px 6px"
-  badge-hot:
-    backgroundColor: "{colors.primary-soft}"
-    textColor: "{colors.primary}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
-    padding: "2px 6px"
+button-primary:
+backgroundColor: "{colors.ink-primary}"
+textColor: "{colors.paper-elevated}"
+typography: "{typography.body}"
+rounded: "{rounded.sm}"
+padding: "6px 12px"
+button-primary-hover:
+backgroundColor: "{colors.primary}"
+textColor: "{colors.paper-elevated}"
+button-secondary:
+backgroundColor: "{colors.paper-elevated}"
+textColor: "{colors.ink-primary}"
+typography: "{typography.body}"
+rounded: "{rounded.sm}"
+padding: "5px 10px"
+badge-ready-for-cool:
+backgroundColor: "{colors.secondary-soft}"
+textColor: "{colors.secondary}"
+typography: "{typography.label}"
+rounded: "{rounded.sm}"
+padding: "2px 6px"
+badge-cooled:
+backgroundColor: "{colors.tertiary-soft}"
+textColor: "{colors.tertiary}"
+typography: "{typography.label}"
+rounded: "{rounded.sm}"
+padding: "2px 6px"
+badge-hot:
+backgroundColor: "{colors.primary-soft}"
+textColor: "{colors.primary}"
+typography: "{typography.label}"
+rounded: "{rounded.sm}"
+padding: "2px 6px"
 ---
 
 # Design System: TileLang-Ascend Multi-Agent Operator Optimization Workbench

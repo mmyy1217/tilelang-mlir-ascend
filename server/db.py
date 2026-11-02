@@ -133,6 +133,13 @@ class WorkbenchStorage:
                     updated_at TEXT NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS closed_sessions (exploration_id TEXT NOT NULL, session_id TEXT NOT NULL, PRIMARY KEY(exploration_id,session_id));
+
+                CREATE TABLE IF NOT EXISTS graph_relations (
+                    id TEXT NOT NULL, exploration_id TEXT NOT NULL, payload_json TEXT NOT NULL,
+                    PRIMARY KEY (exploration_id,id),
+                    FOREIGN KEY (exploration_id) REFERENCES explorations(id) ON DELETE CASCADE
+                );
                 CREATE TABLE IF NOT EXISTS agents (
                     id TEXT NOT NULL,
                     exploration_id TEXT NOT NULL,
@@ -518,6 +525,10 @@ class WorkbenchStorage:
 
     def get_snapshot(self, exploration_id: str) -> Dict[str, Any]:
         with self.read_conn() as conn:
+            from .graph import project_relations
+
+            # One SQLite read snapshot for the tree, evidence and event watermark.
+            conn.execute("BEGIN")
             exp_row = conn.execute(
                 "SELECT * FROM explorations WHERE id = ?", (exploration_id,)
             ).fetchone()
@@ -530,6 +541,10 @@ class WorkbenchStorage:
             ).fetchone()
             last_event_seq = int(seq_row["max_seq"]) if seq_row else 0
 
+            graph_rows = conn.execute(
+                "SELECT payload_json FROM graph_relations WHERE exploration_id=?",
+                (exploration_id,),
+            ).fetchall()
             agent_rows = conn.execute(
                 "SELECT * FROM agents WHERE exploration_id = ? ORDER BY id ASC",
                 (exploration_id,),
@@ -569,12 +584,43 @@ class WorkbenchStorage:
                 (exploration_id,),
             ).fetchall()
 
+            tables = {
+                r[0]
+                for r in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            }
+            handoffs = (
+                [
+                    json.loads(r[0])
+                    for r in conn.execute(
+                        "SELECT payload_json FROM handoffs WHERE exploration_id=? ORDER BY created_at,rowid",
+                        (exploration_id,),
+                    )
+                ]
+                if "handoffs" in tables
+                else []
+            )
+            metadata = (
+                conn.execute(
+                    "SELECT payload_json FROM project_metadata WHERE exploration_id=?",
+                    (exploration_id,),
+                ).fetchone()
+                if "project_metadata" in tables
+                else None
+            )
+
         # Group attempts by (node_id, stage_type)
         attempts_by_node_stage: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
         for ar in attempt_rows:
             att = {
                 "id": ar["id"],
                 "code": ar["code"],
+                "version": int(ar["version"]),
+                "correctnessPassed": bool(ar["correctness_passed"])
+                if ar["correctness_passed"] is not None
+                else None,
+                "latencyUs": ar["latency_us"],
                 "nodeId": ar["node_id"],
                 "stageType": ar["stage_type"],
                 "round": int(ar["round"]),
@@ -584,17 +630,25 @@ class WorkbenchStorage:
                 "endedAt": ar["ended_at"],
                 "dependsOnAttemptIds": json.loads(ar["depends_on_attempt_ids_json"]),
                 "kernelVersionLabel": ar["kernel_version_label"],
-                "inputResourceVersionIds": json.loads(ar["input_resource_version_ids_json"]),
-                "outputResourceVersionIds": json.loads(ar["output_resource_version_ids_json"]),
+                "inputResourceVersionIds": json.loads(
+                    ar["input_resource_version_ids_json"]
+                ),
+                "outputResourceVersionIds": json.loads(
+                    ar["output_resource_version_ids_json"]
+                ),
                 "summary": ar["summary"],
                 "failureOrSkipReason": ar["failure_or_skip_reason"],
                 "reusedFromAttemptId": ar["reused_from_attempt_id"],
             }
-            attempts_by_node_stage.setdefault((ar["node_id"], ar["stage_type"]), []).append(att)
+            attempts_by_node_stage.setdefault(
+                (ar["node_id"], ar["stage_type"]), []
+            ).append(att)
 
         nodes: List[Dict[str, Any]] = []
         for nr in node_rows:
-            missing_reasons: Dict[str, str] = json.loads(nr["missing_stage_reasons_json"] or "{}")
+            missing_reasons: Dict[str, str] = json.loads(
+                nr["missing_stage_reasons_json"] or "{}"
+            )
             stages_dict: Dict[str, Any] = {}
             for st in STAGE_TYPES:
                 st_attempts = attempts_by_node_stage.get((nr["id"], st), [])
@@ -603,7 +657,9 @@ class WorkbenchStorage:
                     st_status = last_att["status"]
                     curr_att_id = last_att["id"]
                 else:
-                    st_status = "stopped" if nr["execution_status"] == "stopped" else "pending"
+                    st_status = (
+                        "stopped" if nr["execution_status"] == "stopped" else "pending"
+                    )
                     curr_att_id = None
                 stage_rec: Dict[str, Any] = {
                     "stageType": st,
@@ -741,6 +797,36 @@ class WorkbenchStorage:
             for kr in know_rows
         ]
 
+        graph_relations = project_relations(
+            nodes, references, knowledge_items, [json.loads(r[0]) for r in graph_rows]
+        )
+        for node in nodes:
+            node["parentIds"] = list(
+                dict.fromkeys(
+                    r["sourceId"]
+                    for r in graph_relations
+                    if r["kind"] == "derivation" and r["targetId"] == node["id"]
+                )
+            )
+        node_map = {node["id"]: node for node in nodes}
+        depths = {}
+
+        def depth_of(identity, visiting):
+            if identity in depths:
+                return depths[identity]
+            if identity in visiting:
+                raise ValidationError("Stored derivation cycle detected")
+            parents = node_map[identity]["parentIds"]
+            value = max(
+                (depth_of(parent, visiting | {identity}) + 1 for parent in parents),
+                default=0,
+            )
+            depths[identity] = value
+            return value
+
+        for node in nodes:
+            node["depth"] = depth_of(node["id"], set())
+
         return {
             "id": exp_row["id"],
             "title": exp_row["title"],
@@ -757,6 +843,9 @@ class WorkbenchStorage:
             "version": int(exp_row["version"]),
             "lastEventSeq": last_event_seq,
             "nodes": nodes,
+            "graphRelations": graph_relations,
+            "handoffs": handoffs,
+            "workspaceMetadata": json.loads(metadata[0]) if metadata else {},
             "agents": agents,
             "references": references,
             "resources": resources_map,

@@ -15,12 +15,14 @@ async def test_step2_parallel_agents_and_domain_invariants(tmp_path: Path) -> No
     app = create_app(data_dir=tmp_path / "data", auto_seed=False)
     transport = httpx.ASGITransport(app=app)
 
-    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://testserver"
+    ) as client:
         # 1. Run the two parallel agent simulators (agent-cube & agent-vec) over HTTP!
         sim_res = await run_two_agent_simulation(http_client=client, delay_sec=0.0)
         assert sim_res["explorationId"] == "exp-fa2-mixcv"
 
-        # 2. Fetch full normalized snapshot and verify watermark + tree + 8-stage state machine
+        # 2. Fetch full normalized snapshot and verify watermark + graph + 8-stage state machine
         snap_resp = await client.get("/api/explorations/exp-fa2-mixcv/snapshot")
         assert snap_resp.status_code == 200
         snap = snap_resp.json()
@@ -40,7 +42,12 @@ async def test_step2_parallel_agents_and_domain_invariants(tmp_path: Path) -> No
         assert n4["correctnessPassed"] is True
         assert n4["latencyUs"] == 132.4
         assert n4["contentStatus"] == "ready-for-cool"
-        assert set(n4["agentIds"]) == {"agent-cube", "agent-vec", "agent-eval", "agent-coord"}
+        assert set(n4["agentIds"]) == {
+            "agent-cube",
+            "agent-vec",
+            "agent-eval",
+            "agent-coord",
+        }
 
         g_attempts = n4["stages"]["gen_kernel"]["attempts"]
         assert [a["code"] for a in g_attempts] == ["G1", "G2"]
@@ -48,7 +55,9 @@ async def test_step2_parallel_agents_and_domain_invariants(tmp_path: Path) -> No
         assert g_attempts[1]["kernelVersionLabel"] == "v2"
 
         c_attempts = n4["stages"]["compile"]["attempts"]
-        assert [(a["code"], a["status"], a["kernelVersionLabel"]) for a in c_attempts] == [
+        assert [
+            (a["code"], a["status"], a["kernelVersionLabel"]) for a in c_attempts
+        ] == [
             ("C1", "failed", "v1"),
             ("C2", "failed", "v1"),
             ("C3", "completed", "v2"),
@@ -56,7 +65,9 @@ async def test_step2_parallel_agents_and_domain_invariants(tmp_path: Path) -> No
         assert c_attempts[2]["dependsOnAttemptIds"] == ["N4-G2"]
 
         v_attempts = n4["stages"]["verify_correctness"]["attempts"]
-        assert [(a["code"], a["status"], a["kernelVersionLabel"]) for a in v_attempts] == [
+        assert [
+            (a["code"], a["status"], a["kernelVersionLabel"]) for a in v_attempts
+        ] == [
             ("V1", "skipped", "v1"),
             ("V2", "completed", "v2"),
         ]
@@ -83,7 +94,9 @@ async def test_step2_parallel_agents_and_domain_invariants(tmp_path: Path) -> No
         n4_links = [lnk for lnk in snap["resourceLinks"] if lnk["nodeId"] == "N4"]
         shared_links = [lnk for lnk in n4_links if lnk["isSharedReference"]]
         shared_ver_ids = {lnk["resourceVersionId"] for lnk in shared_links}
-        assert {"res-cfg-v1", "res-n1-prof-v1", "res-n3-summary-v1"}.issubset(shared_ver_ids)
+        assert {"res-cfg-v1", "res-n1-prof-v1", "res-n3-summary-v1"}.issubset(
+            shared_ver_ids
+        )
 
         content_resp = await client.get(
             "/api/explorations/exp-fa2-mixcv/resources/res-n4-kernel-v2/content"
@@ -91,26 +104,38 @@ async def test_step2_parallel_agents_and_domain_invariants(tmp_path: Path) -> No
         assert content_resp.status_code == 200
         content_data = content_resp.json()
         assert "def flash_attn_mixcv_n4_v2" in content_data["content"]
-        assert content_data["sha256"] == hashlib.sha256(content_data["content"].encode("utf-8")).hexdigest()
+        assert (
+            content_data["sha256"]
+            == hashlib.sha256(content_data["content"].encode("utf-8")).hexdigest()
+        )
 
         dl_resp = await client.get(
             "/api/explorations/exp-fa2-mixcv/resources/res-n4-prof-v1/download"
         )
         assert dl_resp.status_code == 200
-        assert "attachment; filename=\"msprof_n4_summary@v1.bin\"" in dl_resp.headers["content-disposition"]
+        assert (
+            'attachment; filename="msprof_n4_summary@v1.bin"'
+            in dl_resp.headers["content-disposition"]
+        )
 
         # 5. Verify Idempotency (same X-Request-Id + same payload => 200; different payload => 409)
         hb_payload = {"id": "agent-cube", "status": "idle", "currentNodeId": "N4"}
         r1 = await client.post(
             "/api/explorations/exp-fa2-mixcv/agents/heartbeat",
             json=hb_payload,
-            headers={"X-Agent-Token": "agent-secret-token", "X-Request-Id": "idem-hb-1"},
+            headers={
+                "X-Agent-Token": "agent-secret-token",
+                "X-Request-Id": "idem-hb-1",
+            },
         )
         assert r1.status_code == 200
         r2 = await client.post(
             "/api/explorations/exp-fa2-mixcv/agents/heartbeat",
             json=hb_payload,
-            headers={"X-Agent-Token": "agent-secret-token", "X-Request-Id": "idem-hb-1"},
+            headers={
+                "X-Agent-Token": "agent-secret-token",
+                "X-Request-Id": "idem-hb-1",
+            },
         )
         assert r2.status_code == 200
         assert r2.json()["event"]["eventId"] == r1.json()["event"]["eventId"]
@@ -118,7 +143,10 @@ async def test_step2_parallel_agents_and_domain_invariants(tmp_path: Path) -> No
         r_conflict = await client.post(
             "/api/explorations/exp-fa2-mixcv/agents/heartbeat",
             json={"id": "agent-cube", "status": "active", "currentNodeId": "N5"},
-            headers={"X-Agent-Token": "agent-secret-token", "X-Request-Id": "idem-hb-1"},
+            headers={
+                "X-Agent-Token": "agent-secret-token",
+                "X-Request-Id": "idem-hb-1",
+            },
         )
         assert r_conflict.status_code == 409
 
@@ -151,12 +179,18 @@ async def test_step2_parallel_agents_and_domain_invariants(tmp_path: Path) -> No
         await client.post(
             "/api/explorations/exp-fa2-mixcv/agents/heartbeat",
             json={"id": "agent-vec", "status": "active", "currentNodeId": "N5"},
-            headers={"X-Agent-Token": "agent-secret-token", "X-Request-Id": "sse-gap-1"},
+            headers={
+                "X-Agent-Token": "agent-secret-token",
+                "X-Request-Id": "sse-gap-1",
+            },
         )
         await client.post(
             "/api/explorations/exp-fa2-mixcv/agents/heartbeat",
             json={"id": "agent-eval", "status": "active", "currentNodeId": "N5"},
-            headers={"X-Agent-Token": "agent-secret-token", "X-Request-Id": "sse-gap-2"},
+            headers={
+                "X-Agent-Token": "agent-secret-token",
+                "X-Request-Id": "sse-gap-2",
+            },
         )
 
         sse_resp = await client.get(
@@ -176,7 +210,9 @@ async def test_codex_review_regressions(tmp_path: Path) -> None:
     agent_headers = {"X-Agent-Token": "agent-secret-token"}
     op_headers = {"X-Operator-Token": "operator-secret-token"}
 
-    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://testserver"
+    ) as client:
         await run_two_agent_simulation(
             service=app.state.service, http_client=client, delay_sec=0.0
         )
@@ -210,7 +246,11 @@ async def test_codex_review_regressions(tmp_path: Path) -> None:
         # ------------------------------------------------------------------
         bypass_reset = await client.post(
             "/api/explorations",
-            json={"id": "exp-fa2-mixcv", "title": "Overwrite attempt", "resetIfExists": True},
+            json={
+                "id": "exp-fa2-mixcv",
+                "title": "Overwrite attempt",
+                "resetIfExists": True,
+            },
             headers=agent_headers,
         )
         assert bypass_reset.status_code == 422
@@ -408,7 +448,11 @@ async def test_codex_review_regressions(tmp_path: Path) -> None:
         # Finish V1 properly, then B1 with 120.0 us -> N-VER becomes bestValidNodeId
         r_v1_ok = await client.patch(
             "/api/explorations/exp-fa2-mixcv/nodes/N-VER/attempts/NVER-V1",
-            json={"status": "completed", "correctnessPassed": True, "summary": "V1 pass"},
+            json={
+                "status": "completed",
+                "correctnessPassed": True,
+                "summary": "V1 pass",
+            },
             headers=agent_headers,
         )
         assert r_v1_ok.status_code == 200
@@ -441,4 +485,3 @@ async def test_codex_review_regressions(tmp_path: Path) -> None:
         nver_node_after = {n["id"]: n for n in snap_v2_benched["nodes"]}["N-VER"]
         assert nver_node_after["latencyUs"] == 118.5
         assert snap_v2_benched["bestValidNodeId"] == "N-VER"
-

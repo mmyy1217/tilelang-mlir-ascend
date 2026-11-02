@@ -54,7 +54,7 @@ def main():
     print("ASSERT PASS: TRAP-vbrc-same-shape-empty-broadcast reproduced")
     print(
         "  stderr diagnostic:",
-        [l for l in diag.splitlines() if "empty broadcast" in l][0][:100],
+        [line for line in diag.splitlines() if "empty broadcast" in line][0][:100],
     )
 
 
