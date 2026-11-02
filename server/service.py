@@ -22,6 +22,15 @@ class WorkbenchService:
         self.storage = storage
 
     @staticmethod
+    def _require_kernel(conn: Any, exploration_id: str, version_id: str) -> None:
+        row = conn.execute(
+            "SELECT category FROM resource_versions WHERE exploration_id = ? AND id = ?",
+            (exploration_id, version_id),
+        ).fetchone()
+        if not row or row["category"] != "kernel":
+            raise ValidationError(f"Kernel resource version '{version_id}' is missing or not kernel code")
+
+    @staticmethod
     def _reject_internal_flags(payload: Dict[str, Any], _internal_seed: bool) -> None:
         if _internal_seed:
             return
@@ -497,6 +506,9 @@ class WorkbenchService:
             ).fetchone()
             if existing:
                 raise ConflictError(f"Node '{node_id}' already exists")
+
+            if payload.get("primaryKernelVersionId"):
+                self._require_kernel(conn, exploration_id, payload["primaryKernelVersionId"])
 
             if parent_id is None:
                 root_row = conn.execute(
@@ -988,6 +1000,26 @@ class WorkbenchService:
                 stage_type, kernel_ver_label, upstream_rows
             )
 
+            input_ids = list(payload.get("inputResourceVersionIds", []))
+            if stage_type in ("compile", "verify_correctness", "bench_perf", "profiling"):
+                inherited = set()
+                for dep_id in depends_on:
+                    dep = conn.execute(
+                        "SELECT input_resource_version_ids_json, output_resource_version_ids_json, stage_type FROM stage_attempts WHERE exploration_id = ? AND node_id = ? AND id = ?",
+                        (exploration_id, node_id, dep_id),
+                    ).fetchone()
+                    for rid in (json.loads(dep[1]) if dep[2] == "gen_kernel" else json.loads(dep[0])):
+                        res = conn.execute("SELECT category FROM resource_versions WHERE exploration_id = ? AND id = ?", (exploration_id, rid)).fetchone()
+                        if res and res[0] == "kernel":
+                            inherited.add(rid)
+                if len(inherited) != 1:
+                    raise ValidationError("Stage dependencies must identify exactly one kernel resource version")
+                for rid in input_ids:
+                    res = conn.execute("SELECT category FROM resource_versions WHERE exploration_id = ? AND id = ?", (exploration_id, rid)).fetchone()
+                    if not res or (res[0] == "kernel" and rid not in inherited):
+                        raise ValidationError("Input resource is missing or mismatches upstream kernel")
+                input_ids = list(dict.fromkeys([*input_ids, *sorted(inherited)]))
+
             if reused_from:
                 reused_row = conn.execute(
                     """
@@ -1029,6 +1061,16 @@ class WorkbenchService:
                         """,
                         (utc_now_iso(), exploration_id),
                     )
+                    self.storage.append_event(
+                        conn, exploration_id, "exploration", exploration_id,
+                        int(exp["version"]) + 1, "exploration.stopping",
+                        {"coordinatorStatus": "stopping", "reason": "evaluation_budget_exhausted"},
+                    )
+                    # This is a persisted coordinator decision, not a failed mutation.
+                    # Commit before rejecting the permit; write_tx's rollback is then a no-op.
+                    conn.commit()
+                    with self.storage._event_cond:
+                        self.storage._event_cond.notify_all()
                     raise ValidationError(
                         f"Evaluation budget exhausted ({used} used + {reserved} reserved / {max_evals})"
                     )
@@ -1068,7 +1110,7 @@ class WorkbenchService:
                     started_at,
                     json.dumps(depends_on, ensure_ascii=False),
                     kernel_ver_label,
-                    json.dumps(payload.get("inputResourceVersionIds", []), ensure_ascii=False),
+                    json.dumps(input_ids, ensure_ascii=False),
                     payload.get("summary", f"{agent_id} 正在执行 {stage_type} ({payload['code']})..."),
                     reused_from,
                     reserve_slot,
@@ -1077,7 +1119,7 @@ class WorkbenchService:
             )
 
             # Register input resource links
-            for in_ver_id in payload.get("inputResourceVersionIds", []):
+            for in_ver_id in input_ids:
                 ver_row = conn.execute(
                     "SELECT owner_node_id FROM resource_versions WHERE exploration_id = ? AND id = ?",
                     (exploration_id, in_ver_id),
@@ -1249,6 +1291,9 @@ class WorkbenchService:
             if not att:
                 raise NotFoundError(f"StageAttempt '{attempt_id}' not found")
 
+            if att["status"] != "running":
+                raise ConflictError("Terminal attempts are immutable; retry with a new attempt ID")
+
             expected_ver = payload.get("expectedVersion")
             if expected_ver is not None and int(att["version"]) != int(expected_ver):
                 raise ConflictError(
@@ -1265,6 +1310,8 @@ class WorkbenchService:
             if not exp or not node:
                 raise NotFoundError("Exploration or Node not found")
 
+            if payload.get("primaryKernelVersionId") and payload["primaryKernelVersionId"] != node["primary_kernel_version_id"]:
+                raise ValidationError("Kernel changes must be recorded as gen_kernel outputs")
             stage_type = att["stage_type"]
             out_ver_ids: List[str] = payload.get("outputResourceVersionIds", [])
 
@@ -1281,11 +1328,23 @@ class WorkbenchService:
             att_latency: Optional[float] = None
 
             if stage_type == "gen_kernel" and status == "completed":
-                has_kernel_res = bool(out_ver_ids or node["primary_kernel_version_id"])
-                if not has_kernel_res:
-                    raise ValidationError(
-                        "完成 gen_kernel 阶段必须产出或关联至少一个 kernel 资源版本 (outputResourceVersionIds)"
-                    )
+                kernel_ids = []
+                for version_id in out_ver_ids:
+                    resource = conn.execute(
+                        "SELECT category FROM resource_versions WHERE exploration_id = ? AND id = ?",
+                        (exploration_id, version_id),
+                    ).fetchone()
+                    if not resource:
+                        raise ValidationError(f"Unknown output resource '{version_id}'")
+                    if resource["category"] == "kernel":
+                        kernel_ids.append(version_id)
+                if not kernel_ids and node["primary_kernel_version_id"]:
+                    kernel_ids = [node["primary_kernel_version_id"]]
+                if len(kernel_ids) != 1:
+                    raise ValidationError("gen_kernel must identify exactly one kernel resource version")
+                self._require_kernel(conn, exploration_id, kernel_ids[0])
+                if kernel_ids[0] not in out_ver_ids:
+                    out_ver_ids = [*out_ver_ids, kernel_ids[0]]
 
             if stage_type == "verify_correctness":
                 if status == "completed":
@@ -1395,7 +1454,7 @@ class WorkbenchService:
             # Update node fields based on strict version-bound attempt chain evaluation
             primary_kernel = payload.get("primaryKernelVersionId") or node["primary_kernel_version_id"]
             if stage_type == "gen_kernel" and status == "completed" and out_ver_ids:
-                primary_kernel = out_ver_ids[-1]
+                primary_kernel = kernel_ids[0]
 
             chain_verified, chain_latency = self._evaluate_node_active_chain(
                 conn, exploration_id, node_id
