@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1440px; height: 900px; overflow: hidden;
+    background: #F4F1EA; color: #1C1917;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column;
+  }
+  .topbar {
+    height: 54px; background: #1C1917; color: #F4F1EA;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; border-bottom: 2px solid #9A3412;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand h1 { font-size: 23px; font-weight: 700; letter-spacing: -0.02em; }
+  .tag { font-size: 12px; padding: 2px 8px; background: #9A3412; color: #FFF; font-weight: 600; }
+  .meta-strip { display: flex; gap: 22px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .workspace { flex: 1; display: grid; grid-template-columns: 760px 680px; height: 846px; }
+  .left-pane { border-right: 1px solid #1C1917; display: flex; flex-direction: column; background: #EFECE4; }
+  .pane-bar {
+    height: 42px; border-bottom: 1px solid #1C1917; padding: 0 16px;
+    display: flex; align-items: center; justify-content: space-between; background: #E6E1D5;
+  }
+  .tabs { display: flex; gap: 6px; }
+  .tab { padding: 5px 12px; font-size: 13px; font-weight: 600; border: 1px solid #1C1917; background: #F4F1EA; }
+  .tab.active { background: #1C1917; color: #F4F1EA; }
+  .tree-canvas { flex: 1; padding: 22px; position: relative; }
+  .stratum-line { border-left: 2px dashed #A8A29E; padding-left: 16px; margin-bottom: 18px; }
+  .stratum-label { font-size: 12px; font-weight: 700; color: #78716C; margin-bottom: 8px; }
+  .node-row { display: flex; gap: 18px; align-items: flex-start; }
+  .node-card {
+    width: 315px; background: #FAF8F3; border: 1px solid #1C1917; padding: 10px 12px;
+  }
+  .node-card.selected { border: 2px solid #9A3412; background: #FFFDF9; box-shadow: 0 4px 12px rgba(28,25,23,0.08); }
+  .node-card.dim { opacity: 0.55; }
+  .node-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .node-title { font-size: 22px; font-weight: 700; line-height: 1.15; }
+  .badge-cool { font-size: 11px; padding: 2px 6px; background: #047857; color: #FFF; font-weight: 700; }
+  .badge-hot { font-size: 11px; padding: 2px 6px; background: #9A3412; color: #FFF; font-weight: 700; }
+  .stage-cells { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; margin: 8px 0; }
+  .cell { height: 14px; font-size: 9px; text-align: center; line-height: 14px; border: 1px solid #1C1917; background: #047857; color: #FFF; }
+  .cell.fail { background: #B91C1C; }
+  .barcode { display: flex; height: 10px; border: 1px solid #1C1917; margin-top: 6px; }
+  .b-cube { width: 62%; background: #1D4ED8; }
+  .b-vec { width: 23%; background: #047857; }
+  .b-mte { width: 15%; background: #D97706; }
+  .right-pane { display: flex; flex-direction: column; background: #F4F1EA; }
+  .inspector-head { padding: 14px 18px; border-bottom: 1px solid #1C1917; background: #FAF8F3; }
+  .inspector-head h2 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .stage-list { padding: 12px 18px; border-bottom: 1px solid #1C1917; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .st-box { border: 1px solid #1C1917; padding: 6px 8px; background: #FAF8F3; font-size: 12px; }
+  .st-box.active { border: 2px solid #9A3412; background: #FFF; }
+  .file-area { flex: 1; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .code-block {
+    background: #1C1917; color: #F4F1EA; font-family: monospace; font-size: 13px;
+    padding: 14px; line-height: 1.5; border: 1px solid #1C1917; flex: 1;
+  }
+  .proof-row { display: flex; gap: 10px; padding: 8px 10px; background: #E6E1D5; border: 1px solid #1C1917; font-size: 13px; }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="tag">DEMO PROTOTYPE</span>
+      <h1>Ascend FlashAttention-2 MixCV 算子搜索树</h1>
+    </div>
+    <div class="meta-strip">
+      <span>基线: cooled@v1.4 (248.6 us)</span>
+      <span>当前最佳: Node N4 (132.4 us · 1.88x)</span>
+      <span>预算: 14 / 24 评估</span>
+      <span>状态: RUNNING</span>
+    </div>
+  </header>
+  <main class="workspace">
+    <section class="left-pane">
+      <div class="pane-bar">
+        <div class="tabs">
+          <div class="tab active">搜索树剖面 (Tree View)</div>
+          <div class="tab">Agent 测井轨迹 (3 Agents)</div>
+        </div>
+        <span style="font-size:12px;">展开跨分支引用 (1) · 图例: 完成 / 失败 / Ready-for-Cool</span>
+      </div>
+      <div class="tree-canvas">
+        <div class="stratum-line">
+          <div class="stratum-label">DEPTH 0 · 根节点基线 (Cooled Baseline)</div>
+          <div class="node-row">
+            <div class="node-card">
+              <div class="node-head"><span class="node-title">N0 · Baseline Cube+Vec</span><span class="badge-cool">COOLED</span></div>
+              <div style="font-size:12px;">248.6 us · MTE2 搬运瓶颈 68% · Agent-Coord</div>
+              <div class="stage-cells"><div class="cell">R</div><div class="cell">P</div><div class="cell">G</div><div class="cell">C</div><div class="cell">V</div><div class="cell">B</div><div class="cell">F</div><div class="cell">S</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="stratum-line">
+          <div class="stratum-label">DEPTH 1 · 并行分支探索 (Tiling vs Pipe Sync)</div>
+          <div class="node-row">
+            <div class="node-card">
+              <div class="node-head"><span class="node-title">N1 · L1/L0C 128x128</span><span class="badge-hot">HOT</span></div>
+              <div style="font-size:12px;">176.2 us · 精度通过 · Agent-Cube</div>
+              <div class="stage-cells"><div class="cell">R</div><div class="cell">P</div><div class="cell">G</div><div class="cell">C</div><div class="cell">V</div><div class="cell">B</div><div class="cell">F</div><div class="cell">S</div></div>
+              <div class="barcode"><div class="b-cube"></div><div class="b-vec"></div><div class="b-mte"></div></div>
+            </div>
+            <div class="node-card dim">
+              <div class="node-head"><span class="node-title">N2 · UB 激进切分</span><span class="badge-hot">STOPPED</span></div>
+              <div style="font-size:12px;">UB 容量溢出失败 · 分支早停 · Agent-Vec</div>
+              <div class="stage-cells"><div class="cell">R</div><div class="cell">P</div><div class="cell">G</div><div class="cell fail">C</div><div class="cell fail">-</div><div class="cell fail">-</div><div class="cell fail">-</div><div class="cell">S</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="stratum-line">
+          <div class="stratum-label">DEPTH 2 · 跨分支融合与双缓冲流水 (Selected Best)</div>
+          <div class="node-row">
+            <div class="node-card selected">
+              <div class="node-head"><span class="node-title">N4 · PingPong + OnlineVec</span><span class="badge-cool">READY-FOR-COOL</span></div>
+              <div style="font-size:12px;">132.4 us (-46.7%) · 引用 N3 同步经验 · Agent-Mix</div>
+              <div class="stage-cells"><div class="cell">R</div><div class="cell">P</div><div class="cell">G2</div><div class="cell">C3</div><div class="cell">V2</div><div class="cell">B1</div><div class="cell">F1</div><div class="cell">S1</div></div>
+              <div class="barcode"><div class="b-cube"></div><div class="b-vec"></div><div class="b-mte"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="right-pane">
+      <div class="inspector-head">
+        <h2>Node N4 · PingPong 双缓冲 + Online Softmax 向量流水</h2>
+        <div style="font-size:13px;">父节点: N1 · 跨分支参考: N3 (sync_block_set/wait 修正) · 内容状态: <strong>ready-for-cool</strong></div>
+      </div>
+      <div class="stage-list">
+        <div class="st-box">1. 读取依据 [完成]</div>
+        <div class="st-box">2. 优化思路 [完成]</div>
+        <div class="st-box">3. 生成 G2 [回退修复]</div>
+        <div class="st-box">4. 编译 C3 [依赖 G2]</div>
+        <div class="st-box">5. 正确性 V2 [通过]</div>
+        <div class="st-box active">6. 性能 B1 [132.4us]</div>
+        <div class="st-box">7. Profile F1 [完成]</div>
+        <div class="st-box">8. 总结 S1 [候选]</div>
+      </div>
+      <div class="file-area">
+        <div class="proof-row">
+          <strong>证据链绑定:</strong>
+          <span>Attempt G2 → C3 → V2 → B1 (kernel_n4_v2.py · sha256:8f3a..c9)</span>
+          <span>Cube: 74% | Vec: 18% | MTE2: 8%</span>
+        </div>
+        <pre class="code-block">@T.prim_func
+def flash_attn_mixcv_n4(Q: T.Tensor((B, H, S, D), "float16"), ...):
+    with T.Kernel(grid_m, is_npuir=True) as (cid, _):
+        with T.Scope("Cube"):
+            T.load_nd2nz(Q_l1, Q_gm, ...)
+            T.gemm(Q_l0a, K_l0b, S_l0c, init=True)
+            T.store_fixpipe(S_ub, S_l0c)
+            T.sync_block_set("Cube", "Vector", event_id=0)
+        with T.Scope("Vector"):
+            T.sync_block_wait("Cube", "Vector", event_id=0)
+            T.vexp(P_ub, S_ub)  # 融合 N3 跨核同步配对策略</pre>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

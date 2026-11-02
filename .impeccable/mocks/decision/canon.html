@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1440px; height: 900px; overflow: hidden;
+    background: #F8FAFC; color: #0F172A;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column;
+  }
+  .navbar {
+    height: 52px; background: #0F172A; color: #F8FAFC;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+  }
+  .navbar h1 { font-size: 22px; font-weight: 600; }
+  .split { flex: 1; display: grid; grid-template-columns: 720px 720px; }
+  .left { border-right: 1px solid #CBD5E1; padding: 20px; }
+  .card { background: #FFF; border: 1px solid #CBD5E1; border-radius: 6px; padding: 14px; margin-bottom: 12px; }
+  .card.active { border: 2px solid #2563EB; }
+  .card h2 { font-size: 22px; margin-bottom: 6px; }
+  .right { padding: 20px; background: #FFF; display: flex; flex-direction: column; gap: 12px; }
+  .code { background: #0F172A; color: #E2E8F0; padding: 14px; border-radius: 6px; font-family: monospace; font-size: 13px; flex: 1; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <header class="navbar">
+    <h1>Operator Knowledge & Experiment Workbench [DEMO]</h1>
+    <div style="font-size:13px;">Baseline: cooled@v1.4 (248.6us) | Best: N4 (132.4us) | Budget: 14/24</div>
+  </header>
+  <main class="split">
+    <section class="left">
+      <div class="card">
+        <h2>N0 · Baseline Kernel (248.6 us)</h2>
+        <div>Status: Completed · Cooled</div>
+      </div>
+      <div class="card">
+        <h2>N1 · L1/L0C Tiling 128x128 (176.2 us)</h2>
+        <div>Status: Completed · Hot</div>
+      </div>
+      <div class="card active">
+        <h2>N4 · PingPong Double Buffer + Cross-Branch Sync (132.4 us)</h2>
+        <div>Status: Completed · Ready-for-Cool · Attempts: G2 → C3 → V2 → B1</div>
+      </div>
+    </section>
+    <section class="right">
+      <h2 style="font-size:24px;">Node N4 Files & Stage Attempts</h2>
+      <div class="card">
+        <strong>References:</strong> Parent N1 + Cross-branch Reference N3 (verified in V2).
+      </div>
+      <pre class="code"># kernel_n4_v2.py
+with T.Scope("Cube"):
+    T.load_nd2nz(Q_l1, Q_gm, ...)
+    T.gemm(Q_l0a, K_l0b, S_l0c, init=True)</pre>
+    </section>
+  </main>
+</body>
+</html>

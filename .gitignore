@@ -103,3 +103,10 @@ unittest/npuir/output/
 # claude
 .claude/
 CLAUDE.md
+
+# workbench runtime & dependencies
+.venv/
+**/node_modules/
+data/
+.worktree/
+

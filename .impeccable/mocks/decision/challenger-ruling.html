@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1440px; height: 900px; overflow: hidden;
+    background: #F3EFE6; color: #141413;
+    font-family: Georgia, "Noto Serif SC", serif;
+    display: flex; flex-direction: column;
+  }
+  .top {
+    height: 48px; border-bottom: 1px solid #141413; padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: -apple-system, sans-serif; font-size: 13px;
+  }
+  .top h1 { font-size: 22px; font-weight: 700; }
+  .body-grid { flex: 1; display: grid; grid-template-columns: 650px 88px 702px; }
+  .col-left { padding: 20px; border-right: 1px solid #141413; font-family: -apple-system, sans-serif; }
+  .rail {
+    background: #EBE5D8; border-right: 1px solid #141413;
+    display: flex; flex-direction: column; align-items: center; padding-top: 24px; gap: 22px;
+    font-family: monospace; font-size: 12px; color: #C83223;
+  }
+  .detent { border: 1px solid #C83223; padding: 3px 6px; background: #F3EFE6; font-weight: 700; }
+  .detent.filled { background: #C83223; color: #F3EFE6; }
+  .col-right { padding: 20px; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; gap: 14px; }
+  .box { border: 1px solid #141413; padding: 12px; margin-bottom: 14px; background: #FAF7F0; }
+  .box.active { border: 2px solid #C83223; }
+  .box h2 { font-size: 22px; margin-bottom: 6px; }
+  .code { font-family: monospace; font-size: 13px; border: 1px solid #141413; padding: 14px; background: #FAF7F0; flex: 1; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <header class="top">
+    <h1>算子探索引证工作台 · FlashAttention MixCV [DEMO]</h1>
+    <div>基线: cooled@v1.4 · 最佳: N4 (132.4 us) · 预算: 14/24</div>
+  </header>
+  <main class="body-grid">
+    <section class="col-left">
+      <div style="margin-bottom:14px; font-weight:700;">左侧视图: 搜索树拓扑 / Agent 轨迹</div>
+      <div class="box">
+        <h2>[N0] 初始基线方案 · 248.6 us</h2>
+        <div>状态: COOLED · 8/8 Stages 完成</div>
+      </div>
+      <div class="box">
+        <h2>[N1] L1/L0C 分块扩容 · 176.2 us</h2>
+        <div>状态: HOT · 派生自 N0 [Key §A1]</div>
+      </div>
+      <div class="box active">
+        <h2>[N4] 双缓冲与跨分支同步融合 · 132.4 us</h2>
+        <div>状态: READY-FOR-COOL · 派生自 N1 [Key §B4] · 跨分支引用 N3 [Key §R2]</div>
+      </div>
+    </section>
+    <aside class="rail">
+      <div class="detent">§A1</div>
+      <div class="detent filled">§B4</div>
+      <div class="detent filled">§R2</div>
+      <div class="detent">G2→C3</div>
+      <div class="detent">C3→V2</div>
+      <div class="detent filled">V2→B1</div>
+    </aside>
+    <section class="col-right">
+      <h2 style="font-size:24px;">右侧引证与文件库 · 锚定键 [§B4 / §R2 / G2→C3→V2]</h2>
+      <div class="box">
+        <strong>[§R2] 跨分支引用说明:</strong> 引用分支 N3 Stage F1 的死锁诊断结论，补齐 event_id 双缓冲交替释放，重新验证 V2 通过。
+      </div>
+      <pre class="code">// Linked via Key [G2 -> C3 -> V2 -> B1] · kernel_n4_v2.py
+T.sync_block_set("Cube", "Vector", event_id=buf_id)
+T.sync_block_wait("Cube", "Vector", event_id=buf_id)
+// Measured latency: 132.4 us (warmup=20, repeat=100, sync=npu.synchronize)</pre>
+    </section>
+  </main>
+</body>
+</html>

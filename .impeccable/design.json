@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-31T10:18:00Z",
+  "title": "Design System: TileLang-Ascend Multi-Agent Operator Optimization Workbench",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Cinnabar Rust",
+        "canonical": "#8c2f1b",
+        "tonalRamp": ["#2d0d06", "#4b170c", "#6c2314", "#8c2f1b", "#b34730", "#d4735e", "#eec0b5", "#faeae6"]
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "Core-Sample Malachite",
+        "canonical": "#0e6b48",
+        "tonalRamp": ["#05291b", "#09452e", "#0c583b", "#0e6b48", "#1f8c63", "#4eb08b", "#a5dec7", "#e3f5ed"]
+      },
+      "tertiary": {
+        "role": "tertiary",
+        "displayName": "Cobalt Slate",
+        "canonical": "#1b4d8c",
+        "tonalRamp": ["#091c36", "#103059", "#153e73", "#1b4d8c", "#316bb3", "#6495d1", "#b3cdef", "#e5eef9"]
+      },
+      "paper-bg": {
+        "role": "neutral",
+        "displayName": "Warm Archival Limestone",
+        "canonical": "#f4f1ea",
+        "tonalRamp": ["#191714", "#3e3a32", "#6d6658", "#9c9484", "#cfc8b8", "#e2ddd0", "#ede8dc", "#f4f1ea"]
+      },
+      "paper-elevated": {
+        "role": "neutral",
+        "displayName": "Elevated Card Folio",
+        "canonical": "#fbf9f4",
+        "tonalRamp": ["#1b1916", "#3e3a32", "#6d6658", "#a69f91", "#d5cfc1", "#eae5d9", "#f4f1ea", "#fbf9f4"]
+      },
+      "ink-primary": {
+        "role": "neutral",
+        "displayName": "Obsidian Ledger Ink",
+        "canonical": "#191714",
+        "tonalRamp": ["#191714", "#2b2823", "#3e3a32", "#575247", "#6d6658", "#999182", "#cfc8b8", "#f4f1ea"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Workbench Header Title",
+        "purpose": "Top coordination bar task title and primary surface headings."
+      },
+      "headline": {
+        "displayName": "Inspector Node Headline",
+        "purpose": "Selected node title and comparison view headers."
+      },
+      "title": {
+        "displayName": "Section & Card Title",
+        "purpose": "Stratigraphic node titles, 8-stage card headers, and resource category headers."
+      },
+      "body": {
+        "displayName": "Technical Prose Body",
+        "purpose": "Optimization hypotheses, diagnosis notes, and resource descriptions."
+      },
+      "label": {
+        "displayName": "Tabular Monospace Telemetry",
+        "purpose": "Latency readouts (us), speedup ratios, stage attempt pills (G2@v2<-C1,C2), and SHA256 digests."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-card",
+        "value": "3px 3px 0px rgba(25, 23, 20, 0.14)",
+        "purpose": "Crisp architectural offset shadow for Stratigraphic Node cards."
+      },
+      {
+        "name": "shadow-card-selected",
+        "value": "3px 3px 0px rgba(140, 47, 27, 0.22)",
+        "purpose": "Selected node offset shadow paired with 2px solid Cinnabar Rust border."
+      }
+    ],
+    "motion": [
+      {
+        "name": "transition-fast",
+        "value": "140ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Snappy state transitions for stage pills, view toggles, and resource selection."
+      }
+    ],
+    "breakpoints": [
+      { "name": "mobile-drawer", "value": "1024px" },
+      { "name": "desktop-wide", "value": "1360px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "View Switcher Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Synchronized view toggle between Search Tree View and Agent Trajectory Swimlane.",
+      "html": "<button class=\"ds-view-btn\">树状图视图 (Search Tree · 6 节点)</button>",
+      "css": ".ds-view-btn { background: #191714; color: #fbf9f4; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 600; padding: 6px 12px; border: 1px solid #191714; border-radius: 2px; cursor: pointer; transition: background 140ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-view-btn:hover { background: #8c2f1b; border-color: #8c2f1b; } .ds-view-btn:focus-visible { outline: 2px solid #8c2f1b; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Action Pill",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Lineage jump and layout reset action button inside the workbench.",
+      "html": "<button class=\"ds-btn-secondary\">查看父子派生依据 (N1→N4)</button>",
+      "css": ".ds-btn-secondary { background: #fbf9f4; color: #191714; font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 600; padding: 4px 8px; border: 1px solid #191714; border-radius: 2px; cursor: pointer; transition: background 140ms ease, color 140ms ease; } .ds-btn-secondary:hover { background: #8c2f1b; color: #fbf9f4; border-color: #8c2f1b; } .ds-btn-secondary:focus-visible { outline: 2px solid #8c2f1b; outline-offset: 2px; }"
+    },
+    {
+      "name": "Stage Attempt Lineage Pill",
+      "kind": "chip",
+      "refersTo": "badge-ready-for-cool",
+      "description": "Interactive stage attempt pill encoding attempt index, produced @vN version, and upstream attempt lineage.",
+      "html": "<button class=\"ds-attempt-pill\">G2@v2 ←C1,C2</button>",
+      "css": ".ds-attempt-pill { background: #e3f5ed; color: #0e6b48; border: 1px solid #86cfb2; border-radius: 2px; padding: 2px 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; transition: box-shadow 140ms ease; } .ds-attempt-pill:hover { box-shadow: 0 0 0 1.5px #191714; } .ds-attempt-pill:focus-visible { outline: 2px solid #8c2f1b; outline-offset: 1px; }"
+    },
+    {
+      "name": "Dual-State Content Badge (ready-for-cool)",
+      "kind": "chip",
+      "refersTo": "badge-ready-for-cool",
+      "description": "Content cooling state badge paired with diamond SVG icon, strictly separated from executionStatus.",
+      "html": "<span class=\"ds-content-badge\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"><path d=\"M8 1.5 14.5 8 8 14.5 1.5 8Z\"/><circle cx=\"8\" cy=\"8\" r=\"2\" fill=\"currentColor\"/></svg><span>ready-for-cool</span></span>",
+      "css": ".ds-content-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 2px; background: #0e6b48; color: #ffffff; border: 1px solid #0e6b48; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; }"
+    },
+    {
+      "name": "Stratigraphic Node Summary Card",
+      "kind": "card",
+      "refersTo": "Stratigraphic Node Card (.strat-node)",
+      "description": "Core sample node card displaying latency, speedup, 8-stage strip, and Ascend 910B2 Cube/Vec/MTE2 utilization.",
+      "html": "<div class=\"ds-strat-card\"><div class=\"ds-strat-head\"><strong>N4</strong><span>当前最佳有效</span></div><div class=\"ds-strat-title\">N4 · 128x128 分块 + 跨分支双缓冲流水融合</div><div class=\"ds-strat-metrics\"><span>132.4 us</span><span>1.88x vs 基线</span><span>精度通过</span></div></div>",
+      "css": ".ds-strat-card { width: 280px; background: #fbf9f4; color: #191714; border: 2px solid #8c2f1b; border-radius: 4px; padding: 8px 10px; box-shadow: 3px 3px 0px rgba(140, 47, 27, 0.22); font-family: 'IBM Plex Sans', sans-serif; } .ds-strat-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; } .ds-strat-head span { background: #0e6b48; color: #fff; padding: 1px 5px; border-radius: 2px; font-size: 10px; } .ds-strat-title { font-size: 12px; font-weight: 700; margin-bottom: 6px; } .ds-strat-metrics { display: flex; justify-content: space-between; background: #ede8dc; border: 1px solid #cfc8b8; border-radius: 2px; padding: 4px 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #0e6b48; font-variant-numeric: tabular-nums; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Stratigraphic Core Log Folio",
+    "overview": "The TileLang-Ascend Multi-Agent Operator Optimization Workbench treats multi-branch kernel exploration not as a transient chat stream or a glowing cyberpunk telemetry wall, but as a precision geological survey and hardware engineering ledger. Each search depth forms a horizontal stratum (STRATUM D0 through STRATUM D3); each optimization node is a core sample bearing an 8-stage execution strip, Ascend 910B2 hardware pipeline utilization bars, and immutable @vN file provenance.",
+    "keyCharacteristics": [
+      "Daylight-first warm archival limestone surface (#f4f1ea) paired with deep obsidian ink (#191714) and high-contrast mineral semantic pigments.",
+      "Dual-axis truth separation: execution status (completed, running, failed, stopped, skipped, pending) and content cooling state (hot, ready-for-cool, cooled) never share a badge shape or conflate color + icon encoding.",
+      "Tabular monospace precision (font-variant-numeric: tabular-nums) across every latency readout (132.4 us), speedup ratio (1.88x), SHA256 digest, and stage attempt code (G1@v1<-P1, G2@v2<-C1,C2).",
+      "Dual-view synchronized navigation: switching between the Stratigraphic Search Tree and the Agent Trajectory Swimlane preserves the active node, stage, attempt, and URL query locator (?view=...&node=...&stage=...&attempt=...&edge=...)."
+    ],
+    "rules": [
+      {
+        "name": "The Dual-State Orthogonal Rule",
+        "body": "Never merge executionStatus and contentStatus into a single badge or color channel; every node and resource card must render execution status with its geometric status icon alongside a separate content cooling badge (hot / ready-for-cool / cooled).",
+        "section": "colors"
+      },
+      {
+        "name": "The Verified-Only Best Kernel Rule",
+        "body": "Never style an unverified or in-flight node (N5) with the Malachite 'Best Valid' badge; only nodes that have passed Stage 5 (verify) may enter the best valid kernel ranking.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Telemetry Rule",
+        "body": "Every numeric metric, latency delta, core utilization percentage, and version identifier must use the monospace stack with tabular-nums enabled so vertical comparison columns align to the pixel.",
+        "section": "typography"
+      },
+      {
+        "name": "The Above-the-Fold Provenance Rule",
+        "body": "On standard desktop viewports (1440x960), the Right Inspector must use the 2-column .file-repo-split layout so the selected node's 8-stage attempt chain and live @vN source preview are simultaneously visible without scrolling.",
+        "section": "layout"
+      },
+      {
+        "name": "The No-Neon-Glow Rule",
+        "body": "Never use blurred neon drop shadows, dark-on-dark glassmorphism, or gradients to indicate active selection; use a 2px solid #8c2f1b Cinnabar border paired with a hard 3px 3px 0 architectural offset shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do preserve the warm archival limestone palette (#f4f1ea / #fbf9f4 / #191714) and high-contrast mineral accents (#8c2f1b, #0e6b48, #1b4d8c) across all views.",
+      "Do deduplicate immutable ResourceVersion entries in node file lists while displaying their combined stage roles (e.g., G2 output · C3 input) and ownership scope (独有 vs. 共享).",
+      "Do keep URL query parameters (?view=...&node=...&stage=...&attempt=...&edge=...) synchronized with every selection change so any inspection state can be shared via link.",
+      "Do show explicit upstream attempt dependencies (G1 -> C1/C2 fail -> G2 -> C3 -> V2 pass) both in the 8-stage matrix and in the selected attempt detail box."
+    ],
+    "donts": [
+      "Don't introduce chat boxes, prompt input bars, 'Run Optimization' action buttons, or fake WebSocket streaming animations in the read-only inspection prototype.",
+      "Don't conflate node/stage execution status (completed/running/failed/stopped) with resource cooling state (hot/ready-for-cool/cooled).",
+      "Don't allow unverified or in-progress nodes (N5) to appear as the best valid kernel in the header or summary rankings.",
+      "Don't render raw binary .db or .bin dumps in the file previewer; always render structured summary cards with SHA256 provenance and msprof pipeline utilization bars."
+    ]
+  }
+}

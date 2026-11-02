@@ -1,0 +1,256 @@
+{
+  "title": "选择算子知识与实验工作台的视觉方向 (Operate Mode)",
+  "question": "Roll 分配了「地层岩芯测井图谱 (Stratigraphic Core Log)」。你可以直接采用它、选择高契合度的备选方向，或重新 Roll。",
+  "options": [
+    {
+      "id": "assigned",
+      "kind": "assigned",
+      "label": "Stratigraphic Core Log (地层岩芯测井图谱)",
+      "kicker": "THE ROLL",
+      "lineage": "USGS / Schlumberger 多道地层测井与岩芯深度对比图谱",
+      "thesis": "将多 Agent 搜索树与节点内 8 阶段状态机呈现为多道同步的科学测井剖面，深度轴与跨分支关联一目了然。",
+      "palette": [
+        "#F4F1EA",
+        "#1C1917",
+        "#9A3412",
+        "#047857",
+        "#1D4ED8"
+      ],
+      "materials": [
+        "uncoated survey stock",
+        "1px basalt hairlines",
+        "mineral stratum badges"
+      ],
+      "viewport": "顶部深色任务与预算协调栏；左半屏双视图（分层搜索树 / Agent 测井轨迹列）与右半屏节点 Stage 状态机及文件库同屏并列，默认聚焦最佳有效节点。",
+      "risk": "若底色偏暖过度会削弱代码检视的锐利感，需保持高对比石板墨色与精密表格线。",
+      "raised": [
+        {
+          "from": "ikeda-datamatics",
+          "raise": "在节点与 Stage 行内内嵌高密度微缩条形码式流水线利用率条（Cube / Vector / MTE2 占比），无需点开弹窗即可扫视硬件瓶颈。"
+        },
+        {
+          "from": "digital-design-canon-monochrome-product-marketing",
+          "raise": "每一条阶段总结结论紧邻绑定其可验证证据芯片（Attempt ID + 实测耗时/容差对比），杜绝无证据空谈。"
+        },
+        {
+          "from": "pop-culture-shelf-streaming-title-card-wall",
+          "raise": "选中节点、Stage 或跨分支引用边时，非关联分支与无关 Agent 泳道自动退晕降噪，突出当前因果路径。"
+        },
+        {
+          "from": "rw-timetable-slide-rack",
+          "raise": "将 8 个 Stage 的执行状态与 hot / ready-for-cool / cooled 内容状态编码为紧凑的等宽单元格印记带。"
+        }
+      ],
+      "html": ".impeccable/mocks/decision/assigned.html",
+      "comp": ".impeccable/mocks/decision/assigned.webp"
+    },
+    {
+      "id": "model-pick",
+      "kind": "pick",
+      "label": "IEEE / Bell Labs Databook Spec (精密芯片数据手册)",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Bell System Technical Journal 与 TI / Intel 硬件架构参考手册",
+      "thesis": "以硬件架构规格书的细线表格、引脚时序图与朱红批注规范，呈现算子搜索树、Stage 回退依赖链与 NPU 性能剖析。",
+      "palette": [
+        "#F6F5F0",
+        "#181A1F",
+        "#C83E2B",
+        "#1D4ED8",
+        "#0F766E"
+      ],
+      "materials": [
+        "technical specification paper",
+        "tabular hairline rules",
+        "vermilion callout ink"
+      ],
+      "viewport": "紧凑的规格书式顶部状态栏；左侧树状图/Agent 轨迹视图采用精密接线图与时序表语法；右侧文件库以数据表与代码对照视图展开。",
+      "risk": "这是编译器与硬件工具最容易自然落入的经典方向，熟悉感极强但惊喜感相对温和。",
+      "html": ".impeccable/mocks/decision/model-pick.html",
+      "comp": ".impeccable/mocks/decision/model-pick.webp"
+    },
+    {
+      "id": "challenger-ruling",
+      "kind": "challenger",
+      "catalogId": "rw-centre-rail-reference-setting",
+      "label": "Centre-Rail Reference Engine (中轴引证标尺系统)",
+      "verdict": "competitive",
+      "lineage": "1px 划线引擎驱动的双栏夹中轴朱红索引键参考版式",
+      "thesis": "在左侧探索视图与右侧文件库之间建立一条活的 1px 引证中轴，用朱红索引键与方框卡榫精确锚定派生依据、跨分支引用与 Attempt 依赖。",
+      "palette": [
+        "#F3EFE6",
+        "#141413",
+        "#C83223"
+      ],
+      "materials": [
+        "1px device-pixel ruling engine",
+        "unbleached bone stock",
+        "vermilion reference keys"
+      ],
+      "viewport": "左右双栏围绕中央引证标尺对齐：左侧为搜索树/Agent 轨迹，中轴实时绘制选中节点到右侧 Stage Attempt（如 G2→C3→V2）及引用知识的 1px 折线卡榫。",
+      "case": "引证标尺机制与「点击边查看派生依据、跨分支知识版本及上游 Attempt 依赖」的产品核心机制高度同构。",
+      "risk": "三色极简印刷语法对多状态区分要求极高，必须依赖精确的线型（实框/斜杠/括号）配合图标文字。",
+      "html": ".impeccable/mocks/decision/challenger-ruling.html",
+      "comp": ".impeccable/mocks/decision/challenger-ruling.webp",
+      "hero": "https://impeccable.style/worlds/cards/rw-centre-rail-reference-setting-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/rw-centre-rail-reference-setting.webp"
+    },
+    {
+      "id": "challenger-wayfinding",
+      "kind": "challenger",
+      "catalogId": "wayfinding-cartography-signage-terminal-yellow-wayfinding",
+      "label": "Junction Wayfinding System (枢纽分岔导视系统)",
+      "verdict": "competitive",
+      "lineage": "Schiphol 国际航站楼高对比分岔决策导视系统",
+      "thesis": "将搜索树的每次分支扩展、早停剪枝与目标达成视为高对比分岔决策点，让人一眼看清哪条优化路径畅通、哪条因无收益关闭。",
+      "palette": [
+        "#F4F4F0",
+        "#111315",
+        "#F5C400",
+        "#15803D",
+        "#B91C1C"
+      ],
+      "materials": [
+        "high-contrast wayfinding bands",
+        "inset black pictogram squares",
+        "directional edge arrows"
+      ],
+      "viewport": "顶部醒目的全局预算与停止协调导视带；左侧搜索树以高对比决策节点与方向边呈现分支流向；右侧文件库清晰标注当前路径的通关状态与缺失文件。",
+      "case": "在分支判断继续/停止（目标达成、预算耗尽、连续无收益停止）的全局态势感知上极其直观。",
+      "risk": "大面积导视黄若控制不当会喧宾夺主，必须严格限定在分岔状态带与关键路径高亮。",
+      "html": ".impeccable/mocks/decision/challenger-wayfinding.html",
+      "comp": ".impeccable/mocks/decision/challenger-wayfinding.webp",
+      "hero": "https://impeccable.style/worlds/cards/wayfinding-cartography-signage-terminal-yellow-wayfinding-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/wayfinding-cartography-signage-terminal-yellow-wayfinding.webp"
+    },
+    {
+      "id": "challenger-ikeda",
+      "kind": "challenger",
+      "catalogId": "ikeda-datamatics",
+      "label": "Datamatics Barcode Lattice",
+      "verdict": "declined",
+      "lineage": "Ryoji Ikeda 纯黑白高密度条码与正弦晶格",
+      "thesis": "纯黑白无灰阶的高密度数值条码矩阵。",
+      "palette": [
+        "#000000",
+        "#FFFFFF"
+      ],
+      "materials": [
+        "1-bit pixel bars",
+        "dense monospace columns"
+      ],
+      "viewport": "全屏黑白条码列与单宽数字流。",
+      "case": "缺乏多维执行状态与冷却状态所需的语义层次，闪烁反相不利于长时间代码与实验审阅。",
+      "risk": "纯黑白反相视觉疲劳度高，不适合长时工程操作。",
+      "kept": "高密度行内微缩条码：用于节点卡片内直接展示 Cube / Vector / MTE2 流水线占比。",
+      "hero": "https://impeccable.style/worlds/cards/ikeda-datamatics-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/ikeda-datamatics.webp"
+    },
+    {
+      "id": "challenger-monochrome",
+      "kind": "challenger",
+      "catalogId": "digital-design-canon-monochrome-product-marketing",
+      "label": "Monochrome Claim & Proof",
+      "verdict": "declined",
+      "lineage": "单色阶产品营销页（断言与截图成对交替）",
+      "thesis": "极简中性灰阶配单强调色，每句结论紧跟证据。",
+      "palette": [
+        "#FAFAFA",
+        "#171717",
+        "#2563EB"
+      ],
+      "materials": [
+        "fine neutral scale",
+        "hairline ghost controls"
+      ],
+      "viewport": "纵向交替的结论与截图展示。",
+      "case": "纵向营销叙事流不适用于左右分栏的树状图与文件库实时联动工作台。",
+      "risk": "缺乏复杂状态机所需的工程工具密度。",
+      "kept": "断言与证据成对绑定：每条优化经验候选都紧邻挂载其支撑节点与反例节点芯片。",
+      "hero": "https://impeccable.style/worlds/cards/digital-design-canon-monochrome-product-marketing-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/digital-design-canon-monochrome-product-marketing.webp"
+    },
+    {
+      "id": "challenger-streaming",
+      "kind": "challenger",
+      "catalogId": "pop-culture-shelf-streaming-title-card-wall",
+      "label": "Streaming Title Wall",
+      "verdict": "declined",
+      "lineage": "横向滚动海报墙与聚焦放大暗化",
+      "thesis": "聚焦卡片放大并展开元数据，其余背景退暗。",
+      "palette": [
+        "#0F1014",
+        "#F3F4F6",
+        "#E11D48"
+      ],
+      "materials": [
+        "poster tiles",
+        "focus dimming"
+      ],
+      "viewport": "多行横向海报轨。",
+      "case": "娱乐流媒体浏览结构与算子搜索树拓扑不匹配。",
+      "risk": "卡片悬停缩放会干扰节点与边的精确点击定位。",
+      "kept": "聚焦降噪机制：选中某条分支或边时，自动降低无关分支与泳道的不透明度。",
+      "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-streaming-title-card-wall-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/pop-culture-shelf-streaming-title-card-wall.webp"
+    },
+    {
+      "id": "challenger-timetable",
+      "kind": "challenger",
+      "catalogId": "rw-timetable-slide-rack",
+      "label": "Raked Timetable Slide Rack",
+      "verdict": "declined",
+      "lineage": "1971 倾斜 11 度金黄底台航班时刻表玻片架",
+      "thesis": "全页单一字号，靠字重、正反白与 11 度倾斜格区分层级。",
+      "palette": [
+        "#EAB308",
+        "#1E293B",
+        "#FAF8F5",
+        "#DC2626",
+        "#15803D"
+      ],
+      "materials": [
+        "11-degree raked containers",
+        "single-size gothic type"
+      ],
+      "viewport": "横向倾斜玻片列。",
+      "case": "11 度倾斜容器与全页单一字号会损害 TileLang 代码检视与 React Flow 树图的阅读效率。",
+      "risk": "倾斜排版在长代码与多列性能表中造成视觉失真。",
+      "kept": "单元格印记编码：用紧凑的实心/空心/反白格位表示 8 个 Stage 的推进进度。",
+      "hero": "https://impeccable.style/worlds/cards/rw-timetable-slide-rack-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/rw-timetable-slide-rack.webp"
+    }
+  ],
+  "reroll": {
+    "registers": [
+      "safer",
+      "bolder"
+    ]
+  },
+  "buildPath": {
+    "value": "code",
+    "toggle": true
+  },
+  "canon": true,
+  "canonCard": {
+    "kind": "canon",
+    "label": "Standard Developer Observability UI (行业标准开发者可观测性后台)",
+    "thesis": "遵循现代工程 Dashboard（如 GitHub Actions / MLflow / Perfetto）的深灰顶栏 + 浅白分栏规范，零学习成本。",
+    "palette": [
+      "#F8FAFC",
+      "#0F172A",
+      "#2563EB",
+      "#16A34A",
+      "#DC2626"
+    ],
+    "materials": [
+      "clean slate chrome",
+      "standard SaaS borders",
+      "monospace code panes"
+    ],
+    "viewport": "标准顶部导航栏 + 左侧 React Flow 画布/时间线 + 右侧标签页文件查看器。",
+    "risk": "与市面上通用的 CI/CD 或 Trace 面板高度同质化。",
+    "html": ".impeccable/mocks/decision/canon.html",
+    "comp": ".impeccable/mocks/decision/canon.webp"
+  },
+  "steer": true
+}

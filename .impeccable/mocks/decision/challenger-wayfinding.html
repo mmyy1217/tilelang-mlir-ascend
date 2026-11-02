@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1440px; height: 900px; overflow: hidden;
+    background: #F4F4F0; color: #111315;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column;
+  }
+  .sign-band {
+    height: 60px; background: #F5C400; color: #111315;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; border-bottom: 3px solid #111315;
+  }
+  .sign-left { display: flex; align-items: center; gap: 14px; }
+  .picto { background: #111315; color: #FFF; padding: 4px 10px; font-weight: 800; font-size: 16px; }
+  .sign-left h1 { font-size: 24px; font-weight: 800; }
+  .sign-metrics { display: flex; gap: 20px; font-weight: 700; font-size: 14px; }
+  .main { flex: 1; display: grid; grid-template-columns: 740px 700px; }
+  .left { border-right: 2px solid #111315; padding: 20px; }
+  .junction { border: 2px solid #111315; background: #FFF; padding: 14px; margin-bottom: 16px; }
+  .junction.active { border-width: 3px; background: #FFFBEB; }
+  .j-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .gate-no { font-size: 26px; font-weight: 900; }
+  .status-pill { padding: 3px 8px; font-size: 12px; font-weight: 800; background: #15803D; color: #FFF; }
+  .status-pill.stop { background: #B91C1C; }
+  .right { padding: 20px; display: flex; flex-direction: column; gap: 14px; background: #FFFFFF; }
+  .code { background: #111315; color: #F4F4F0; font-family: monospace; font-size: 13px; padding: 16px; flex: 1; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <header class="sign-band">
+    <div class="sign-left">
+      <span class="picto">→ TREE / AGENT</span>
+      <h1>FlashAttention-2 算子搜索树枢纽工作台 [DEMO]</h1>
+    </div>
+    <div class="sign-metrics">
+      <span>当前最优出口: GATE N4 (132.4 us)</span>
+      <span>预算剩余: 10 次评估</span>
+      <span>状态: READY-FOR-COOL 候选已生成</span>
+    </div>
+  </header>
+  <main class="main">
+    <section class="left">
+      <div class="junction">
+        <div class="j-head"><span class="gate-no">N0 → 基线起点 (248.6 us)</span><span class="status-pill">COOLED BASELINE</span></div>
+        <div>分岔方向: ↗ N1 (Cube Tiling) | ↘ N2 (UB 扩容·已关闭)</div>
+      </div>
+      <div class="junction">
+        <div class="j-head"><span class="gate-no">N2 ✕ 分支早停 (连续 3 次无收益)</span><span class="status-pill stop">BRANCH STOPPED</span></div>
+        <div>原因: UB 超出 192KB 硬件上限，协调者终止该分支继续扩展</div>
+      </div>
+      <div class="junction active">
+        <div class="j-head"><span class="gate-no">N4 ★ 双缓冲流水融合 (132.4 us)</span><span class="status-pill">READY-FOR-COOL</span></div>
+        <div>Stage 进度: 读取 → 思路 → G2 → C3 → V2 → B1 → F1 → S1 (全部通过)</div>
+      </div>
+    </section>
+    <section class="right">
+      <h2 style="font-size:24px; font-weight:800;">节点 N4 文件库与 Stage 依赖核查</h2>
+      <div class="junction">
+        <strong>边引用核查:</strong> 主父节点 N1 (分块配置) + 跨分支参考 N3 (双缓冲同步标志位) · 已在当前节点重新验证通过 (Attempt V2)。
+      </div>
+      <pre class="code"># Node N4 · kernel_n4_v2.py (Attempt G2 -> C3 -> V2 -> B1)
+with T.Scope("Cube"):
+    T.load_nd2nz(Q_l1, Q_gm, ...)
+    T.gemm(Q_l0a, K_l0b, S_l0c, init=True)
+    T.store_fixpipe(S_ub, S_l0c)</pre>
+    </section>
+  </main>
+</body>
+</html>
