@@ -20,11 +20,13 @@ class SimulationClient:
         service: Optional[WorkbenchService] = None,
         http_client: Optional[httpx.AsyncClient] = None,
         agent_token: str = "agent-secret-token",
+        internal_seed: bool = False,
     ) -> None:
         self.agent_id = agent_id
         self.service = service
         self.http_client = http_client
         self.agent_token = agent_token
+        self.internal_seed = internal_seed
 
     def _headers(self, req_key: str) -> Dict[str, str]:
         return {
@@ -34,7 +36,7 @@ class SimulationClient:
         }
 
     async def create_exploration(self, payload: Dict[str, Any], req_key: str) -> Dict[str, Any]:
-        if self.http_client:
+        if self.http_client and not self.internal_seed:
             resp = await self.http_client.post(
                 "/api/explorations", json=payload, headers=self._headers(req_key)
             )
@@ -42,11 +44,14 @@ class SimulationClient:
             return resp.json()
         assert self.service is not None
         return await asyncio.to_thread(
-            self.service.create_or_reset_exploration, payload, f"{self.agent_id}-{req_key}"
+            self.service.create_or_reset_exploration,
+            payload,
+            f"{self.agent_id}-{req_key}",
+            _internal_seed=self.internal_seed,
         )
 
     async def heartbeat(self, exp_id: str, payload: Dict[str, Any], req_key: str) -> Dict[str, Any]:
-        if self.http_client:
+        if self.http_client and not self.internal_seed:
             resp = await self.http_client.post(
                 f"/api/explorations/{exp_id}/agents/heartbeat",
                 json=payload,
@@ -65,7 +70,7 @@ class SimulationClient:
         content_bytes = res_def["content"].encode("utf-8")
         expected_sha256 = hashlib.sha256(content_bytes).hexdigest()
         payload = {**res_def, "expectedSha256": expected_sha256}
-        if self.http_client:
+        if self.http_client and not self.internal_seed:
             resp = await self.http_client.post(
                 f"/api/explorations/{exp_id}/resources",
                 json=payload,
@@ -75,13 +80,17 @@ class SimulationClient:
             return resp.json()
         assert self.service is not None
         return await asyncio.to_thread(
-            self.service.upload_resource_version, exp_id, payload, f"{self.agent_id}-{req_key}"
+            self.service.upload_resource_version,
+            exp_id,
+            payload,
+            f"{self.agent_id}-{req_key}",
+            _internal_seed=self.internal_seed,
         )
 
     async def link_resource(
         self, exp_id: str, payload: Dict[str, Any], req_key: str
     ) -> Dict[str, Any]:
-        if self.http_client:
+        if self.http_client and not self.internal_seed:
             resp = await self.http_client.post(
                 f"/api/explorations/{exp_id}/resource-links",
                 json=payload,
@@ -97,7 +106,7 @@ class SimulationClient:
     async def create_node(
         self, exp_id: str, payload: Dict[str, Any], req_key: str
     ) -> Dict[str, Any]:
-        if self.http_client:
+        if self.http_client and not self.internal_seed:
             resp = await self.http_client.post(
                 f"/api/explorations/{exp_id}/nodes",
                 json=payload,
@@ -107,13 +116,17 @@ class SimulationClient:
             return resp.json()
         assert self.service is not None
         return await asyncio.to_thread(
-            self.service.create_node, exp_id, payload, f"{self.agent_id}-{req_key}"
+            self.service.create_node,
+            exp_id,
+            payload,
+            f"{self.agent_id}-{req_key}",
+            _internal_seed=self.internal_seed,
         )
 
     async def create_reference(
         self, exp_id: str, payload: Dict[str, Any], req_key: str
     ) -> Dict[str, Any]:
-        if self.http_client:
+        if self.http_client and not self.internal_seed:
             resp = await self.http_client.post(
                 f"/api/explorations/{exp_id}/references",
                 json=payload,
@@ -129,7 +142,7 @@ class SimulationClient:
     async def start_attempt(
         self, exp_id: str, node_id: str, payload: Dict[str, Any], req_key: str
     ) -> Dict[str, Any]:
-        if self.http_client:
+        if self.http_client and not self.internal_seed:
             resp = await self.http_client.post(
                 f"/api/explorations/{exp_id}/nodes/{node_id}/attempts",
                 json=payload,
@@ -144,6 +157,7 @@ class SimulationClient:
             node_id,
             payload,
             f"{self.agent_id}-{req_key}",
+            _internal_seed=self.internal_seed,
         )
 
     async def finish_attempt(
@@ -154,7 +168,7 @@ class SimulationClient:
         payload: Dict[str, Any],
         req_key: str,
     ) -> Dict[str, Any]:
-        if self.http_client:
+        if self.http_client and not self.internal_seed:
             resp = await self.http_client.patch(
                 f"/api/explorations/{exp_id}/nodes/{node_id}/attempts/{attempt_id}",
                 json=payload,
@@ -170,12 +184,13 @@ class SimulationClient:
             attempt_id,
             payload,
             f"{self.agent_id}-{req_key}",
+            _internal_seed=self.internal_seed,
         )
 
     async def upsert_knowledge(
         self, exp_id: str, payload: Dict[str, Any], req_key: str
     ) -> Dict[str, Any]:
-        if self.http_client:
+        if self.http_client and not self.internal_seed:
             resp = await self.http_client.post(
                 f"/api/explorations/{exp_id}/knowledge",
                 json=payload,
@@ -185,7 +200,11 @@ class SimulationClient:
             return resp.json()
         assert self.service is not None
         return await asyncio.to_thread(
-            self.service.upsert_knowledge_item, exp_id, payload, f"{self.agent_id}-{req_key}"
+            self.service.upsert_knowledge_item,
+            exp_id,
+            payload,
+            f"{self.agent_id}-{req_key}",
+            _internal_seed=self.internal_seed,
         )
 
 
@@ -272,33 +291,43 @@ async def run_two_agent_simulation(
     service: Optional[WorkbenchService] = None,
     http_client: Optional[httpx.AsyncClient] = None,
     delay_sec: float = 0.0,
+    exp_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Execute the complete FlashAttention-2 MixCV exploration using two parallel Agent simulators:
     - Agent-Alpha (agent-cube): explores Cube L1/L0C tiling branches (N1, N2) and co-authors N4.
     - Agent-Beta (agent-vec): explores Vector Ping-Pong synchronization (N3), co-authors N4 rollback fix, and launches N5.
     """
-    exp_id = EXPLORATION_META["id"]
+    if service is None and http_client is not None:
+        app_obj = getattr(getattr(http_client, "_transport", None), "app", None)
+        if app_obj is not None:
+            service = getattr(getattr(app_obj, "state", None), "service", None)
+
+    target_exp_id = exp_id or EXPLORATION_META["id"]
     res_by_id = {r["id"]: r for r in RESOURCES_SEED}
     know_by_id = {k["id"]: k for k in KNOWLEDGE_SEED}
 
+    seed_client = SimulationClient(
+        "agent-coord", service=service, http_client=http_client, internal_seed=True
+    )
     coord_client = SimulationClient("agent-coord", service=service, http_client=http_client)
     cube_client = SimulationClient("agent-cube", service=service, http_client=http_client)
     vec_client = SimulationClient("agent-vec", service=service, http_client=http_client)
 
-    # 1. Create / Reset Exploration & Register Agents
-    await coord_client.create_exploration(
-        {**EXPLORATION_META, "resetIfExists": True}, req_key="init-exp"
+    # 1. Create / Reset Exploration & Register Agents (Internal seed bootstrap)
+    await seed_client.create_exploration(
+        {**EXPLORATION_META, "id": target_exp_id}, req_key="init-exp"
     )
+    exp_id = target_exp_id
     for ag in AGENTS_SEED:
         await coord_client.heartbeat(exp_id, ag, req_key=f"init-ag-{ag['id']}")
 
-    # 2. Seed Root Node N0 + Pinned Cooled Baseline Resources + Knowledge K-01
+    # 2. Seed Root Node N0 + Pinned Cooled Baseline Resources + Knowledge K-01 (Internal seed bootstrap)
     for rid in ["res-cfg-v1", "res-n0-kernel-v1", "res-n0-exp-v1", "res-n0-prof-v1"]:
-        await coord_client.upload_resource(exp_id, res_by_id[rid], req_key=f"up-{rid}")
-    await coord_client.upsert_knowledge(exp_id, know_by_id["K-01"], req_key="know-K01")
+        await seed_client.upload_resource(exp_id, res_by_id[rid], req_key=f"up-{rid}")
+    await seed_client.upsert_knowledge(exp_id, know_by_id["K-01"], req_key="know-K01")
 
-    await coord_client.create_node(
+    await seed_client.create_node(
         exp_id,
         {
             "id": "N0",
@@ -315,7 +344,7 @@ async def run_two_agent_simulation(
         },
         req_key="create-N0",
     )
-    await coord_client.link_resource(
+    await seed_client.link_resource(
         exp_id,
         {
             "id": "lnk-01",
@@ -344,7 +373,7 @@ async def run_two_agent_simulation(
     ]
     for idx, (aid, st, code, ag, deps, in_r, out_r, summ, kv) in enumerate(n0_stages):
         await _run_single_attempt(
-            coord_client,
+            seed_client,
             exp_id,
             "N0",
             aid,

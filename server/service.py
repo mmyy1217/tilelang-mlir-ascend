@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from .db import (
     EVAL_BUDGET_STAGES,
@@ -21,12 +21,33 @@ class WorkbenchService:
     def __init__(self, storage: WorkbenchStorage) -> None:
         self.storage = storage
 
+    @staticmethod
+    def _reject_internal_flags(payload: Dict[str, Any], _internal_seed: bool) -> None:
+        if _internal_seed:
+            return
+        forbidden = (
+            "resetIfExists",
+            "allowDuringSeed",
+            "skipBudgetReservation",
+            "allowPinnedCooledBaseline",
+        )
+        for key in forbidden:
+            if payload.get(key):
+                raise ValidationError(
+                    f"禁止通过外部 API 请求传入内部控制开关 '{key}'"
+                )
+
     # ------------------------------------------------------------------
     # Exploration Creation & Snapshot
     # ------------------------------------------------------------------
     def create_or_reset_exploration(
-        self, payload: Dict[str, Any], request_id: Optional[str] = None
+        self,
+        payload: Dict[str, Any],
+        request_id: Optional[str] = None,
+        *,
+        _internal_seed: bool = False,
     ) -> Dict[str, Any]:
+        self._reject_internal_flags(payload, _internal_seed)
         exp_id = payload["id"]
         payload_hash = self.storage.compute_payload_hash(payload)
 
@@ -37,7 +58,7 @@ class WorkbenchService:
             if cached is not None:
                 return cached
 
-            if payload.get("resetIfExists", False):
+            if _internal_seed and payload.get("resetIfExists", False):
                 conn.execute("DELETE FROM explorations WHERE id = ?", (exp_id,))
                 conn.execute("DELETE FROM events WHERE exploration_id = ?", (exp_id,))
                 conn.execute(
@@ -212,15 +233,18 @@ class WorkbenchService:
         exploration_id: str,
         payload: Dict[str, Any],
         request_id: Optional[str] = None,
+        *,
+        _internal_seed: bool = False,
     ) -> Dict[str, Any]:
+        self._reject_internal_flags(payload, _internal_seed)
         payload_hash = self.storage.compute_payload_hash(payload)
         version_id = payload["id"]
         resource_id = payload["resourceId"]
         content_status = payload.get("contentStatus", "hot")
 
         # Validate content_status rule: external agents can only create hot or ready-for-cool,
-        # only root baseline initialization may register pinned cooled@v1.4 artifacts.
-        if content_status == "cooled" and not payload.get("allowPinnedCooledBaseline", False):
+        # only internal root baseline initialization may register pinned cooled@v1.4 artifacts.
+        if content_status == "cooled" and not _internal_seed:
             raise ValidationError(
                 "hot -> cooled 必须经过人工审批并合入远端主线；当前接口禁止直接写入 cooled 状态"
             )
@@ -429,10 +453,25 @@ class WorkbenchService:
         exploration_id: str,
         payload: Dict[str, Any],
         request_id: Optional[str] = None,
+        *,
+        _internal_seed: bool = False,
     ) -> Dict[str, Any]:
+        self._reject_internal_flags(payload, _internal_seed)
         payload_hash = self.storage.compute_payload_hash(payload)
         node_id = payload["id"]
         parent_id = payload.get("parentId")
+        content_status = payload.get("contentStatus", "hot")
+
+        if content_status == "cooled" and not _internal_seed:
+            raise ValidationError("禁止直接创建 cooled 状态的节点")
+        if not _internal_seed and (
+            payload.get("correctnessPassed")
+            or payload.get("latencyUs") is not None
+            or payload.get("speedupVsBaseline") is not None
+        ):
+            raise ValidationError(
+                "创建节点时禁止直接写入验证通过状态或实测耗时；必须通过节点内 8 阶段状态机产生"
+            )
 
         with self.storage.write_tx() as conn:
             cached = self.storage.check_idempotency(
@@ -447,9 +486,7 @@ class WorkbenchService:
             ).fetchone()
             if not exp:
                 raise NotFoundError(f"Exploration '{exploration_id}' not found")
-            if exp["coordinator_status"] in ("stopping", "stopped") and not payload.get(
-                "allowDuringSeed", False
-            ):
+            if exp["coordinator_status"] in ("stopping", "stopped") and not _internal_seed:
                 raise ValidationError(
                     f"Exploration is '{exp['coordinator_status']}'; creating new nodes is forbidden."
                 )
@@ -499,19 +536,19 @@ class WorkbenchService:
                     exploration_id,
                     parent_id,
                     depth,
-                    payload["branchLabel"],
+                    payload.get("branchLabel", ""),
                     payload["title"],
-                    payload["hypothesis"],
-                    payload["changeSummary"],
+                    payload.get("hypothesis", ""),
+                    payload.get("changeSummary", ""),
                     payload.get("derivationNote", ""),
                     payload.get("primaryKernelVersionId"),
                     json.dumps(payload.get("agentIds", []), ensure_ascii=False),
                     payload.get("executionStatus", "pending"),
-                    payload.get("contentStatus", "hot"),
+                    content_status,
                     payload.get("currentStage", "read_info"),
-                    payload.get("latencyUs"),
-                    payload.get("speedupVsBaseline"),
-                    1 if payload.get("correctnessPassed", False) else 0,
+                    None,
+                    None,
+                    0,
                     payload.get("stopOrFailReason"),
                     (
                         json.dumps(payload["pipelineMetrics"], ensure_ascii=False)
@@ -684,13 +721,205 @@ class WorkbenchService:
     # ------------------------------------------------------------------
     # Stage Attempt Permit & Execution (Rollback / Dependency Validation)
     # ------------------------------------------------------------------
+    @staticmethod
+    def _validate_stage_preconditions(
+        stage_type: str,
+        kernel_ver_label: Optional[str],
+        upstream_rows: List[Any],
+    ) -> None:
+        """Enforce mandatory upstream stage preconditions and kernel version lineage."""
+        if stage_type == "read_info":
+            return
+
+        if not upstream_rows:
+            raise ValidationError(
+                f"Stage '{stage_type}' requires non-empty dependsOnAttemptIds referencing valid upstream attempt(s) in the same node."
+            )
+
+        if stage_type == "plan_idea":
+            if not any(
+                r["stage_type"] == "read_info" and r["status"] == "completed"
+                for r in upstream_rows
+            ):
+                raise ValidationError(
+                    "plan_idea 阶段必须依赖已完成的 read_info 尝试"
+                )
+            return
+
+        if stage_type == "gen_kernel":
+            if not kernel_ver_label:
+                raise ValidationError("gen_kernel 阶段必须明确指定 kernelVersionLabel (如 v1, v2)")
+            has_plan = any(
+                r["stage_type"] == "plan_idea" and r["status"] == "completed"
+                for r in upstream_rows
+            )
+            has_rollback_trigger = any(
+                r["stage_type"] in ("compile", "verify_correctness")
+                and r["status"] in ("failed", "skipped")
+                for r in upstream_rows
+            )
+            if not (has_plan or has_rollback_trigger):
+                raise ValidationError(
+                    "gen_kernel 阶段必须依赖已完成的 plan_idea 尝试，或依赖失败的下游 compile/verify_correctness 尝试以执行回退修复"
+                )
+            return
+
+        if stage_type in ("compile", "verify_correctness", "bench_perf", "profiling"):
+            if not kernel_ver_label:
+                raise ValidationError(
+                    f"Stage '{stage_type}' 必须明确指定 kernelVersionLabel 并与上游保持一致"
+                )
+            for r in upstream_rows:
+                dep_kv = r["kernel_version_label"]
+                if dep_kv != kernel_ver_label:
+                    raise ValidationError(
+                        f"Kernel version mismatch: stage '{stage_type}' ({kernel_ver_label}) cannot depend on upstream attempt '{r['id']}' ({dep_kv})."
+                    )
+
+        if stage_type == "compile":
+            if not any(
+                r["stage_type"] == "gen_kernel"
+                and r["status"] == "completed"
+                and r["kernel_version_label"] == kernel_ver_label
+                for r in upstream_rows
+            ):
+                raise ValidationError(
+                    f"compile ({kernel_ver_label}) 必须依赖已完成且同版本的 gen_kernel 尝试"
+                )
+        elif stage_type == "verify_correctness":
+            if not any(
+                r["stage_type"] == "compile"
+                and r["status"] in ("completed", "failed")
+                and r["kernel_version_label"] == kernel_ver_label
+                for r in upstream_rows
+            ):
+                raise ValidationError(
+                    f"verify_correctness ({kernel_ver_label}) 必须依赖同版本的 compile 尝试"
+                )
+        elif stage_type == "bench_perf":
+            if not any(
+                r["stage_type"] == "verify_correctness"
+                and r["status"] == "completed"
+                and int(r["correctness_passed"] or 0) == 1
+                and r["kernel_version_label"] == kernel_ver_label
+                for r in upstream_rows
+            ):
+                raise ValidationError(
+                    f"bench_perf ({kernel_ver_label}) 必须依赖已完成且精度通过的同版本 verify_correctness 尝试"
+                )
+        elif stage_type == "profiling":
+            if not any(
+                r["stage_type"] == "bench_perf"
+                and r["status"] == "completed"
+                and r["latency_us"] is not None
+                and r["kernel_version_label"] == kernel_ver_label
+                for r in upstream_rows
+            ):
+                raise ValidationError(
+                    f"profiling ({kernel_ver_label}) 必须依赖已完成且记录耗时的同版本 bench_perf 尝试"
+                )
+        elif stage_type == "summarize":
+            if not any(
+                r["status"] in ("completed", "failed", "stopped")
+                for r in upstream_rows
+            ):
+                raise ValidationError(
+                    "summarize 阶段必须依赖已结束的上游阶段尝试"
+                )
+
+    @staticmethod
+    def _evaluate_node_active_chain(
+        conn: Any, exploration_id: str, node_id: str
+    ) -> Tuple[bool, Optional[float]]:
+        """
+        Evaluate whether the node's latest kernel version has a complete, version-matched
+        chain: gen_kernel(kv, completed) -> compile(kv, completed) -> verify_correctness(kv, completed, pass)
+        and optional bench_perf(kv, completed, latency_us > 0).
+        """
+        rows = conn.execute(
+            """
+            SELECT id, stage_type, status, kernel_version_label,
+                   depends_on_attempt_ids_json, output_resource_version_ids_json,
+                   correctness_passed, latency_us, seq_order
+            FROM stage_attempts
+            WHERE exploration_id = ? AND node_id = ?
+            ORDER BY seq_order ASC, id ASC
+            """,
+            (exploration_id, node_id),
+        ).fetchall()
+
+        gen_attempts = [r for r in rows if r["stage_type"] == "gen_kernel"]
+        if not gen_attempts:
+            return (False, None)
+
+        latest_gen = gen_attempts[-1]
+        if latest_gen["status"] != "completed" or not latest_gen["kernel_version_label"]:
+            return (False, None)
+
+        active_kv = latest_gen["kernel_version_label"]
+        gen_id = latest_gen["id"]
+        gen_seq = int(latest_gen["seq_order"])
+
+        # Require completed compile attempt for active_kv depending on latest_gen
+        valid_compile_ids = set()
+        for r in rows:
+            if (
+                r["stage_type"] == "compile"
+                and r["status"] == "completed"
+                and r["kernel_version_label"] == active_kv
+                and int(r["seq_order"]) > gen_seq
+            ):
+                deps = json.loads(r["depends_on_attempt_ids_json"] or "[]")
+                if gen_id in deps:
+                    valid_compile_ids.add(r["id"])
+
+        if not valid_compile_ids:
+            return (False, None)
+
+        # Require completed verify_correctness attempt with correctness_passed == 1 depending on valid compile
+        valid_verify_ids = set()
+        for r in rows:
+            if (
+                r["stage_type"] == "verify_correctness"
+                and r["status"] == "completed"
+                and int(r["correctness_passed"] or 0) == 1
+                and r["kernel_version_label"] == active_kv
+                and int(r["seq_order"]) > gen_seq
+            ):
+                deps = set(json.loads(r["depends_on_attempt_ids_json"] or "[]"))
+                if deps & valid_compile_ids:
+                    valid_verify_ids.add(r["id"])
+
+        if not valid_verify_ids:
+            return (False, None)
+
+        # Find latest completed bench_perf attempt for active_kv depending on valid verify_correctness
+        valid_latency: Optional[float] = None
+        for r in rows:
+            if (
+                r["stage_type"] == "bench_perf"
+                and r["status"] == "completed"
+                and r["latency_us"] is not None
+                and float(r["latency_us"]) > 0
+                and r["kernel_version_label"] == active_kv
+                and int(r["seq_order"]) > gen_seq
+            ):
+                deps = set(json.loads(r["depends_on_attempt_ids_json"] or "[]"))
+                if deps & valid_verify_ids:
+                    valid_latency = float(r["latency_us"])
+
+        return (True, valid_latency)
+
     def start_stage_attempt(
         self,
         exploration_id: str,
         node_id: str,
         payload: Dict[str, Any],
         request_id: Optional[str] = None,
+        *,
+        _internal_seed: bool = False,
     ) -> Dict[str, Any]:
+        self._reject_internal_flags(payload, _internal_seed)
         payload_hash = self.storage.compute_payload_hash(payload)
         attempt_id = payload["id"]
         stage_type = payload["stageType"]
@@ -715,9 +944,7 @@ class WorkbenchService:
             ).fetchone()
             if not exp:
                 raise NotFoundError(f"Exploration '{exploration_id}' not found")
-            if exp["coordinator_status"] in ("stopping", "stopped") and not payload.get(
-                "allowDuringSeed", False
-            ):
+            if exp["coordinator_status"] in ("stopping", "stopped") and not _internal_seed:
                 raise ValidationError(
                     f"Exploration is '{exp['coordinator_status']}'; new stage permits are rejected."
                 )
@@ -744,7 +971,7 @@ class WorkbenchService:
             for dep_id in depends_on:
                 dep_row = conn.execute(
                     """
-                    SELECT id, stage_type, status, kernel_version_label
+                    SELECT id, stage_type, status, kernel_version_label, correctness_passed, latency_us
                     FROM stage_attempts
                     WHERE exploration_id = ? AND node_id = ? AND id = ?
                     """,
@@ -756,19 +983,15 @@ class WorkbenchService:
                     )
                 upstream_rows.append(dep_row)
 
-            # Validate kernel version consistency across compile -> verify -> bench -> profile
-            if stage_type in ("verify_correctness", "bench_perf", "profiling") and kernel_ver_label:
-                for dep_row in upstream_rows:
-                    dep_kv = dep_row["kernel_version_label"]
-                    if dep_kv and dep_kv != kernel_ver_label:
-                        raise ValidationError(
-                            f"Kernel version mismatch: attempt '{attempt_id}' ({kernel_ver_label}) cannot depend on upstream attempt '{dep_row['id']}' ({dep_kv}). Code update requires re-running compile & verification on {kernel_ver_label}."
-                        )
+            # Enforce mandatory stage preconditions & version consistency
+            self._validate_stage_preconditions(
+                stage_type, kernel_ver_label, upstream_rows
+            )
 
             if reused_from:
                 reused_row = conn.execute(
                     """
-                    SELECT id, status, kernel_version_label
+                    SELECT id, status, kernel_version_label, correctness_passed
                     FROM stage_attempts
                     WHERE exploration_id = ? AND node_id = ? AND id = ?
                     """,
@@ -790,10 +1013,7 @@ class WorkbenchService:
             # Reserve evaluation budget if this is a hardware evaluation stage
             budget = json.loads(exp["budget_json"])
             reserve_slot = 0
-            if (
-                stage_type in EVAL_BUDGET_STAGES
-                and not payload.get("skipBudgetReservation", False)
-            ):
+            if stage_type in EVAL_BUDGET_STAGES:
                 used = int(budget.get("usedEvaluations", 0))
                 reserved = int(budget.get("reservedEvaluations", 0))
                 max_evals = int(budget.get("maxEvaluations", 24))
@@ -833,8 +1053,9 @@ class WorkbenchService:
                     status, started_at, ended_at, depends_on_attempt_ids_json,
                     kernel_version_label, input_resource_version_ids_json,
                     output_resource_version_ids_json, summary, failure_or_skip_reason,
-                    reused_from_attempt_id, reserved_eval_slot, seq_order, version
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?, NULL, ?, ?, ?, '[]', ?, NULL, ?, ?, ?, 1)
+                    reused_from_attempt_id, correctness_passed, latency_us,
+                    reserved_eval_slot, seq_order, version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?, NULL, ?, ?, ?, '[]', ?, NULL, ?, NULL, NULL, ?, ?, 1)
                 """,
                 (
                     attempt_id,
@@ -891,11 +1112,18 @@ class WorkbenchService:
                 agent_ids.append(agent_id)
             new_node_ver = int(node["version"]) + 1
 
-            # When rolling back to gen_kernel for a new kernel version, reset node correctness_passed
-            # so previous @v1 results cannot stand in for @v2
-            reset_correctness = (
-                0 if stage_type == "gen_kernel" else int(node["correctness_passed"])
-            )
+            # When starting gen_kernel for a new kernel version, clear node correctness_passed AND old latency/speedup
+            # so previous @v1 metrics can never stand in for @v2!
+            if stage_type == "gen_kernel":
+                reset_correctness = 0
+                next_latency = None
+                next_speedup = None
+                next_pipeline = None
+            else:
+                reset_correctness = int(node["correctness_passed"])
+                next_latency = node["latency_us"]
+                next_speedup = node["speedup_vs_baseline"]
+                next_pipeline = node["pipeline_metrics_json"]
 
             conn.execute(
                 """
@@ -904,6 +1132,9 @@ class WorkbenchService:
                     execution_status = 'running',
                     current_stage = ?,
                     correctness_passed = ?,
+                    latency_us = ?,
+                    speedup_vs_baseline = ?,
+                    pipeline_metrics_json = ?,
                     version = ?,
                     updated_at = ?
                 WHERE exploration_id = ? AND id = ?
@@ -912,12 +1143,31 @@ class WorkbenchService:
                     json.dumps(agent_ids, ensure_ascii=False),
                     stage_type,
                     reset_correctness,
+                    next_latency,
+                    next_speedup,
+                    next_pipeline,
                     new_node_ver,
                     utc_now_iso(),
                     exploration_id,
                     node_id,
                 ),
             )
+
+            # Recompute best_valid_node_id in case this node was previously best_valid_node_id and just started a new kernel version
+            best_row = conn.execute(
+                """
+                SELECT id, latency_us FROM nodes
+                WHERE exploration_id = ? AND correctness_passed = 1 AND latency_us IS NOT NULL
+                ORDER BY latency_us ASC
+                LIMIT 1
+                """,
+                (exploration_id,),
+            ).fetchone()
+            if best_row:
+                conn.execute(
+                    "UPDATE explorations SET best_valid_node_id = ?, updated_at = ? WHERE id = ?",
+                    (best_row["id"], utc_now_iso(), exploration_id),
+                )
 
             # Update agent current position
             conn.execute(
@@ -971,7 +1221,10 @@ class WorkbenchService:
         attempt_id: str,
         payload: Dict[str, Any],
         request_id: Optional[str] = None,
+        *,
+        _internal_seed: bool = False,
     ) -> Dict[str, Any]:
+        self._reject_internal_flags(payload, _internal_seed)
         payload_hash = self.storage.compute_payload_hash(payload)
         status = payload["status"]
         if status not in ("completed", "failed", "skipped", "stopped"):
@@ -1012,8 +1265,66 @@ class WorkbenchService:
             if not exp or not node:
                 raise NotFoundError("Exploration or Node not found")
 
-            ended_at = payload.get("endedAt") or utc_now_iso()
+            stage_type = att["stage_type"]
             out_ver_ids: List[str] = payload.get("outputResourceVersionIds", [])
+
+            # Stage-specific completion validations
+            if stage_type != "bench_perf" and (
+                payload.get("latencyUs") is not None
+                or payload.get("speedupVsBaseline") is not None
+            ):
+                raise ValidationError(
+                    f"Stage '{stage_type}' 禁止直接上报实测耗时 latencyUs；耗时仅能由 bench_perf 阶段产生"
+                )
+
+            att_correctness: Optional[int] = None
+            att_latency: Optional[float] = None
+
+            if stage_type == "gen_kernel" and status == "completed":
+                has_kernel_res = bool(out_ver_ids or node["primary_kernel_version_id"])
+                if not has_kernel_res:
+                    raise ValidationError(
+                        "完成 gen_kernel 阶段必须产出或关联至少一个 kernel 资源版本 (outputResourceVersionIds)"
+                    )
+
+            if stage_type == "verify_correctness":
+                if status == "completed":
+                    if not isinstance(payload.get("correctnessPassed"), bool):
+                        raise ValidationError(
+                            "完成 verify_correctness 阶段必须显式提供布尔值 correctnessPassed"
+                        )
+                    # Ensure upstream compile attempt actually completed
+                    deps = json.loads(att["depends_on_attempt_ids_json"] or "[]")
+                    comp_ok = False
+                    for dep_id in deps:
+                        c_row = conn.execute(
+                            "SELECT stage_type, status, kernel_version_label FROM stage_attempts WHERE exploration_id = ? AND node_id = ? AND id = ?",
+                            (exploration_id, node_id, dep_id),
+                        ).fetchone()
+                        if (
+                            c_row
+                            and c_row["stage_type"] == "compile"
+                            and c_row["status"] == "completed"
+                            and c_row["kernel_version_label"] == att["kernel_version_label"]
+                        ):
+                            comp_ok = True
+                    if not comp_ok:
+                        raise ValidationError(
+                            "上游 compile 阶段未成功完成，verify_correctness 禁止标记为 completed"
+                        )
+                    att_correctness = 1 if payload["correctnessPassed"] else 0
+                elif status == "failed":
+                    att_correctness = 0
+
+            if stage_type == "bench_perf" and status == "completed":
+                raw_lat = payload.get("latencyUs")
+                if raw_lat is None or float(raw_lat) <= 0:
+                    raise ValidationError(
+                        "完成 bench_perf 阶段必须提供正数实测耗时 latencyUs"
+                    )
+                att_latency = float(raw_lat)
+
+            ended_at = payload.get("endedAt") or utc_now_iso()
             new_att_ver = int(att["version"]) + 1
 
             conn.execute(
@@ -1024,6 +1335,8 @@ class WorkbenchService:
                     output_resource_version_ids_json = ?,
                     summary = ?,
                     failure_or_skip_reason = ?,
+                    correctness_passed = ?,
+                    latency_us = ?,
                     reserved_eval_slot = 0,
                     version = ?
                 WHERE exploration_id = ? AND id = ?
@@ -1034,6 +1347,8 @@ class WorkbenchService:
                     json.dumps(out_ver_ids, ensure_ascii=False),
                     payload.get("summary", att["summary"]),
                     payload.get("failureOrSkipReason"),
+                    att_correctness,
+                    att_latency,
                     new_att_ver,
                     exploration_id,
                     attempt_id,
@@ -1059,7 +1374,7 @@ class WorkbenchService:
                         link_id,
                         exploration_id,
                         node_id,
-                        att["stage_type"],
+                        stage_type,
                         attempt_id,
                         out_ver_id,
                         src_node,
@@ -1077,35 +1392,38 @@ class WorkbenchService:
                 )
                 budget["usedEvaluations"] = int(budget.get("usedEvaluations", 0)) + 1
 
-            # Update node fields based on stage completion
-            stage_type = att["stage_type"]
+            # Update node fields based on strict version-bound attempt chain evaluation
             primary_kernel = payload.get("primaryKernelVersionId") or node["primary_kernel_version_id"]
             if stage_type == "gen_kernel" and status == "completed" and out_ver_ids:
                 primary_kernel = out_ver_ids[-1]
 
-            correctness_passed = bool(node["correctness_passed"])
-            if stage_type == "verify_correctness":
-                if status == "completed" and payload.get("correctnessPassed", True):
-                    correctness_passed = True
-                    # Mark any cross_branch references targeting this node as verified in this attempt!
-                    conn.execute(
-                        """
-                        UPDATE references_table
-                        SET reverified_in_attempt_id = ?,
-                            reverified_status = 'verified'
-                        WHERE exploration_id = ? AND target_node_id = ?
-                        """,
-                        (attempt_id, exploration_id, node_id),
-                    )
-                else:
-                    correctness_passed = False
+            chain_verified, chain_latency = self._evaluate_node_active_chain(
+                conn, exploration_id, node_id
+            )
+            if stage_type == "verify_correctness" and chain_verified:
+                conn.execute(
+                    """
+                    UPDATE references_table
+                    SET reverified_in_attempt_id = ?,
+                        reverified_status = 'verified'
+                    WHERE exploration_id = ? AND target_node_id = ?
+                    """,
+                    (attempt_id, exploration_id, node_id),
+                )
 
-            latency_us = payload.get("latencyUs", node["latency_us"])
-            speedup = payload.get("speedupVsBaseline", node["speedup_vs_baseline"])
+            baseline_ref = json.loads(exp["baseline_ref_json"])
+            base_lat = float(baseline_ref.get("latencyUs") or 248.6)
+            if chain_latency is not None and chain_latency > 0:
+                speedup = payload.get("speedupVsBaseline") or round(
+                    base_lat / chain_latency, 2
+                )
+            else:
+                speedup = None
+
             pipeline_metrics = (
                 json.dumps(payload["pipelineMetrics"], ensure_ascii=False)
                 if payload.get("pipelineMetrics")
-                else node["pipeline_metrics_json"]
+                else (node["pipeline_metrics_json"] if chain_latency is not None else None)
             )
             node_exec_status = payload.get("nodeExecutionStatus")
             if not node_exec_status:
@@ -1117,7 +1435,7 @@ class WorkbenchService:
                     node_exec_status = node["execution_status"]
 
             node_content_status = payload.get("nodeContentStatus") or node["content_status"]
-            if node_content_status == "cooled" and node_id != "N0":
+            if node_content_status == "cooled" and not (_internal_seed or node_id == "N0"):
                 raise ValidationError("禁止将非基线节点直接标记为 cooled")
 
             stop_or_fail_reason = payload.get(
@@ -1150,9 +1468,9 @@ class WorkbenchService:
                     node_exec_status,
                     node_content_status,
                     stage_type,
-                    latency_us,
+                    chain_latency,
                     speedup,
-                    1 if correctness_passed else 0,
+                    1 if chain_verified else 0,
                     stop_or_fail_reason,
                     pipeline_metrics,
                     json.dumps(missing_reasons, ensure_ascii=False),
@@ -1163,7 +1481,7 @@ class WorkbenchService:
                 ),
             )
 
-            # Recompute best_valid_node_id strictly across nodes with correctness_passed == 1 and latency_us IS NOT NULL
+            # Recompute best_valid_node_id strictly across nodes with active chain_verified == 1 and chain_latency IS NOT NULL
             best_row = conn.execute(
                 """
                 SELECT id, latency_us FROM nodes
@@ -1174,7 +1492,7 @@ class WorkbenchService:
                 (exploration_id,),
             ).fetchone()
             best_valid_node_id = (
-                best_row["id"] if best_row else exp["best_valid_node_id"]
+                best_row["id"] if best_row else "N0"
             )
 
             conn.execute(
@@ -1207,8 +1525,8 @@ class WorkbenchService:
                     "stageType": stage_type,
                     "code": att["code"],
                     "status": status,
-                    "correctnessPassed": correctness_passed,
-                    "latencyUs": latency_us,
+                    "correctnessPassed": chain_verified,
+                    "latencyUs": chain_latency,
                     "bestValidNodeId": best_valid_node_id,
                     "budget": budget,
                 },
@@ -1234,11 +1552,14 @@ class WorkbenchService:
         exploration_id: str,
         payload: Dict[str, Any],
         request_id: Optional[str] = None,
+        *,
+        _internal_seed: bool = False,
     ) -> Dict[str, Any]:
+        self._reject_internal_flags(payload, _internal_seed)
         payload_hash = self.storage.compute_payload_hash(payload)
         item_id = payload["id"]
         content_status = payload.get("contentStatus", "hot")
-        if content_status == "cooled" and not payload.get("allowPinnedCooledBaseline", False):
+        if content_status == "cooled" and not _internal_seed:
             raise ValidationError(
                 "hot -> cooled 必须经过人工审批并合入远端主线；当前接口仅支持标记 hot 或 ready-for-cool"
             )

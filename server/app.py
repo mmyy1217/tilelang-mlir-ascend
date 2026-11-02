@@ -132,13 +132,22 @@ def create_app(data_dir: Optional[str | Path] = None, auto_seed: bool = True) ->
     async def trigger_parallel_simulation(
         exp_id: str,
         payload: Optional[Dict[str, Any]] = None,
+        x_operator_token: Optional[str] = Header(default=None),
     ) -> Dict[str, Any]:
+        verify_operator_credential(x_operator_token)
+        if not (exp_id.startswith("demo-") or exp_id.endswith("-demo")):
+            raise HTTPException(
+                status_code=403,
+                detail="Simulation reset is restricted to isolated demo explorations (prefix 'demo-' or suffix '-demo')",
+            )
         body = payload or {}
         delay_sec = float(body.get("delaySec", 0.08))
         mode = body.get("mode", "background")
 
         if mode == "sync":
-            res = await run_two_agent_simulation(service=service, delay_sec=delay_sec)
+            res = await run_two_agent_simulation(
+                service=service, delay_sec=delay_sec, exp_id=exp_id
+            )
             snap = await asyncio.to_thread(storage.get_snapshot, exp_id)
             return {"status": "completed", "lastEventSeq": snap["lastEventSeq"], **res}
 
@@ -146,7 +155,9 @@ def create_app(data_dir: Optional[str | Path] = None, auto_seed: bool = True) ->
             app.state.sim_task.cancel()
 
         app.state.sim_task = asyncio.create_task(
-            run_two_agent_simulation(service=service, delay_sec=delay_sec)
+            run_two_agent_simulation(
+                service=service, delay_sec=delay_sec, exp_id=exp_id
+            )
         )
         return {
             "status": "started",

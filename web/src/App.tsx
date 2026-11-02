@@ -36,7 +36,6 @@ export const App: React.FC = () => {
   const [sseState, setSseState] = useState<SseSyncState>('connecting');
   const [eventWatermark, setEventWatermark] = useState<number>(0);
   const [lastEventSummary, setLastEventSummary] = useState<string>('等待快照水位...');
-  const [simRunning, setSimRunning] = useState<boolean>(false);
   const [leftWidthPct, setLeftWidthPct] = useState<number>(50);
   const [copiedNotice, setCopiedNotice] = useState<boolean>(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState<boolean>(true);
@@ -45,6 +44,9 @@ export const App: React.FC = () => {
   const workspaceRef = useRef<HTMLDivElement | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const watermarkRef = useRef<number>(0);
+  const seenEventSeqRef = useRef<number>(0);
+  const snapshotAbortRef = useRef<AbortController | null>(null);
+  const snapshotReqSeqRef = useRef<number>(0);
 
   const exploration = useMemo(() => {
     if (liveExploration) return liveExploration;
@@ -60,16 +62,35 @@ export const App: React.FC = () => {
     );
   }, [exploration]);
 
-  // Fetch snapshot from SQLite backend and reconcile selection without losing valid selected objects
+  // Fetch snapshot from SQLite backend with monotonic request seq & watermark checks
   const fetchSnapshot = useCallback(async (expId: string): Promise<number | null> => {
+    const reqId = ++snapshotReqSeqRef.current;
+    if (snapshotAbortRef.current) {
+      snapshotAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    snapshotAbortRef.current = controller;
+
     try {
-      const resp = await fetch(`/api/explorations/${expId}/snapshot`);
+      const resp = await fetch(`/api/explorations/${expId}/snapshot`, {
+        signal: controller.signal,
+      });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const snap: Exploration = await resp.json();
-      setLiveExploration(snap);
+
+      // Reject superseded or out-of-order responses
+      if (reqId !== snapshotReqSeqRef.current) {
+        return null;
+      }
       const seq = typeof snap.lastEventSeq === 'number' ? snap.lastEventSeq : 0;
+      if (seq < watermarkRef.current) {
+        return watermarkRef.current;
+      }
+
       watermarkRef.current = seq;
+      seenEventSeqRef.current = Math.max(seenEventSeqRef.current, seq);
       setEventWatermark(seq);
+      setLiveExploration(snap);
 
       // Reconcile selection: preserve selected node/stage/attempt/edge if still valid
       setSelection((prev) => {
@@ -81,8 +102,13 @@ export const App: React.FC = () => {
         };
       });
       return seq;
-    } catch {
-      setSseState('static_fallback');
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return null;
+      }
+      if (reqId === snapshotReqSeqRef.current) {
+        setSseState('static_fallback');
+      }
       return null;
     }
   }, []);
@@ -108,11 +134,11 @@ export const App: React.FC = () => {
         try {
           const evt = JSON.parse(msg.data);
           const seq = Number(evt.seq || 0);
-          if (seq <= watermarkRef.current) {
-            return; // Deduplicate already-applied event seq
+          if (seq <= seenEventSeqRef.current) {
+            return; // Deduplicate already-seen event seq
           }
-          watermarkRef.current = seq;
-          setEventWatermark(seq);
+          seenEventSeqRef.current = seq;
+          setEventWatermark(Math.max(watermarkRef.current, seq));
           setLastEventSummary(`#${seq} ${evt.eventType} (${evt.entityId})`);
           void fetchSnapshot(expId);
         } catch {
@@ -139,6 +165,8 @@ export const App: React.FC = () => {
   // Initial snapshot load + SSE subscription
   useEffect(() => {
     let cancelled = false;
+    watermarkRef.current = 0;
+    seenEventSeqRef.current = 0;
     void fetchSnapshot(selection.explorationId).then((seq) => {
       if (!cancelled && seq !== null) {
         setLastEventSummary(`快照就绪 (#${seq}) · SSE 监听中`);
@@ -147,6 +175,10 @@ export const App: React.FC = () => {
     });
     return () => {
       cancelled = true;
+      if (snapshotAbortRef.current) {
+        snapshotAbortRef.current.abort();
+        snapshotAbortRef.current = null;
+      }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
@@ -154,73 +186,22 @@ export const App: React.FC = () => {
     };
   }, [selection.explorationId, fetchSnapshot, connectSseFromWatermark]);
 
-  // Trigger 2-Agent parallel simulation over HTTP + SSE
-  const handleRunParallelSimulation = useCallback(async () => {
-    setSimRunning(true);
-    setLastEventSummary('启动 Agent-Cube 与 Agent-Vec 并行写入...');
-    try {
-      const resp = await fetch(
-        `/api/explorations/${selection.explorationId}/simulate`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'background', delaySec: 0.08 }),
-        }
-      );
-      if (resp.ok) {
-        // Re-subscribe from seq 0 to watch the new exploration build live
-        watermarkRef.current = 0;
-        setEventWatermark(0);
-        connectSseFromWatermark(selection.explorationId, 0);
-      }
-    } finally {
-      window.setTimeout(() => setSimRunning(false), 3800);
-    }
-  }, [selection.explorationId, connectSseFromWatermark]);
-
-  // Simulate SSE disconnect -> missed events -> resumable catch-up via after_seq
-  const handleTestDisconnectCatchup = useCallback(async () => {
+  // Read-only SSE disconnect & resumable catch-up test via after_seq
+  const handleTestDisconnectCatchup = useCallback(() => {
     if (sseState === 'static_fallback') return;
-    const savedSeq = watermarkRef.current;
+    const currentSeq = watermarkRef.current;
+    const rewindSeq = Math.max(0, currentSeq - 2);
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
     setSseState('paused');
-    setLastEventSummary(`已模拟断线 (锁定水位 #${savedSeq})，后台写入新事件中...`);
+    seenEventSeqRef.current = rewindSeq;
+    setLastEventSummary(`已模拟断线，从水位 #${rewindSeq} 补发最近事件...`);
 
-    // Emit 2 agent heartbeat events while SSE is disconnected
-    await fetch(`/api/explorations/${selection.explorationId}/agents/heartbeat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Agent-Token': 'agent-secret-token',
-        'X-Request-Id': `catchup-hb-${Date.now()}-1`,
-      },
-      body: JSON.stringify({
-        id: 'agent-cube',
-        status: 'active',
-        currentNodeId: 'N4',
-        currentStage: 'summarize',
-      }),
-    });
-    await fetch(`/api/explorations/${selection.explorationId}/agents/heartbeat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Agent-Token': 'agent-secret-token',
-        'X-Request-Id': `catchup-hb-${Date.now()}-2`,
-      },
-      body: JSON.stringify({
-        id: 'agent-vec',
-        status: 'active',
-        currentNodeId: 'N5',
-        currentStage: 'verify_correctness',
-      }),
-    });
-
-    // Reconnect from savedSeq to verify lossless replay
-    connectSseFromWatermark(selection.explorationId, savedSeq);
+    window.setTimeout(() => {
+      connectSseFromWatermark(selection.explorationId, rewindSeq);
+    }, 260);
   }, [selection.explorationId, sseState, connectSseFromWatermark]);
 
   // Keep URL query parameters synchronized with current selection for link sharing
@@ -401,25 +382,14 @@ export const App: React.FC = () => {
 
         <div className="top-actions-group">
           {sseState !== 'static_fallback' && (
-            <>
-              <button
-                type="button"
-                className="sim-action-btn"
-                onClick={handleRunParallelSimulation}
-                disabled={simRunning}
-                title="触发 Agent-Cube 与 Agent-Vec 两个模拟器并行写入 SQLite 与文件库，并通过 SSE 实时推送"
-              >
-                <span>{simRunning ? '并行写入中...' : '双 Agent 并行重放'}</span>
-              </button>
-              <button
-                type="button"
-                className="sim-action-btn"
-                onClick={handleTestDisconnectCatchup}
-                title="模拟 SSE 断开期间产生新事件，随后通过 after_seq 水位补发续传"
-              >
-                <span>验证断线续传</span>
-              </button>
-            </>
+            <button
+              type="button"
+              className="sim-action-btn"
+              onClick={handleTestDisconnectCatchup}
+              title="模拟 SSE 断开并从上一水位 after_seq 重新订阅补发事件（只读操作）"
+            >
+              <span>验证断线续传</span>
+            </button>
           )}
           <button
             type="button"

@@ -193,6 +193,8 @@ class WorkbenchStorage:
                     summary TEXT NOT NULL DEFAULT '',
                     failure_or_skip_reason TEXT,
                     reused_from_attempt_id TEXT,
+                    correctness_passed INTEGER,
+                    latency_us REAL,
                     reserved_eval_slot INTEGER NOT NULL DEFAULT 0,
                     seq_order INTEGER NOT NULL DEFAULT 0,
                     version INTEGER NOT NULL DEFAULT 1,

@@ -82,7 +82,6 @@ RESOURCES_SEED: List[Dict[str, Any]] = [
         "category": "artifact",
         "ownerNodeId": "N0",
         "contentStatus": "cooled",
-        "allowPinnedCooledBaseline": True,
         "createdAt": "10:00:05",
         "content": """# FlashAttention-2 Ascend 910B2 算子优化契约 (cooled@v1)
 operator: flash_attention_v2_fwd
@@ -115,7 +114,6 @@ benchmark_protocol:
         "category": "kernel",
         "ownerNodeId": "N0",
         "contentStatus": "cooled",
-        "allowPinnedCooledBaseline": True,
         "createdAt": "10:01:12",
         "content": """import tilelang as T
 
@@ -155,7 +153,6 @@ def flash_attn_mixcv_baseline(
         "category": "experiment",
         "ownerNodeId": "N0",
         "contentStatus": "cooled",
-        "allowPinnedCooledBaseline": True,
         "createdAt": "10:02:30",
         "content": "实验环境: Ascend 910B2 · CANN 8.0.RC3 · 预热 20 次 / 测量 100 次\n精度校验: PASS (max_abs_diff = 1.4e-4 <= atol 1e-3)\n中位耗时: 248.6 us (P95: 251.2 us, Min: 246.9 us, Max: 254.0 us)",
         "experimentData": {
@@ -189,7 +186,6 @@ def flash_attn_mixcv_baseline(
         "category": "profile",
         "ownerNodeId": "N0",
         "contentStatus": "cooled",
-        "allowPinnedCooledBaseline": True,
         "createdAt": "10:03:00",
         "sizeBytes": 4829100,
         "isBinary": True,
@@ -514,7 +510,6 @@ KNOWLEDGE_SEED: List[Dict[str, Any]] = [
         "title": "Ascend 910B2 L1 / UB 硬件容量与 32B 地址对齐硬约束",
         "version": "cooled@v1.2",
         "contentStatus": "cooled",
-        "allowPinnedCooledBaseline": True,
         "applicability": "Ascend 910B 系列 · CANN 8.0+ · TileLang NPUIR Developer/Expert 模式",
         "unverifiedScope": "A5 架构独立 SIMT 访存通道不在本条约束范围内",
         "body": "单核 L1 Buffer 上限 512KB，Unified Buffer (UB) 上限 192KB；所有 UB 向量指令与 DMA 搬运的起始地址及连续轴 stride 必须为 32 Bytes 的整数倍（FP16 至少 16 元素，FP32 至少 8 元素）。",

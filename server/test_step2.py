@@ -167,3 +167,278 @@ async def test_step2_parallel_agents_and_domain_invariants(tmp_path: Path) -> No
         assert f"id: {watermark_before + 1}" in sse_text
         assert f"id: {watermark_before + 2}" in sse_text
         assert "event: domain_event" in sse_text
+
+
+@pytest.mark.anyio
+async def test_codex_review_regressions(tmp_path: Path) -> None:
+    app = create_app(data_dir=tmp_path / "data_codex", auto_seed=False)
+    transport = httpx.ASGITransport(app=app)
+    agent_headers = {"X-Agent-Token": "agent-secret-token"}
+    op_headers = {"X-Operator-Token": "operator-secret-token"}
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        await run_two_agent_simulation(
+            service=app.state.service, http_client=client, delay_sec=0.0
+        )
+
+        # ------------------------------------------------------------------
+        # [P1 #1] /simulate requires operator credential AND demo exp_id isolation
+        # ------------------------------------------------------------------
+        sim_no_auth = await client.post(
+            "/api/explorations/exp-fa2-mixcv/simulate",
+            json={"mode": "sync", "delaySec": 0.0},
+        )
+        assert sim_no_auth.status_code == 403
+
+        sim_non_demo = await client.post(
+            "/api/explorations/exp-fa2-mixcv/simulate",
+            json={"mode": "sync", "delaySec": 0.0},
+            headers=op_headers,
+        )
+        assert sim_non_demo.status_code == 403
+
+        sim_demo_ok = await client.post(
+            "/api/explorations/demo-fa2-mixcv/simulate",
+            json={"mode": "sync", "delaySec": 0.0},
+            headers=op_headers,
+        )
+        assert sim_demo_ok.status_code == 200
+        assert sim_demo_ok.json()["explorationId"] == "demo-fa2-mixcv"
+
+        # ------------------------------------------------------------------
+        # [P1 #4] Internal seed bypass flags are rejected on public APIs
+        # ------------------------------------------------------------------
+        bypass_reset = await client.post(
+            "/api/explorations",
+            json={"id": "exp-fa2-mixcv", "title": "Overwrite attempt", "resetIfExists": True},
+            headers=agent_headers,
+        )
+        assert bypass_reset.status_code == 422
+
+        bypass_node = await client.post(
+            "/api/explorations/exp-fa2-mixcv/nodes",
+            json={
+                "id": "N-BYPASS",
+                "parentId": "N0",
+                "branchLabel": "Bypass",
+                "title": "Bypass stop",
+                "allowDuringSeed": True,
+            },
+            headers=agent_headers,
+        )
+        assert bypass_node.status_code == 422
+
+        bypass_att = await client.post(
+            "/api/explorations/exp-fa2-mixcv/nodes/N4/attempts",
+            json={
+                "id": "N4-BYPASS-ATT",
+                "stageType": "bench_perf",
+                "code": "B9",
+                "round": 2,
+                "agentId": "agent-eval",
+                "dependsOnAttemptIds": ["N4-V2"],
+                "kernelVersionLabel": "v2",
+                "skipBudgetReservation": True,
+            },
+            headers=agent_headers,
+        )
+        assert bypass_att.status_code == 422
+
+        bypass_cooled = await client.post(
+            "/api/explorations/exp-fa2-mixcv/knowledge",
+            json={
+                "id": "K-BYPASS",
+                "category": "basic_knowledge",
+                "claimType": "fact",
+                "title": "Fake cooled",
+                "version": "cooled@v9",
+                "contentStatus": "cooled",
+                "allowPinnedCooledBaseline": True,
+            },
+            headers=agent_headers,
+        )
+        assert bypass_cooled.status_code == 422
+
+        # ------------------------------------------------------------------
+        # [P1 #2] Stage preconditions cannot be bypassed; uncompiled/unmeasured
+        #         nodes cannot become bestValidNodeId
+        # ------------------------------------------------------------------
+        c_node = await client.post(
+            "/api/explorations/exp-fa2-mixcv/nodes",
+            json={
+                "id": "N-EXPLOIT",
+                "parentId": "N0",
+                "branchLabel": "Exploit test",
+                "title": "N-EXPLOIT",
+                "hypothesis": "Test stage precondition enforcement",
+                "changeSummary": "None",
+                "agentIds": ["agent-vec"],
+            },
+            headers=agent_headers,
+        )
+        assert c_node.status_code == 200
+
+        # Cannot jump straight to verify_correctness or bench_perf with empty dependsOnAttemptIds
+        jump_verify = await client.post(
+            "/api/explorations/exp-fa2-mixcv/nodes/N-EXPLOIT/attempts",
+            json={
+                "id": "NEX-V1",
+                "stageType": "verify_correctness",
+                "code": "V1",
+                "round": 1,
+                "agentId": "agent-eval",
+                "dependsOnAttemptIds": [],
+                "kernelVersionLabel": "v1",
+            },
+            headers=agent_headers,
+        )
+        assert jump_verify.status_code == 422
+
+        jump_bench = await client.post(
+            "/api/explorations/exp-fa2-mixcv/nodes/N-EXPLOIT/attempts",
+            json={
+                "id": "NEX-B1",
+                "stageType": "bench_perf",
+                "code": "B1",
+                "round": 1,
+                "agentId": "agent-eval",
+                "dependsOnAttemptIds": [],
+                "kernelVersionLabel": "v1",
+            },
+            headers=agent_headers,
+        )
+        assert jump_bench.status_code == 422
+
+        # ------------------------------------------------------------------
+        # [P1 #3] New kernel version (@v2) invalidates @v1 latency & ranking
+        #         until @v2 completes its own compile -> verify -> bench_perf chain
+        # ------------------------------------------------------------------
+        c_ver = await client.post(
+            "/api/explorations/exp-fa2-mixcv/nodes",
+            json={
+                "id": "N-VER",
+                "parentId": "N4",
+                "branchLabel": "Version chain test",
+                "title": "N-VER",
+                "hypothesis": "Test version-bound attempt chain",
+                "changeSummary": "Test @v1 -> @v2 latency invalidation",
+                "primaryKernelVersionId": "res-n4-kernel-v2",
+                "agentIds": ["agent-vec", "agent-eval"],
+            },
+            headers=agent_headers,
+        )
+        assert c_ver.status_code == 200
+
+        async def run_att(
+            aid: str,
+            st: str,
+            code: str,
+            rnd: int,
+            deps: list[str],
+            kv: str | None = None,
+            corr: bool | None = None,
+            lat: float | None = None,
+        ) -> None:
+            r_s = await client.post(
+                "/api/explorations/exp-fa2-mixcv/nodes/N-VER/attempts",
+                json={
+                    "id": aid,
+                    "stageType": st,
+                    "code": code,
+                    "round": rnd,
+                    "agentId": "agent-eval",
+                    "dependsOnAttemptIds": deps,
+                    "kernelVersionLabel": kv,
+                },
+                headers=agent_headers,
+            )
+            assert r_s.status_code == 200, r_s.text
+            fin: dict = {"status": "completed", "summary": f"done {aid}"}
+            if corr is not None:
+                fin["correctnessPassed"] = corr
+            if lat is not None:
+                fin["latencyUs"] = lat
+            r_f = await client.patch(
+                f"/api/explorations/exp-fa2-mixcv/nodes/N-VER/attempts/{aid}",
+                json=fin,
+                headers=agent_headers,
+            )
+            assert r_f.status_code == 200, r_f.text
+
+        await run_att("NVER-R1", "read_info", "R1", 1, [])
+        await run_att("NVER-P1", "plan_idea", "P1", 1, ["NVER-R1"])
+        await run_att("NVER-G1", "gen_kernel", "G1", 1, ["NVER-P1"], kv="v1")
+        await run_att("NVER-C1", "compile", "C1", 1, ["NVER-G1"], kv="v1")
+
+        # Verify that finishing verify_correctness without explicit correctnessPassed or with latencyUs fails
+        r_v1_start = await client.post(
+            "/api/explorations/exp-fa2-mixcv/nodes/N-VER/attempts",
+            json={
+                "id": "NVER-V1",
+                "stageType": "verify_correctness",
+                "code": "V1",
+                "round": 1,
+                "agentId": "agent-eval",
+                "dependsOnAttemptIds": ["NVER-C1"],
+                "kernelVersionLabel": "v1",
+            },
+            headers=agent_headers,
+        )
+        assert r_v1_start.status_code == 200
+
+        r_v1_missing_bool = await client.patch(
+            "/api/explorations/exp-fa2-mixcv/nodes/N-VER/attempts/NVER-V1",
+            json={"status": "completed", "summary": "missing correctnessPassed"},
+            headers=agent_headers,
+        )
+        assert r_v1_missing_bool.status_code == 422
+
+        r_v1_illegal_lat = await client.patch(
+            "/api/explorations/exp-fa2-mixcv/nodes/N-VER/attempts/NVER-V1",
+            json={
+                "status": "completed",
+                "correctnessPassed": True,
+                "latencyUs": 99.0,
+                "summary": "illegal latency in verify stage",
+            },
+            headers=agent_headers,
+        )
+        assert r_v1_illegal_lat.status_code == 422
+
+        # Finish V1 properly, then B1 with 120.0 us -> N-VER becomes bestValidNodeId
+        r_v1_ok = await client.patch(
+            "/api/explorations/exp-fa2-mixcv/nodes/N-VER/attempts/NVER-V1",
+            json={"status": "completed", "correctnessPassed": True, "summary": "V1 pass"},
+            headers=agent_headers,
+        )
+        assert r_v1_ok.status_code == 200
+        await run_att("NVER-B1", "bench_perf", "B1", 1, ["NVER-V1"], kv="v1", lat=120.0)
+
+        snap_v1 = (await client.get("/api/explorations/exp-fa2-mixcv/snapshot")).json()
+        assert snap_v1["bestValidNodeId"] == "N-VER"
+
+        # Now generate @v2 (G2 -> C2 -> V2 pass) WITHOUT running B2 (@v2):
+        # N-VER must NOT inherit @v1's 120.0 us latency and must NOT be bestValidNodeId!
+        await run_att("NVER-G2", "gen_kernel", "G2", 2, ["NVER-P1"], kv="v2")
+        await run_att("NVER-C2", "compile", "C2", 2, ["NVER-G2"], kv="v2")
+        await run_att(
+            "NVER-V2", "verify_correctness", "V2", 2, ["NVER-C2"], kv="v2", corr=True
+        )
+
+        snap_v2_unbenched = (
+            await client.get("/api/explorations/exp-fa2-mixcv/snapshot")
+        ).json()
+        nver_node = {n["id"]: n for n in snap_v2_unbenched["nodes"]}["N-VER"]
+        assert nver_node["correctnessPassed"] is True
+        assert nver_node["latencyUs"] is None
+        assert snap_v2_unbenched["bestValidNodeId"] == "N4"
+
+        # Once B2 (@v2) completes with 118.5 us, N-VER lawfully becomes bestValidNodeId
+        await run_att("NVER-B2", "bench_perf", "B2", 2, ["NVER-V2"], kv="v2", lat=118.5)
+        snap_v2_benched = (
+            await client.get("/api/explorations/exp-fa2-mixcv/snapshot")
+        ).json()
+        nver_node_after = {n["id"]: n for n in snap_v2_benched["nodes"]}["N-VER"]
+        assert nver_node_after["latencyUs"] == 118.5
+        assert snap_v2_benched["bestValidNodeId"] == "N-VER"
+
