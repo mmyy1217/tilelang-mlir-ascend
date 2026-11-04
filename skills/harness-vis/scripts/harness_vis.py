@@ -3,6 +3,11 @@
 from __future__ import annotations
 import argparse
 import hashlib
+import fcntl
+import math
+import signal
+import threading
+import time
 import json
 import os
 from pathlib import Path
@@ -194,6 +199,160 @@ def capture(project, data_dir, max_file_bytes=2_000_000, max_total_bytes=50_000_
         shutil.rmtree(staging, ignore_errors=True)
         raise
 
+def watch_fingerprint(workspace, max_file_bytes, max_total_bytes):
+    """Hash bounded capture inputs; private files and symlinks never trigger sync."""
+    if not workspace.is_dir() or workspace.is_symlink():
+        raise ValueError('Project must contain a real .workspace directory')
+    entries, total = [], 0
+    for rel, (size, mtime, mode) in sorted(inventory(workspace).items()):
+        if not stat.S_ISREG(mode) or Path(rel).name in EXCLUDED or Path(rel).name.startswith('.env'):
+            continue
+        if size > max_file_bytes or total + size > max_total_bytes:
+            entries.append((rel, 'omitted', size, mtime))
+            continue
+        data = read_regular(workspace, rel, min(max_file_bytes, max_total_bytes-total))
+        entries.append((rel, 'copied', len(data), digest(data)))
+        total += len(data)
+    return digest(json.dumps(entries, sort_keys=True).encode())
+
+def manifest_fingerprint(manifest):
+    entries = []
+    for entry in sorted(manifest['files'], key=lambda e: e['path']):
+        if entry['status'] == 'copied':
+            entries.append((entry['path'], 'copied', entry['sizeBytes'], entry['sha256']))
+        elif entry['status'] == 'omitted':
+            entries.append((entry['path'], 'omitted', entry['sizeBytes'], entry['modifiedNs']))
+        elif entry['status'] == 'missing':
+            entries.append((entry['path'], 'missing'))
+    return digest(json.dumps(entries, sort_keys=True).encode())
+
+class SnapshotWatcher:
+    """A deterministic debounce state machine; capture retains all isolation checks."""
+    def __init__(self, project, data_dir, settle=2, max_file_bytes=2_000_000, max_total_bytes=50_000_000):
+        self.project = Path(project).expanduser().resolve()
+        self.workspace = self.project / '.workspace'
+        self.data_dir = Path(data_dir).expanduser().resolve()
+        if not self.workspace.is_dir() or self.workspace.is_symlink():
+            raise ValueError('Project must contain a real .workspace directory')
+        if self.data_dir.is_relative_to(self.workspace):
+            raise ValueError('Snapshot storage must be outside the source .workspace')
+        if not math.isfinite(settle) or settle < 0 or min(max_file_bytes, max_total_bytes) <= 0:
+            raise ValueError('Invalid watch settle time or capture limits')
+        self.settle, self.max_file_bytes, self.max_total_bytes = settle, max_file_bytes, max_total_bytes
+        self.project_id = digest(str(self.project).encode())[:16]
+        self.pending = self.published = None
+        self.changed_at, self.attempts = 0, 0
+        self.last_snapshot = None
+        self.state = 'watching'
+        # Resume from a checked snapshot without creating an identical copy on every restart.
+        snapshots = []
+        for path in (self.data_dir/self.project_id/'snapshots').glob('*/manifest.json'):
+            if path.parent.name.startswith('.'):
+                continue
+            try:
+                manifest = json.loads(path.read_text())
+                if manifest.get('schema') == SCHEMA:
+                    snapshots.append((manifest['capturedAt'], path, manifest))
+            except (OSError, ValueError, KeyError):
+                continue
+        if snapshots:
+            _, path, manifest = max(snapshots, key=lambda item: item[0])
+            try:
+                if manifest.get('consistency') == 'checked':
+                    validate_snapshot(path.parent)
+                    self.published = manifest_fingerprint(manifest)
+                    self.last_snapshot = manifest['id']
+            except (OSError, ValueError, KeyError):
+                pass
+
+    def tick(self, timestamp, before_capture=None):
+        fingerprint = watch_fingerprint(self.workspace, self.max_file_bytes, self.max_total_bytes)
+        if fingerprint == self.published:
+            self.pending, self.attempts, self.state = None, 0, 'watching'
+            return None
+        if fingerprint != self.pending:
+            self.pending, self.changed_at, self.attempts = fingerprint, timestamp, 0
+        self.state = 'settling'
+        if timestamp-self.changed_at < self.settle:
+            return None
+        if self.attempts >= 2:
+            self.state = 'partial'
+            return None
+        self.state = 'capturing'
+        if before_capture:
+            before_capture()
+        result = capture(self.project, self.data_dir, self.max_file_bytes, self.max_total_bytes)
+        self.attempts += 1
+        self.changed_at = timestamp
+        self.last_snapshot = result['snapshotId']
+        manifest = json.loads((Path(result['snapshotPath'])/'manifest.json').read_text())
+        if result['consistency'] == 'checked' and manifest_fingerprint(manifest) == fingerprint:
+            self.published, self.state = fingerprint, 'watching'
+        else:
+            self.state = 'partial'
+        return result
+
+def watch(project, data_dir, interval=2, settle=2, max_captures=0, max_duration=0,
+          max_file_bytes=2_000_000, max_total_bytes=50_000_000, emit=None):
+    if not math.isfinite(interval) or interval <= 0 or not math.isfinite(max_duration) or max_duration < 0 or max_captures < 0:
+        raise ValueError('Watch interval must be positive and limits nonnegative')
+    watcher = SnapshotWatcher(project, data_dir, settle, max_file_bytes, max_total_bytes)
+    directory = watcher.data_dir/watcher.project_id
+    directory.mkdir(parents=True, exist_ok=True)
+    emit = emit or (lambda value: print(json.dumps(value, ensure_ascii=False), flush=True))
+    stopped = threading.Event()
+    started, count = time.monotonic(), 0
+    error = None
+    with (directory/'.watch.lock').open('a') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ValueError('A watcher already owns this project and data directory')
+        # Re-read the latest capture after taking ownership (another watcher may just have exited).
+        watcher = SnapshotWatcher(project, data_dir, settle, max_file_bytes, max_total_bytes)
+        def heartbeat(state):
+            temporary = directory/('.watch-'+uuid.uuid4().hex+'.tmp')
+            write_json(temporary, {'schema':'harness-vis/watch@1', 'projectId':watcher.project_id,
+                'state':state, 'updatedAt':now(), 'staleAfterSeconds':max(15, interval*3+settle),
+                'intervalSeconds':interval, 'settleSeconds':settle,
+                'lastSnapshotId':watcher.last_snapshot, 'captures':count, 'error':error})
+            temporary.replace(directory/'watch.json')
+        old_handlers = {}
+        if threading.current_thread() is threading.main_thread():
+            for signum in (signal.SIGINT, signal.SIGTERM):
+                old_handlers[signum] = signal.signal(signum, lambda *_: stopped.set())
+        try:
+            heartbeat('watching')
+            emit({'event':'watch_started', 'projectId':watcher.project_id, 'intervalSeconds':interval, 'settleSeconds':settle})
+            while not stopped.is_set():
+                if max_duration and time.monotonic()-started >= max_duration:
+                    break
+                try:
+                    result = watcher.tick(time.monotonic(), lambda: heartbeat('capturing'))
+                    error = None
+                    if result:
+                        count += 1
+                        emit({'event':'snapshot_captured', **result})
+                    heartbeat(watcher.state)
+                    if max_captures and count >= max_captures:
+                        break
+                except (OSError, ValueError) as exc:
+                    # A disappeared workspace is not an empty workspace snapshot.
+                    message = str(exc)
+                    if message != error:
+                        emit({'event':'watch_error', 'message':message})
+                    error = message
+                    watcher.pending = None  # Require a fresh quiet period after recovery.
+                    heartbeat('error')
+                remaining = max(0, max_duration-(time.monotonic()-started)) if max_duration else interval
+                stopped.wait(min(interval, remaining))
+        finally:
+            heartbeat('stopped')
+            for signum, handler in old_handlers.items():
+                signal.signal(signum, handler)
+            emit({'event':'watch_stopped', 'projectId':watcher.project_id, 'captures':count})
+    return {'projectId':watcher.project_id, 'captures':count}
+
 def validate_snapshot(snapshot):
     manifest = json.loads((snapshot / 'manifest.json').read_text())
     if manifest.get('schema') != SCHEMA:
@@ -260,6 +419,15 @@ def main():
     cap.add_argument('--data-dir', required=True)
     cap.add_argument('--max-file-bytes', type=int, default=2_000_000)
     cap.add_argument('--max-total-bytes', type=int, default=50_000_000)
+    watching = sub.add_parser('watch', help='Capture changed workspace files after a quiet period')
+    watching.add_argument('--project', required=True)
+    watching.add_argument('--data-dir', required=True)
+    watching.add_argument('--interval', type=float, default=2)
+    watching.add_argument('--settle', type=float, default=2)
+    watching.add_argument('--max-captures', type=int, default=0, help='Stop after this many new captures; 0 is unlimited')
+    watching.add_argument('--max-duration', type=float, default=0, help='Stop after this many seconds; 0 is unlimited')
+    watching.add_argument('--max-file-bytes', type=int, default=2_000_000)
+    watching.add_argument('--max-total-bytes', type=int, default=50_000_000)
     pub = sub.add_parser('publish')
     pub.add_argument('--snapshot', required=True)
     pub.add_argument('--annotations', required=True)
@@ -272,6 +440,10 @@ def main():
     try:
         if args.command == 'capture':
             result = capture(args.project, args.data_dir, args.max_file_bytes, args.max_total_bytes)
+        elif args.command == 'watch':
+            watch(args.project, args.data_dir, args.interval, args.settle, args.max_captures,
+                  args.max_duration, args.max_file_bytes, args.max_total_bytes)
+            return
         elif args.command == 'publish':
             result = publish(args.snapshot, args.annotations)
         elif args.command == 'install':

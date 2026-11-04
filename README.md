@@ -15,7 +15,7 @@ npm --prefix web run build
 .venv/bin/python skills/harness-vis/scripts/harness_vis.py serve --data-dir /path/to/vis-data --port 8765
 ```
 
-打开 http://127.0.0.1:8765。页面每 5 秒检查已发布数据，**不会自动采集源 workspace**。再次 capture 会追加快照；原快照保留。
+打开 http://127.0.0.1:8765。页面每 5 秒检查已发布数据。默认手动 capture；启动 watch 后自动追加稳定变化的快照，原快照保留。
 
 ## 安装到 Harness 项目
 
@@ -110,3 +110,13 @@ CLI 集成测试使用临时 HTTP 服务、子进程和合成数据，不编译�
 `python3 examples/harness-vis/create_measurement_demo.py /path/to/new-demo-project` 创建六候选 Matmul 用例，包含分块优化、精度失败、性能退化、双缓冲和复测。随后按快速开始执行 capture / serve；可用 publish 发布项目目录里的 `demo-notes.json`。
 
 全部指标人工生成，不执行设备调用。只有显式 `SYNTHETIC_DEMO.json` 标记及匹配 schema 的模拟测量才会填充演示指标；普通 workspace 不受影响。页面、节点和原始产物保留模拟标签。101 个确定性样本用于计算中位数和 P95，最近一次模拟复测覆盖节点摘要，历史数据仍保留。
+
+## 自动同步 workspace
+
+在另一个终端启动，同一个 DATA 目录下的 serve 会看到新快照：
+
+```sh
+.venv/bin/python skills/harness-vis/scripts/harness_vis.py watch --project /path/to/operator --data-dir /path/to/vis-data --interval 2 --settle 2
+```
+
+选择“跟随最新”后，页面会自动更新。选择具体快照则固定历史版本。watch 仅在内容变化稳定后复制产物，不启动设备任务或重用旧 Agent 说明。Ctrl-C 停止；可用 `--max-duration 3600` 限制为一小时，或 `--max-captures 10` 限制新增数量。快照是追加存储，不自动删除历史；正常停止及心跳过期会显示在工具栏。

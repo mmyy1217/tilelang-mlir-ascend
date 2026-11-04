@@ -16,3 +16,5 @@
 .synthetic-distribution figcaption { font-size: .75rem; margin-bottom: 8px; }
 .synthetic-distribution svg { width: 100%; max-height: 170px; display: block; }
 .synthetic-raw > summary { cursor: pointer; padding: 12px; font-size: .75rem; }
+
+.capture-watch-state { font-size: 11px; color: var(--ink-secondary); max-width: 12em; overflow-wrap: anywhere; }

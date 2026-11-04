@@ -67,6 +67,6 @@ export function TaskPanels({ exploration }: {exploration: Exploration}) {
         {environment.length ? <ul className="environment-list">{environment.map((value, index) => <li key={index}>{value}</li>)}</ul> : <p>尚未配置运行环境。</p>}
       </div>
     </details>
-    {exploration.harness && <details className="task-details"><summary>采集范围{exploration.harness.warnings.length ? ` · ${exploration.harness.warnings.length} 项提示` : ''}</summary><div className="task-details-panel"><strong>Workspace 快照</strong><p className="task-panel-note">手动采集，索引每 5 秒更新；不等于实时设备状态。外部引用未归档。采集前后校验不等于文件系统原子快照。</p>{exploration.harness.warnings.map((w,i)=><p key={i}>{w.message}：{w.paths.join(', ')}</p>)}</div></details>}
+    {exploration.harness && <details className="task-details"><summary>采集范围{exploration.harness.warnings.length ? ` · ${exploration.harness.warnings.length} 项提示` : ''}</summary><div className="task-details-panel"><strong>Workspace 快照</strong><p className="task-panel-note">支持手动或自动快照采集，索引每 5 秒更新；不等于实时设备状态。外部引用未归档。采集前后校验不等于文件系统原子快照。</p>{exploration.harness.warnings.map((w,i)=><p key={i}>{w.message}：{w.paths.join(', ')}</p>)}</div></details>}
   </div>;
 }

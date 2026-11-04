@@ -1,5 +1,6 @@
 """Read-only HTTP projection of completed workspace captures; no source workspace access."""
 from __future__ import annotations
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -41,7 +42,21 @@ def router(default_dir):
             except (HTTPException, KeyError, ValueError):
                 errors.append(file.parent.name)
         items.sort(key=lambda x: x['capturedAt'], reverse=True)
-        return {'items': items, 'unavailable': errors, 'mode': 'manual-snapshot'}
+        watchers = []
+        for file in sorted(root.glob('*/watch.json')):
+            if not file.resolve().is_relative_to(root):
+                continue
+            try:
+                status = read_json(file)
+                if status.get('schema') != 'harness-vis/watch@1' or status.get('projectId') != file.parent.name:
+                    continue
+                age = (datetime.now(timezone.utc)-datetime.fromisoformat(status['updatedAt'])).total_seconds()
+                if status['state'] != 'stopped' and (age < -5 or age > float(status['staleAfterSeconds'])):
+                    status['state'] = 'stale'
+                watchers.append(status)
+            except (HTTPException, KeyError, ValueError, TypeError):
+                continue
+        return {'items': items, 'unavailable': errors, 'mode': 'snapshot', 'watchers': watchers}
 
     @api.get('/projects/{project_id}/snapshots/{snapshot_id}')
     def model(project_id: str, snapshot_id: str):

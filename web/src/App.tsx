@@ -36,6 +36,7 @@ function parseInitialSelection(): SelectionState {
 }
 
 export interface HarnessBinding {
+  followLatest?: boolean;
   exploration: Exploration; projects: Project[]; activeId: string | null; ready: boolean; error: string;
   onSelect: (project: Project) => Promise<void>; controls: React.ReactNode;
 }
@@ -336,6 +337,7 @@ export const App: React.FC<{harness?: HarnessBinding}> = ({harness}) => {
     if (harness) {
       if (harness.activeId) params.set('captureProject', harness.activeId);
       if (exploration.harness?.snapshotId) params.set('capture', exploration.harness.snapshotId);
+      if (harness.followLatest) params.set('follow','1');
     } else params.set('legacy', '1');
     if (activeProjectId) params.set('project', activeProjectId);
     params.set('exploration', selection.explorationId);
@@ -347,7 +349,7 @@ export const App: React.FC<{harness?: HarnessBinding}> = ({harness}) => {
     const nextUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState(null, '', nextUrl);
   }, [
-    harness?.ready, harness?.activeId, exploration.harness?.snapshotId, libraryReady, activeProjectId, selection.explorationId,
+    harness?.ready, harness?.activeId, harness?.followLatest, exploration.harness?.snapshotId, libraryReady, activeProjectId, selection.explorationId,
     selection.viewMode,
     selection.nodeId,
     selection.stageType,
@@ -479,7 +481,7 @@ export const App: React.FC<{harness?: HarnessBinding}> = ({harness}) => {
               if (project) void activateProject(project);
             }} />}
           <h1 className="top-title" title={exploration.title}>{exploration.operatorName.replace(/\s*[（(].*$/, '') || '未命名算子'}</h1>
-          <span className="demo-mode-badge" title={harness ? '手动采集 · 浏览器同步已发布快照，不查询设备存活状态' : importedExploration ? '离线快照 · 未连接实时数据' : `${syncBadgeLabel} · ${lastEventSummary}`} >
+          <span className="demo-mode-badge" title={harness ? '浏览器跟随快照；源文件可由 capture 或 watch 采集，不查询设备状态' : importedExploration ? '离线快照 · 未连接实时数据' : `${syncBadgeLabel} · ${lastEventSummary}`} >
             {harness ? (exploration.harness?.synthetic ? '模拟测量 · 非实测' : 'Workspace 快照') : importedExploration ? '离线快照' : sseState === 'connected' ? '已连接' : sseState === 'static_fallback' ? '演示' : '连接中'}
           </span>
         </div>
