@@ -5,6 +5,7 @@ import { ChevronIcon } from '../icons';
 import { parseSnapshot } from './WorkbenchMenu';
 
 interface Props {
+  readOnly?: boolean;
   projects: Project[]; folders: ProjectFolder[]; activeId: string | null; ready: boolean;
   onSelect: (project: Project) => Promise<void>;
   onCreate: (name: string) => Promise<void>;
@@ -45,10 +46,10 @@ export function ProjectSidebar(props: Props) {
     if (project && !busy) void run(() => props.onMove(project, folderId));
   };
   const rows = (folderId: string | null) => props.projects.filter(p => p.folderId === folderId).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)).map(project =>
-    <div key={project.id} className={`project-row ${project.id === props.activeId ? 'selected' : ''}`} draggable={!busy}
+    <div key={project.id} className={`project-row ${project.id === props.activeId ? 'selected' : ''}`} draggable={!busy && !props.readOnly}
       onDragStart={e => { e.dataTransfer.setData('application/x-workbench-project', project.id); e.dataTransfer.effectAllowed = 'move'; }}>
       <button disabled={busy} className="project-open" onClick={() => void run(() => props.onSelect(project))} title={project.name} aria-current={project.id === props.activeId ? 'page' : undefined}>
-        <span>{project.name}</span><small>{project.kind === 'server' ? '服务端' : project.snapshot.forkSource ? 'Fork · 本地' : '本地'} · {project.snapshot.nodes.length} 节点</small>
+        <span>{project.name}</span><small>{props.readOnly ? 'Workspace 快照' : project.kind === 'server' ? '服务端' : project.snapshot.forkSource ? 'Fork · 本地' : '本地'} · {project.snapshot.nodes.filter(n=>n.harness?.kind!=='workspace').length} {props.readOnly ? '候选' : '节点'}</small>
       </button>
     </div>);
   return <aside className={`project-sidebar ${collapsed ? 'collapsed' : ''}`} aria-label="项目管理">
@@ -59,11 +60,11 @@ export function ProjectSidebar(props: Props) {
       }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button>
     </div>
     {!collapsed && <>
-      <div className="project-actions">
+      {!props.readOnly && <div className="project-actions">
         <button disabled={!props.ready || busy} onClick={() => edit('project')}>新建项目</button>
         <button disabled={!props.ready || busy} onClick={() => file.current?.click()}>导入</button>
         <button disabled={!props.ready || busy} onClick={() => edit('folder')}>新建文件夹</button>
-      </div>
+      </div>}
       <input ref={file} type="file" accept=".json,application/json" hidden onChange={e => {
         const value = e.target.files?.[0]; e.target.value = ''; if (!value) return;
         void run(async () => { if (value.size > 50 * 1024 * 1024) throw new Error('快照超过 50 MB'); await props.onImport(parseSnapshot(await value.text())); });
@@ -94,7 +95,7 @@ export function ProjectSidebar(props: Props) {
           {!folded.includes(folder.id) && <>{rows(folder.id)}{!props.projects.some(p => p.folderId === folder.id) && <p className="project-empty">拖入项目</p>}</>}
         </section>)}
       </div>
-      {active && <div className="active-project-actions">
+      {active && !props.readOnly && <div className="active-project-actions">
         <div><button disabled={busy} onClick={() => edit('fork', `${active.name} · Fork`)}>Fork 当前项目</button><button disabled={busy} onClick={() => edit('rename-project', active.name, active.id)}>改名</button></div>
         <label>移至<select value={active.folderId || ''} disabled={busy} onChange={e => void run(() => props.onMove(active, e.target.value || null))}><option value="">未分类</option>{props.folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label>
         <small>本地项目保存在此浏览器；请导出备份。</small>

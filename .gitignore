@@ -114,3 +114,7 @@ data/
 .sessions/
 .opwork-requests/
 *.heartbeat.json
+
+# Harness snapshots and source workspace records
+.workspace/
+.harness-vis/

@@ -39,6 +39,9 @@ def create_app(
         version="0.5.0",
         lifespan=lifespan,
     )
+    from .harness import router as harness_router
+    app.include_router(harness_router(storage.data_dir))
+
     app.state.storage = storage
     app.state.service = service
     app.state.sim_task = None

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness Vis"
+  short_description: "从 workspace 快照生成只读任务与实验可视化"
+  default_prompt: "使用 $harness-vis 为当前项目生成或刷新 workspace 快照可视化。"

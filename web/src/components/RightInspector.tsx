@@ -1,3 +1,6 @@
+import {SyntheticDistribution} from './SyntheticDistribution';
+import { recordedStatus, stageStatus } from '../harnessAdapter';
+import { snapshotReference } from '../harnessLinks';
 import { graphRelations, relationLabels } from '../graph';
 import { MarkdownContent } from './MarkdownContent';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -87,7 +90,12 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
         setSelectedResourceId(activeNode.primaryKernelVersionId);
         return;
       }
-      const preferred =
+      if (exploration.harness && !selection.stageType && activeNode.harness?.manifestPath) {
+        setSelectedResourceId(activeNode.harness.manifestPath);
+        return;
+      }
+      const selectedAttemptLinks = selection.attemptId ? nodeResourceLinks.filter(l=>l.attemptId===selection.attemptId) : [];
+      const preferred = selectedAttemptLinks.find(l=>l.role==='output') || selectedAttemptLinks[0] ||
         nodeResourceLinks.find((l) => l.role === 'output') || nodeResourceLinks[0];
       setSelectedResourceId(preferred.resourceVersionId);
     } else {
@@ -162,7 +170,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
               onChangeTab('candidates');
             }}
           >
-            总结与待冷却候选
+            {exploration.harness ? 'Agent 观察' : '总结与待冷却候选'}
           </button>
         </div>
       </div>
@@ -288,12 +296,12 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
               <div className="sheet-badges">
                 <span className={`exec-badge exec-${activeNode.executionStatus}`}>
                   <StatusIcon status={activeNode.executionStatus} size={12} />
-                  <span>{STATUS_LABELS[activeNode.executionStatus]}</span>
+                  <span>{activeNode.harness ? recordedStatus[activeNode.harness.recordedStatus] || activeNode.harness.recordedStatus : STATUS_LABELS[activeNode.executionStatus]}</span>
                 </span>
-                <span className={`content-badge content-${activeNode.contentStatus}`}>
+                {!activeNode.harness && <span className={`content-badge content-${activeNode.contentStatus}`}>
                   <ContentStateIcon status={activeNode.contentStatus} size={12} />
                   <span>{activeNode.contentStatus}</span>
-                </span>
+                </span>}
               </div>
             </div>
 
@@ -301,7 +309,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
 
             <div className="node-lineage-bar">
               <span>
-                来源方案：{' '}
+                {exploration.harness ? '父候选：' : '来源方案：'}{' '}
                 {graphRelations(exploration).filter(r=>r.kind==='derivation' && r.targetId===activeNode.id).map(r=><button key={r.id} className="inline-link-btn" onClick={()=>onSelectNode(r.sourceId)}>{r.sourceId}</button>)}
                 {!graphRelations(exploration).some(r=>r.kind==='derivation' && r.targetId===activeNode.id) && '无（独立起点）'}
               </span>
@@ -347,7 +355,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
           <section className="stage-machine-section">
             <div className="sec-head-row">
               <h3 className="sub-heading">
-                节点内部 8 阶段 Stage 状态机与 Attempt 依赖链
+                {exploration.harness ? '关联 Run 与原始记录' : '节点内部 8 阶段 Stage 状态机与 Attempt 依赖链'}
               </h3>
               {selection.stageType && (
                 <button
@@ -360,8 +368,9 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
               )}
             </div>
 
+            {activeNode.harness?.manifestPath && <button className="toolbar-btn" onClick={()=>setSelectedResourceId(activeNode.harness!.manifestPath!)}>查看候选清单 · {activeNode.id}</button>}
             <div className="stage-matrix-grid">
-              {STAGE_METAS.map((meta) => {
+              {(activeNode.stageMetas || STAGE_METAS).map((meta) => {
                 const st = activeNode.stages[meta.type];
                 const isSelected = selection.stageType === meta.type;
                 return (
@@ -383,7 +392,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                       </span>
                       <span className={`exec-badge exec-${st.status}`}>
                         <StatusIcon status={st.status} size={11} />
-                        <span>{STATUS_LABELS[st.status]}</span>
+                        <span>{activeNode.harness ? stageStatus(st) : STATUS_LABELS[st.status]}</span>
                       </span>
                     </div>
 
@@ -400,19 +409,19 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                               e.stopPropagation();
                               onSelectAttempt(activeNode.id, meta.type, att.id);
                             }}
-                            title={att.summary}
+                            title={exploration.harness ? `${att.summary} · ${recordedStatus[att.recordedStatus || 'unknown'] || att.recordedStatus}` : att.summary}
                           >
                             <strong>{att.code}</strong>
                             {att.kernelVersionLabel ? `@${att.kernelVersionLabel}` : ''}
                             {att.dependsOnAttemptIds.length > 0 && (
                               <span className="att-dep">
-                                ←{att.dependsOnAttemptIds.map((d) => d.split('-')[1]).join(',')}
+                                ←{att.dependsOnAttemptIds.map((d) => exploration.harness ? d : d.split('-')[1]).join(',')}
                               </span>
                             )}
                           </button>
                         ))
                       ) : (
-                        <span className="smc-no-att">无执行尝试 ({STATUS_LABELS[st.status]})</span>
+                        <span className="smc-no-att">无执行尝试 ({activeNode.harness ? stageStatus(st) : STATUS_LABELS[st.status]})</span>
                       )}
                     </div>
                   </div>
@@ -424,7 +433,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
               <div className="selected-stage-detail">
                 {(() => {
                   const st = activeNode.stages[selection.stageType];
-                  const meta = STAGE_METAS.find((m) => m.type === selection.stageType);
+                  const meta = (activeNode.stageMetas || STAGE_METAS).find((m) => m.type === selection.stageType);
                   return (
                     <>
                       <div className="ssd-head">
@@ -444,10 +453,10 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                                 </strong>
                                 <span className="ssd-att-agent">执行者: {att.agentId}</span>
                                 <span className="ssd-att-time">
-                                  {att.startedAt} {att.endedAt ? `→ ${att.endedAt}` : '(运行中)'}
+                                  {att.startedAt} {att.endedAt ? `→ ${att.endedAt}` : exploration.harness ? '（记录时间）' : '(运行中)'}
                                 </span>
                                 <span className={`exec-badge exec-${att.status}`}>
-                                  {STATUS_LABELS[att.status]}
+                                  {exploration.harness ? recordedStatus[att.recordedStatus || 'unknown'] || att.recordedStatus : STATUS_LABELS[att.status]}
                                 </span>
                               </div>
                               <p className="ssd-att-desc">{att.summary}</p>
@@ -486,7 +495,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                 节点 {activeNode.id} 文件库{' '}
                 {selection.stageType
                   ? `(已定位至 Stage: ${
-                      STAGE_METAS.find((m) => m.type === selection.stageType)?.label
+                      (activeNode.stageMetas || STAGE_METAS).find((m) => m.type === selection.stageType)?.label
                     })`
                   : '(全部关联资源与共享引用)'}
               </h3>
@@ -511,7 +520,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                   rawLinksInCat.forEach((lnk) => {
                     const existing = dedupMap.get(lnk.resourceVersionId);
                     const attemptShort = lnk.attemptId
-                      ? lnk.attemptId.split('-')[1]
+                      ? (exploration.harness ? lnk.attemptId : lnk.attemptId.split('-')[1])
                       : '';
                     const badgeText = attemptShort
                       ? `${attemptShort} ${lnk.role}`
@@ -528,11 +537,11 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                   const dedupedEntries = Array.from(dedupMap.values());
 
                   const isMissingProfile =
-                    cat.key === 'profile' &&
+                    !exploration.harness && cat.key === 'profile' &&
                     dedupedEntries.length === 0 &&
                     activeNode.stages.profiling.status !== 'completed';
                   const isMissingExp =
-                    cat.key === 'experiment' &&
+                    !exploration.harness && cat.key === 'experiment' &&
                     dedupedEntries.length === 0 &&
                     activeNode.stages.bench_perf.status !== 'completed';
 
@@ -572,9 +581,9 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                                   : `独有 (${res.version})`}
                               </span>
                               <span className="role-tag">{roleSummary}</span>
-                              <span className={`content-badge content-${res.contentStatus}`}>
+                              {!exploration.harness && <span className={`content-badge content-${res.contentStatus}`}>
                                 {res.contentStatus}
-                              </span>
+                              </span>}
                             </div>
                           </div>
                         );
@@ -639,7 +648,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                   </div>
 
                   {activeResource.experimentData && (
-                    <div className="structured-exp-box">
+                    <div className={`structured-exp-box ${exploration.harness?.synthetic ? 'synthetic-exp-box' : ''}`}>
                       <table className="exp-proto-table">
                         <tbody>
                           <tr>
@@ -663,15 +672,12 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                           <tr>
                             <th>耗时分布</th>
                             <td className="tabular-nums">
-                              <strong>
-                                Median: {activeResource.experimentData.medianUs} us
-                              </strong>{' '}
-                              | P95: {activeResource.experimentData.p95Us} us | 样本:{' '}
-                              {activeResource.experimentData.samplesUs?.join(' / ')} us
+                              {exploration.harness?.synthetic ? <><strong>模拟 Median：{activeResource.experimentData.medianUs?.toFixed(1) || '—'} μs</strong><br/>P95：{activeResource.experimentData.p95Us?.toFixed(1) || '—'} μs · 样本数：{activeResource.experimentData.samplesUs?.length || 0}</> : <><strong>Median: {activeResource.experimentData.medianUs} us</strong> | P95: {activeResource.experimentData.p95Us} us | 样本: {activeResource.experimentData.samplesUs?.join(' / ')} us</>}
                             </td>
                           </tr>
                         </tbody>
                       </table>
+                      {exploration.harness?.synthetic && <SyntheticDistribution samples={activeResource.experimentData.samplesUs || []}/>}
                     </div>
                   )}
 
@@ -740,8 +746,8 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                   )}
 
                   {activeResource.category === 'summary' || /\.(md|markdown)$/i.test(activeResource.filename)
-                    ? <MarkdownContent content={activeResource.content} />
-                    : <pre className="preview-code-box">{activeResource.content}</pre>}
+                    ? <MarkdownContent content={activeResource.content} localLinks={exploration.harness ? {resolve:href=>snapshotReference(href,activeResource.filename,new Set(Object.values(exploration.resources).filter(r=>!r.missingReason&&!r.isBinary).map(r=>r.filename))),open:path=>setSelectedResourceId(path)} : undefined} />
+                    : exploration.harness?.synthetic && activeResource.experimentData ? <details className="synthetic-raw"><summary>查看完整模拟样本与 JSON</summary><pre className="preview-code-box">{activeResource.content}</pre></details> : <pre className="preview-code-box">{activeResource.content}</pre>}
                 </div>
               )}
             </div>
@@ -749,7 +755,8 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
         </div>
       )}
 
-      {selection.rightTab === 'compare' && (
+      {selection.rightTab === 'compare' && exploration.harness && <div className="inspector-scroll"><h2 className="sheet-title">候选记录对比</h2>{exploration.harness.synthetic ? <><p className="capture-note">模拟测量 · 全部数值人工生成，未经设备验证。统一输入、协议和模拟基线；精度失败候选不排名。</p><table className="compare-table"><thead><tr><th>候选与改动</th><th>模拟精度</th><th>中位耗时</th><th>相对基线</th></tr></thead><tbody>{exploration.nodes.filter(n=>n.harness?.kind==='candidate').map(n=><tr key={n.id}><td><button className="toolbar-btn" onClick={()=>{onSelectNode(n.id);onChangeTab('inspector');}}>{n.id} · {n.title}</button></td><td>{n.harness?.synthetic ? n.correctnessPassed?'模拟通过':'模拟失败':'未测'}</td><td>{n.latencyUs?.toFixed(1) || '—'} {n.latencyUs?'μs':''}</td><td>{n.speedupVsBaseline?.toFixed(2) || '—'}{n.speedupVsBaseline?'×':''}</td></tr>)}</tbody></table></> : <p className="capture-note">快照未提供结构化的可比性能结果。选择节点原文核对候选身份、协议和逐 case 结果；不从 completed 推断精度通过。</p>}{exploration.nodes.filter(n=>n.harness?.kind==='candidate').map(n=><button className="graph-relation-row" key={n.id} onClick={()=>{onSelectNode(n.id);onChangeTab('inspector');}}>{n.id} · {n.title}<small>{n.changeSummary}</small></button>)}</div>}
+      {selection.rightTab === 'compare' && !exploration.harness && (
         <div className="inspector-scroll">
           <section className="compare-sheet">
             <div className="sheet-header-row">
@@ -856,10 +863,11 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
         </div>
       )}
 
-      {selection.rightTab === 'candidates' && (
+      {selection.rightTab === 'candidates' && exploration.harness && <div className="inspector-scroll"><h2 className="sheet-title">Agent 观察</h2><p className="capture-note">根据当前快照整理，不替代验收判定。点击依据文件查看原文。</p>{exploration.resources['@agent/observations.md'] ? <MarkdownContent content={exploration.resources['@agent/observations.md'].content} localLinks={{resolve:href=>snapshotReference(href,'',new Set(Object.keys(exploration.resources))),open:path=>{setSelectedResourceId(path);onChangeTab('inspector');}}}/> : <p>尚未发布可视化 Agent 说明。</p>}</div>}
+      {selection.rightTab === 'candidates' && !exploration.harness && (
         <div className="inspector-scroll">
           <section className="candidates-sheet">
-            <h2 className="sheet-title">探索图总结与待冷却候选 (ready-for-cool)</h2>
+            <h2 className="sheet-title">探索图{exploration.harness ? 'Agent 观察' : '总结与待冷却候选'} (ready-for-cool)</h2>
             <p className="sheet-desc">
               当前原型流程收尾于整理 <strong>ready-for-cool</strong> 候选（仍属于 hot，不代表已审批或已合入远端 cooled 主线）。耗时改善与原因解释分别记录，未经证实的原因保留为假设。
             </p>

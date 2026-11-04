@@ -1,0 +1,18 @@
+/* Harness-only controls use the incumbent agent-vis typography, palette and layout. */
+.capture-controls { display:flex; align-items:center; gap:8px; }
+.capture-select-label { display:flex; align-items:center; gap:5px; color:var(--ink-secondary); font-size:11px; }
+.capture-select-label select { max-width:155px; font:inherit; color:var(--ink-primary); background:var(--bg-sheet); border:1px solid var(--rule-subtle); border-radius:3px; padding:4px; }
+.capture-select-label select:focus-visible { outline:2px solid var(--state-cobalt); outline-offset:2px; }
+.hv-evidence-link { border:0; padding:0; background:none; color:var(--accent-vermilion); font:inherit; cursor:pointer; text-decoration:underline; text-underline-offset:3px; overflow-wrap:anywhere; }
+.capture-note { font-size:11px; color:var(--ink-secondary); line-height:1.5; padding:8px 0; }
+@media(max-width:720px) { .capture-select-label select { max-width:110px; } }
+
+.candidate-tree-note { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 8px 12px; font-size: .75rem; color: var(--ink-secondary); border-bottom: 1px solid var(--border-hairline); }
+
+.metric-unverified.candidate-evidence-summary { color: var(--ink-secondary); }
+
+.synthetic-exp-box .exp-proto-table th { width: 7em; min-width: 7em; }
+.synthetic-distribution { padding: 12px; color: var(--ink-secondary); }
+.synthetic-distribution figcaption { font-size: .75rem; margin-bottom: 8px; }
+.synthetic-distribution svg { width: 100%; max-height: 170px; display: block; }
+.synthetic-raw > summary { cursor: pointer; padding: 12px; font-size: .75rem; }

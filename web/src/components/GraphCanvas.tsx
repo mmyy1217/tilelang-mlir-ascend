@@ -1,3 +1,4 @@
+import { recordedStatus, stageStatus } from '../harnessAdapter';
 import { graphRelations, graphDepths, graphId, relationLabels } from '../graph';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
@@ -121,17 +122,17 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
         <div className="strat-node-id-group">
           <span className="strat-node-id">{node.id}</span>
           <span className="strat-branch-tag">{node.branchLabel}</span>
-          {isBestValid && <span className="strat-best-badge">当前最佳有效</span>}
+          {isBestValid && <span className="strat-best-badge">{node.harness?.synthetic ? '模拟最佳' : '当前最佳有效'}</span>}
         </div>
         <div className="strat-node-badges">
           <span className={`exec-badge exec-${node.executionStatus}`} title="执行状态">
             <StatusIcon status={node.executionStatus} size={12} />
-            <span>{STATUS_LABELS[node.executionStatus]}</span>
+            <span>{node.harness ? recordedStatus[node.harness.recordedStatus] || node.harness.recordedStatus : STATUS_LABELS[node.executionStatus]}</span>
           </span>
-          <span className={`content-badge content-${node.contentStatus}`} title="内容冷却状态">
+          {!node.harness && <span className={`content-badge content-${node.contentStatus}`} title="内容冷却状态">
             <ContentStateIcon status={node.contentStatus} size={11} />
             <span>{node.contentStatus}</span>
-          </span>
+          </span>}
         </div>
       </div>
 
@@ -140,21 +141,21 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
       <div className="strat-node-metrics">
         {node.correctnessPassed && node.latencyUs !== undefined ? (
           <div className="metric-primary">
-            <span className="metric-val">{node.latencyUs.toFixed(1)} us</span>
+            <span className="metric-val">{node.harness?.synthetic ? '模拟 ' : ''}{node.latencyUs.toFixed(1)} us</span>
             {node.speedupVsBaseline && (
               <span className="metric-speedup">{node.speedupVsBaseline.toFixed(2)}x vs 基线</span>
             )}
-            <span className="metric-verify-ok">精度通过</span>
+            <span className="metric-verify-ok">{node.harness?.synthetic ? '模拟通过' : '精度通过'}</span>
           </div>
         ) : (
-          <div className="metric-unverified">
+          <div className={`metric-unverified ${node.harness ? 'candidate-evidence-summary' : ''}`}>
             <span>{node.stopOrFailReason || '未完成正确性验证 · 不参与排名'}</span>
           </div>
         )}
       </div>
 
-      <div className="strat-stage-strip" aria-label="节点内部 8 阶段状态机">
-        {STAGE_METAS.map((meta) => {
+      <div className="strat-stage-strip" aria-label={node.harness ? '候选关联任务' : '节点内部 8 阶段状态机'} style={node.stageMetas ? {gridTemplateColumns:`repeat(${Math.max(1,node.stageMetas.length)},1fr)`} : undefined}>
+        {(node.stageMetas || STAGE_METAS).map((meta) => {
           const st = node.stages[meta.type];
           const attemptCount = st.attempts.length;
           const latestAttempt = st.attempts[attemptCount - 1];
@@ -164,7 +165,7 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
               key={meta.type}
               type="button"
               className={`stage-cell cell-${st.status} ${isStageActive ? 'cell-selected' : ''}`}
-              title={`${meta.index}. ${meta.label} (${STATUS_LABELS[st.status]})${
+              title={`${meta.index}. ${meta.label} (${node.harness ? stageStatus(st) : STATUS_LABELS[st.status]})${
                 latestAttempt ? ` · 最新尝试 ${latestAttempt.code}` : ''
               }`}
               onClick={(e) => {
@@ -174,8 +175,8 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
             >
               <span className="cell-short">{meta.shortLabel}</span>
               <span className="cell-code">{latestAttempt ? latestAttempt.code : '-'}</span>
-              <span className="cell-agent" title={latestAttempt ? `${agentNames[latestAttempt.agentId] || latestAttempt.agentId} · Session ${latestAttempt.agentId}` : '尚未分配执行 Agent'}>
-                {latestAttempt ? latestAttempt.agentId.replace(/^agent-/, '') : '未分配'}
+              <span className="cell-agent" title={latestAttempt ? `${agentNames[latestAttempt.agentId] || latestAttempt.agentId}${node.harness ? '' : ` · Session ${latestAttempt.agentId}`}` : '尚未分配执行 Agent'}>
+                {latestAttempt ? (node.harness ? agentNames[latestAttempt.agentId] || latestAttempt.agentId : latestAttempt.agentId.replace(/^agent-/, '')) : '未分配'}
               </span>
             </button>
           );
@@ -205,7 +206,7 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
           </div>
         </div>
       ) : (
-        <div className="strat-barcode-missing">未生成 msprof 流水剖析摘要</div>
+        <div className="strat-barcode-missing">{node.harness ? '快照记录 · 非实时设备状态' : '未生成 msprof 流水剖析摘要'}</div>
       )}
 
       <div className="strat-node-footer">
@@ -228,14 +229,14 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
           }}
         >
           <ChevronIcon direction={isExpanded ? 'up' : 'down'} size={12} />
-          <span>{isExpanded ? '收起历史' : '展开尝试'}</span>
+          <span>{isExpanded ? '收起历史' : node.harness ? '展开 Run' : '展开尝试'}</span>
         </button>
       </div>
 
       {isExpanded && (
         <div className="strat-node-expanded" onClick={(e) => e.stopPropagation()}>
           <div className="expanded-head">节点内 Stage 尝试与回退链条</div>
-          {STAGE_METAS.map((meta) => {
+          {(node.stageMetas || STAGE_METAS).map((meta) => {
             const st = node.stages[meta.type];
             return (
               <div
@@ -263,7 +264,7 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
                       </span>
                     ))
                   ) : (
-                    <span className="att-empty">{STATUS_LABELS[st.status]}</span>
+                    <span className="att-empty">{node.harness ? stageStatus(st) : STATUS_LABELS[st.status]}</span>
                   )}
                 </div>
               </div>
@@ -354,7 +355,7 @@ const ReferenceEdge: React.FC<EdgeProps<Edge<RefEdgeData>>> = ({
             title="点击查看关联边类型、引用知识与具体版本"
           >
             <span>
-              {reference.purpose === 'cross_branch' ? '参考' : relationLabels[reference.purpose]}: {reference.sourceNodeId.replace(/^knowledge:/, '')}→
+              {reference.title || (reference.purpose === 'cross_branch' ? '参考' : relationLabels[reference.purpose])}: {reference.sourceNodeId.replace(/^knowledge:/, '')}→
               {reference.targetNodeId.replace(/^knowledge:/, '')}
             </span>
             {reference.referencedKnowledgeId && (
@@ -425,15 +426,15 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
 
   const computedNodes: Node[] = useMemo(() => {
     const depths = graphDepths(exploration);
-    const solutionNodes: Node<StratNodeData>[] = exploration.nodes.map((n) => {
+    const solutionNodes: Node<StratNodeData>[] = exploration.nodes.filter(n=>n.harness?.kind!=='workspace').map((n) => {
       const pos = NODE_POSITIONS[n.id] || { x: n.depth * 260, y: n.depth * 240 };
       const crossRefCount = exploration.references.filter(
         (r) =>
           r.purpose === 'cross_branch' &&
           (r.sourceNodeId === n.id || r.targetNodeId === n.id)
       ).length;
-      const hasFocus = Boolean(selection.nodeId || selection.edgeId);
-      const isDimmed = hasFocus && !activeRelatedNodeIds.has(n.id);
+      const hasFocus = Boolean((selection.nodeId && exploration.nodes.find(n=>n.id===selection.nodeId)?.harness?.kind!=='workspace') || selection.edgeId);
+      const isDimmed = !exploration.harness?.synthetic && hasFocus && !activeRelatedNodeIds.has(n.id);
 
       return {
         id: n.id,
@@ -467,7 +468,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   ]);
 
   const computedEdges: Edge<RefEdgeData>[] = useMemo(() => {
-    return graphRelations(exploration).filter(r=>r.sourceType==='node' && r.targetType==='node').map(r=>({id:r.id,explorationId:exploration.id,sourceNodeId:graphId(r.sourceType,r.sourceId),targetNodeId:graphId(r.targetType,r.targetId),purpose:r.kind,title:relationLabels[r.kind],rationale:r.rationale,reverifiedStatus:'pending_reverify' as const}))
+    return graphRelations(exploration).filter(r=>r.sourceType==='node' && r.targetType==='node').map(r=>({id:r.id,explorationId:exploration.id,sourceNodeId:graphId(r.sourceType,r.sourceId),targetNodeId:graphId(r.targetType,r.targetId),purpose:r.kind,title:exploration.harness && r.kind==='derivation' ? '候选派生' : relationLabels[r.kind],rationale:r.rationale,reverifiedStatus:'pending_reverify' as const}))
       .filter((ref) => {
         if (ref.purpose === 'derivation') return true;
         if (selection.knowledgeId && [ref.sourceNodeId,ref.targetNodeId].includes(graphId('knowledge',selection.knowledgeId))) return true;
@@ -483,9 +484,9 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
       })
       .map((ref) => {
         const isSelected = selection.edgeId === ref.id;
-        const hasFocus = Boolean(selection.nodeId || selection.edgeId);
+        const hasFocus = Boolean((selection.nodeId && exploration.nodes.find(n=>n.id===selection.nodeId)?.harness?.kind!=='workspace') || selection.edgeId);
         const isDimmed =
-          hasFocus &&
+          !exploration.harness?.synthetic && hasFocus &&
           !isSelected &&
           !(
             activeRelatedNodeIds.has(ref.sourceNodeId) &&
@@ -554,23 +555,25 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         </div>
         <div className="canvas-legend" aria-label="状态与边图例">
           <span className="legend-item">
-            <span className="legend-line line-der" /> 派生／融合
+            <span className="legend-line line-der" /> {exploration.harness ? '候选派生' : '派生／融合'}
           </span>
           <span className="legend-item">
             <span className="legend-line line-xref" /> 参考
           </span>
           <span className="legend-item">
-            <span className="legend-dot dot-cooled" /> cooled
+            <span className="legend-dot dot-cooled" /> {exploration.harness ? '只读快照' : 'cooled'}
           </span>
           <span className="legend-item">
-            <span className="legend-dot dot-ready" /> ready-for-cool
+            <span className="legend-dot dot-ready" /> {exploration.harness ? '判定见原文' : 'ready-for-cool'}
           </span>
           <span className="legend-item">
-            <span className="legend-dot dot-hot" /> hot
+            <span className="legend-dot dot-hot" /> {exploration.harness ? '非实时状态' : 'hot'}
           </span>
         </div>
       </div>
 
+      {exploration.harness && <div className="candidate-tree-note"><span>每个节点是一个候选版本；连线表示候选派生。</span><button className="toolbar-btn" onClick={()=>onSelectNode(exploration.nodes.find(n=>n.harness?.kind==='workspace')!.id)}>项目记录与未关联任务 · {exploration.nodes.find(n=>n.harness?.kind==='workspace')?.harness?.runIds?.length || 0}</button></div>}
+      {exploration.harness && computedNodes.length===0 && <div className="empty-project"><h2>尚无候选实现</h2><p>分析、环境准备等任务已保存在项目记录中。开发产出候选清单后，这里会出现候选树。</p></div>}
       <div className="reactflow-wrapper">
         <ReactFlow
           nodes={nodes}

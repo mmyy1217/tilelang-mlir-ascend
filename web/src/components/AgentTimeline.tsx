@@ -1,3 +1,4 @@
+import { recordedStatus } from '../harnessAdapter';
 import React, { useMemo, useState } from 'react';
 import {
   Exploration,
@@ -66,11 +67,11 @@ export const AgentTimeline: React.FC<AgentTimelineProps> = ({
         if (node.agentIds.includes(agent.id)) {
           participatedNodeIds.add(node.id);
         }
-        STAGE_METAS.forEach((meta) => {
+        (node.stageMetas || STAGE_METAS).forEach((meta) => {
           const st = node.stages[meta.type];
           st.attempts.forEach((att) => {
             if (att.agentId === agent.id) {
-              attempts.push(att);
+              if (!exploration.harness || !attempts.some(a=>a.id===att.id)) attempts.push(att);
               participatedNodeIds.add(node.id);
             }
           });
@@ -91,9 +92,9 @@ export const AgentTimeline: React.FC<AgentTimelineProps> = ({
     <div className="agent-timeline-container">
       <div className="agent-timeline-toolbar">
         <div className="agent-toolbar-info">
-          <strong>Agent Session 轨迹</strong>
+          <strong>{exploration.harness ? 'Agent 执行记录' : 'Agent Session 轨迹'}</strong>
           <span>
-            一个 Agent 对应一个 session；按节点与阶段查看其迭代和交付。
+            {exploration.harness ? '按执行者查看 Run；共享分析仅计一次，可在上方切换关联候选。' : '一个 Agent 对应一个 session；按节点与阶段查看其迭代和交付。'}
           </span>
         </div>
         <div className="agent-fold-actions">
@@ -124,7 +125,7 @@ export const AgentTimeline: React.FC<AgentTimelineProps> = ({
                     <span>{participatedNodes.length} 节点 · {attempts.length} 次执行</span>
                   </button>
                   <span className={`agent-status-pill agent-${agent.status}`}>
-                    {agent.historicalOnly ? '历史 session' : agent.status === 'active' ? '在线运行' : agent.status === 'stopped' ? '已结束' : '空闲待命'}
+                    {agent.id === 'unrecorded-executor' ? '身份未记录' : agent.historicalOnly ? '历史 session' : agent.status === 'active' ? '在线运行' : agent.status === 'stopped' ? '已结束' : '空闲待命'}
                   </span>
 
                 </div>
@@ -166,7 +167,7 @@ export const AgentTimeline: React.FC<AgentTimelineProps> = ({
               <div id={`agent-track-${agent.id}`} className="agent-attempts-track" role="list" hidden={folded}>
                 {attempts.map((att) => {
                   const owningNode = nodeMap[att.nodeId];
-                  const stageMeta = stageMetaMap[att.stageType];
+                  const stageMeta = nodeMap[att.nodeId]?.stageMetas?.find(m=>m.type===att.stageType) || stageMetaMap[att.stageType];
                   const isAttemptSelected =
                     selection.attemptId === att.id ||
                     (selection.nodeId === att.nodeId &&
@@ -205,9 +206,9 @@ export const AgentTimeline: React.FC<AgentTimelineProps> = ({
                           </span>
                           <span className={`exec-badge exec-${att.status}`}>
                             <StatusIcon status={att.status} size={11} />
-                            <span>{STATUS_LABELS[att.status]}</span>
+                            <span>{owningNode?.harness ? recordedStatus[att.recordedStatus || 'unknown'] || att.recordedStatus : STATUS_LABELS[att.status]}</span>
                           </span>
-                          {owningNode && (
+                          {owningNode && !owningNode.harness && (
                             <span
                               className={`content-badge content-${owningNode.contentStatus}`}
                             >

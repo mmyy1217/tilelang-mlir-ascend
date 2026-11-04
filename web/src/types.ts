@@ -112,6 +112,7 @@ export interface ResourceLink {
 }
 
 export interface StageAttempt {
+  recordedStatus?: string;
   sourceStatus?: ExecutionStatus;
   id: string;
   code: string;
@@ -140,6 +141,8 @@ export interface StageRecord {
 }
 
 export interface NodeRecord {
+  stageMetas?: StageMeta[];
+  harness?: {synthetic?:boolean; recordedStatus: string; kind?: 'candidate' | 'workspace'; manifestPath?: string; runIds?: string[]};
   id: string;
   explorationId: string;
   parentId: string | null; // Legacy snapshot compatibility
@@ -222,6 +225,7 @@ export interface GraphRelation {
   evidenceAttemptIds?: string[];
 }
 export interface Exploration {
+  harness?: {synthetic?:boolean; snapshotId:string;capturedAt:string;consistency:string;runCount:number;warnings:{kind:string;message:string;paths:string[]}[]};
   graphRelations?: GraphRelation[];
   forkSource?: { explorationId: string; title: string; eventSeq: number; capturedAt: string };
   id: string;

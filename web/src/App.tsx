@@ -35,7 +35,11 @@ function parseInitialSelection(): SelectionState {
   };
 }
 
-export const App: React.FC = () => {
+export interface HarnessBinding {
+  exploration: Exploration; projects: Project[]; activeId: string | null; ready: boolean; error: string;
+  onSelect: (project: Project) => Promise<void>; controls: React.ReactNode;
+}
+export const App: React.FC<{harness?: HarnessBinding}> = ({harness}) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [folders, setFolders] = useState<ProjectFolder[]>([]);
   const [libraryReady, setLibraryReady] = useState(false);
@@ -63,12 +67,25 @@ export const App: React.FC = () => {
   const snapshotReqSeqRef = useRef<number>(0);
 
   const exploration = useMemo(() => {
+    if (harness) return harness.exploration;
     if (importedExploration) return importedExploration;
     if (liveExploration) return liveExploration;
     return (
       EXPLORATIONS.find((e) => e.id === selection.explorationId) || EXPLORATIONS[0]
     );
-  }, [importedExploration, liveExploration, selection.explorationId]);
+  }, [harness, importedExploration, liveExploration, selection.explorationId]);
+
+  useEffect(() => {
+    if (!harness?.exploration.harness?.snapshotId) return;
+    setSelection(previous => {
+      const node=harness.exploration.nodes.find(n=>n.id===previous.nodeId) || harness.exploration.nodes[0];
+      const stage=previous.nodeId===node?.id && node?.stageMetas?.some(m=>m.type===previous.stageType) ? previous.stageType : null;
+      const attempt=stage && node?.stages[stage].attempts.some(a=>a.id===previous.attemptId) ? previous.attemptId : null;
+      return {...previous, explorationId:harness.exploration.id,nodeId:node?.id || null,
+        stageType:stage,attemptId:attempt,edgeId:null,knowledgeId:null,
+        compareNodeId:harness.exploration.nodes.some(n=>n.id===previous.compareNodeId)?previous.compareNodeId:node?.id || null};
+    });
+  }, [harness?.exploration.id]);
 
   const bestNode = useMemo(() => {
     return (
@@ -102,6 +119,7 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (harness) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -270,7 +288,7 @@ export const App: React.FC = () => {
 
   // Initial snapshot load + SSE subscription
   useEffect(() => {
-    if (!libraryReady || importedExploration) return;
+    if (harness || !libraryReady || importedExploration) return;
     let cancelled = false;
     watermarkRef.current = 0;
     seenEventSeqRef.current = 0;
@@ -313,8 +331,12 @@ export const App: React.FC = () => {
 
   // Keep URL query parameters synchronized with current selection for link sharing
   useEffect(() => {
-    if (!libraryReady) return;
+    if (!(harness?.ready ?? libraryReady) || (harness && !exploration.harness?.snapshotId)) return;
     const params = new URLSearchParams();
+    if (harness) {
+      if (harness.activeId) params.set('captureProject', harness.activeId);
+      if (exploration.harness?.snapshotId) params.set('capture', exploration.harness.snapshotId);
+    } else params.set('legacy', '1');
     if (activeProjectId) params.set('project', activeProjectId);
     params.set('exploration', selection.explorationId);
     params.set('view', selection.viewMode === 'tree' ? 'graph' : selection.viewMode);
@@ -325,7 +347,7 @@ export const App: React.FC = () => {
     const nextUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState(null, '', nextUrl);
   }, [
-    libraryReady, activeProjectId, selection.explorationId,
+    harness?.ready, harness?.activeId, exploration.harness?.snapshotId, libraryReady, activeProjectId, selection.explorationId,
     selection.viewMode,
     selection.nodeId,
     selection.stageType,
@@ -451,17 +473,18 @@ export const App: React.FC = () => {
     <div className="workbench-shell">
       <header className="top-coord-bar">
         <div className="top-brand-group">
-          <WorkbenchMenu exploration={exploration} offline={!!importedExploration}
+          {!harness && <WorkbenchMenu exploration={exploration} offline={!!importedExploration}
             onImport={importProject} onLive={() => {
               const project = projects.find(p => p.kind === 'server');
               if (project) void activateProject(project);
-            }} />
+            }} />}
           <h1 className="top-title" title={exploration.title}>{exploration.operatorName.replace(/\s*[（(].*$/, '') || '未命名算子'}</h1>
-          <span className="demo-mode-badge" title={importedExploration ? '离线快照 · 未连接实时数据' : `${syncBadgeLabel} · ${lastEventSummary}`} >
-            {importedExploration ? '离线快照' : sseState === 'connected' ? '已连接' : sseState === 'static_fallback' ? '演示' : '连接中'}
+          <span className="demo-mode-badge" title={harness ? '手动采集 · 浏览器同步已发布快照，不查询设备存活状态' : importedExploration ? '离线快照 · 未连接实时数据' : `${syncBadgeLabel} · ${lastEventSummary}`} >
+            {harness ? (exploration.harness?.synthetic ? '模拟测量 · 非实测' : 'Workspace 快照') : importedExploration ? '离线快照' : sseState === 'connected' ? '已连接' : sseState === 'static_fallback' ? '演示' : '连接中'}
           </span>
         </div>
         <div className="top-metrics-strip">
+          {harness && exploration.harness?.synthetic ? <><span>模拟基线 {exploration.baselineRef.latencyUs} μs</span><button className="tm-best-btn" onClick={()=>handleSelectNode(exploration.bestValidNodeId)}>模拟最佳 {bestNode?.id} · {bestNode?.latencyUs?.toFixed(1)} μs · {bestNode?.speedupVsBaseline?.toFixed(2)}×</button><span>Matmul · 全部数据人工生成</span></> : harness ? <><span>数据截至 {exploration.harness!.capturedAt ? new Date(exploration.harness!.capturedAt).toLocaleString() : '尚无快照'}</span><span>{exploration.harness!.consistency === 'checked' ? '采集校验一致' : exploration.harness!.consistency === 'partial' ? '部分快照' : '等待采集'}</span><span>{exploration.harness!.runCount} 个 Run · 实测指标见证据</span></> : <>
           <span className="tm-baseline" title={`${exploration.baselineRef.description} · ${exploration.baselineRef.version}`}>
             基线 {exploration.baselineRef.id ? `${exploration.baselineRef.latencyUs} μs` : '—'}
           </span>
@@ -471,10 +494,11 @@ export const App: React.FC = () => {
           <span title={`已用 ${exploration.budget.usedEvaluations}，在途预留 ${exploration.budget.reservedEvaluations}，总预算 ${exploration.budget.maxEvaluations}`}>
             评估 {exploration.budget.usedEvaluations}+{exploration.budget.reservedEvaluations}/{exploration.budget.maxEvaluations}
           </span>
-          <span title={exploration.stopReason}>{exploration.coordinatorStatus}</span>
+          <span title={exploration.stopReason}>{exploration.coordinatorStatus}</span></>}
         </div>
         <div className="top-actions-group">
           <TaskPanels key={activeProjectId} exploration={exploration} />
+          {harness?.controls}
           <button className="share-loc-btn" onClick={handleCopyShareLink} title="复制当前节点和视图的定位链接">
             <LinkShareIcon size={13} />{copiedNotice ? '已复制' : '分享'}
           </button>
@@ -483,8 +507,8 @@ export const App: React.FC = () => {
       </header>
 
       <div className="project-workspace">
-        <ProjectSidebar projects={projects} folders={folders} activeId={activeProjectId} ready={libraryReady}
-          onSelect={activateProject} onImport={importProject}
+        <ProjectSidebar projects={harness?.projects || projects} folders={harness ? [] : folders} activeId={harness?.activeId || activeProjectId} ready={harness?.ready ?? libraryReady} readOnly={!!harness}
+          onSelect={harness?.onSelect || activateProject} onImport={importProject}
           onCreate={async name => { await importProject(newExploration(name)); }}
           onFolder={async (name, id) => {
             const folder = {id: id || crypto.randomUUID(), name};
@@ -504,7 +528,7 @@ export const App: React.FC = () => {
             await activateProject(copies[0]);
           }} />
       <main className="split-workspace" ref={workspaceRef}>
-        {libraryError && <div className="library-error" role="alert">{libraryError}<button onClick={() => setLibraryError('')}>关闭</button></div>}
+        {(harness?.error || libraryError) && <div className="library-error" role="alert">{harness?.error || libraryError}<button onClick={() => setLibraryError('')}>关闭</button></div>}
         <section
           className="left-view-pane"
           style={{ width: `${leftWidthPct}%` }}
@@ -522,7 +546,7 @@ export const App: React.FC = () => {
                 }
               >
                 <TreeIcon size={14} />
-                <span>探索图 · {exploration.nodes.length}</span>
+                <span>{harness ? '候选树' : '探索图'} · {exploration.nodes.filter(n=>n.harness?.kind!=='workspace').length}</span>
               </button>
               <button
                 type="button"
@@ -544,8 +568,8 @@ export const App: React.FC = () => {
           </div>
 
           <div className="view-stage-body">
-            {exploration.nodes.length === 0 ? <div className="empty-project"><h2>探索图尚未开始</h2><p>项目已保存。接入执行器并创建第一个方案节点后，这里会显示探索过程。</p><p>你也可以导入已有快照，或从历史项目 Fork。</p></div> : selection.viewMode === 'tree' ? (
-              <GraphCanvas key={activeProjectId}
+            {exploration.nodes.length === 0 ? <div className="empty-project"><h2>探索图尚未开始</h2>{harness ? <><p>{harness.ready ? '调用 $harness-vis 可视化当前 workspace，保存第一份快照。' : '正在读取 workspace 快照…'}</p><p>沿用方案图与 Agent 轨迹查看任务，右侧检查原始证据。</p></> : <><p>项目已保存。接入执行器并创建第一个方案节点后，这里会显示探索过程。</p><p>你也可以导入已有快照，或从历史项目 Fork。</p></>}</div> : selection.viewMode === 'tree' ? (
+              <GraphCanvas key={harness?.exploration.id || activeProjectId}
                 exploration={exploration}
                 selection={selection}
                 onSelectKnowledge={id => setSelection(prev=>({...prev,knowledgeId:id,edgeId:null,rightTab:'inspector'}))}
@@ -556,7 +580,7 @@ export const App: React.FC = () => {
                 onToggleAllCrossRefs={handleToggleAllCrossRefs}
               />
             ) : (
-              <AgentTimeline key={activeProjectId} projectId={activeProjectId || undefined}
+              <AgentTimeline key={harness?.exploration.id || activeProjectId} projectId={activeProjectId || undefined}
                 exploration={exploration}
                 selection={selection}
                 onSelectNode={handleSelectNode}
@@ -581,7 +605,7 @@ export const App: React.FC = () => {
           className={`right-pane-wrapper ${mobileDrawerOpen ? 'drawer-open' : 'drawer-closed'}`}
           style={{ width: `${100 - leftWidthPct}%` }}
         >
-          {selection.rightTab === 'inspector' && (selection.knowledgeId || selection.edgeId) ? <GraphDetails exploration={exploration} selection={selection} onNode={handleSelectNode} onKnowledge={id=>setSelection(prev=>({...prev,knowledgeId:id,edgeId:null}))} onEdge={handleSelectEdge}/> : exploration.nodes.length > 0 ? <RightInspector key={activeProjectId}
+          {selection.rightTab === 'inspector' && (selection.knowledgeId || selection.edgeId) ? <GraphDetails exploration={exploration} selection={selection} onNode={handleSelectNode} onKnowledge={id=>setSelection(prev=>({...prev,knowledgeId:id,edgeId:null}))} onEdge={handleSelectEdge}/> : exploration.nodes.length > 0 ? <RightInspector key={harness?.exploration.id || activeProjectId}
             exploration={exploration}
             selection={selection}
             onSelectNode={handleSelectNode}
