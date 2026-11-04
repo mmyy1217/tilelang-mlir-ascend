@@ -1,3 +1,4 @@
+import {applyMeasurements} from './measurements';
 import {applySyntheticDemo} from './syntheticDemo';
 import { Exploration, ExecutionStatus, NodeRecord, ResourceCategory, StageMeta, StageRecord, StageType, STAGE_METAS } from './types';
 export type Capture = {id:string;projectId:string;projectName:string;capturedAt:string;consistency:string;totalBytes:number};
@@ -129,6 +130,6 @@ export function harnessExploration(model:HarnessModel, contents:Record<string,st
  }
  if(model.annotations.length){const path='@agent/observations.md';exp.resources[path]={id:path,resourceId:path,version:model.viewRevision||model.snapshotId,title:'Agent 观察（非验收判定）',filename:path,category:'summary',sha256:'',ownerNodeId:workspace.id,contentStatus:'hot',createdAt:model.capturedAt,sizeBytes:0,content:model.annotations.map(a=>`## ${a.title}\n\n${a.body}\n\n依据：${a.sources.map(s=>`[${s}](${s})`).join(' · ')}`).join('\n\n')};for(const node of nodes)exp.resourceLinks.push({id:`notes:${node.id}`,nodeId:node.id,resourceVersionId:path,role:'input',sourceNodeId:workspace.id,isSharedReference:true});}
  exp.agents=[...new Set(nodes.flatMap(n=>n.agentIds))].map(agent=>({id:agent,name:agent==='unrecorded-executor'?'未记录执行者':agent,role:'快照中的执行身份；非实时存活状态',status:'stopped',historicalOnly:true,lastHeartbeat:'未采集'}));
- applySyntheticDemo(exp,contents);
+ if(!applyMeasurements(exp,contents,model))applySyntheticDemo(exp,contents);
  return exp;
 }

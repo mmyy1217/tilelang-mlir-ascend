@@ -122,7 +122,7 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
         <div className="strat-node-id-group">
           <span className="strat-node-id">{node.id}</span>
           <span className="strat-branch-tag">{node.branchLabel}</span>
-          {isBestValid && <span className="strat-best-badge">{node.harness?.synthetic ? '模拟最佳' : '当前最佳有效'}</span>}
+          {isBestValid && <span className="strat-best-badge">{node.harness?.synthetic ? '模拟最佳' : node.harness?.measurementPath ? '记录最佳' : '当前最佳有效'}</span>}
         </div>
         <div className="strat-node-badges">
           <span className={`exec-badge exec-${node.executionStatus}`} title="执行状态">
@@ -139,13 +139,13 @@ const StratigraphicNode: React.FC<NodeProps<Node<StratNodeData>>> = ({ data }) =
       <h3 className="strat-node-title">{node.title}</h3>
 
       <div className="strat-node-metrics">
-        {node.correctnessPassed && node.latencyUs !== undefined ? (
+        {node.harness?.measurementCaseCount && node.harness.measurementCaseCount>1 && node.speedupVsBaseline!==undefined ? <div className="metric-primary"><span className="metric-val">{node.harness.synthetic?'模拟 ':''}{node.speedupVsBaseline.toFixed(2)}×</span><span className="metric-speedup">{node.harness.measurementCaseCount} case · 几何平均</span></div> : node.correctnessPassed && node.latencyUs !== undefined ? (
           <div className="metric-primary">
             <span className="metric-val">{node.harness?.synthetic ? '模拟 ' : ''}{node.latencyUs.toFixed(1)} us</span>
             {node.speedupVsBaseline && (
               <span className="metric-speedup">{node.speedupVsBaseline.toFixed(2)}x vs 基线</span>
             )}
-            <span className="metric-verify-ok">{node.harness?.synthetic ? '模拟通过' : '精度通过'}</span>
+            <span className="metric-verify-ok">{node.harness?.synthetic ? '模拟通过' : node.harness?.measurementPath ? '记录通过' : '精度通过'}</span>
           </div>
         ) : (
           <div className={`metric-unverified ${node.harness ? 'candidate-evidence-summary' : ''}`}>

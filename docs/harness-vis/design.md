@@ -5,10 +5,9 @@
 ## 数据流与边界
 
 ```text
-live .workspace → capture → immutable snapshot → independent visualization agent
-                                              → annotations → publish → versioned view
-                                                               ↓
-                                                    read-only HTTP API → Web
+live .workspace → capture/watch → immutable snapshot → parser → read-only Web
+                                       ↓ (optional)
+                                 Agent annotations → publish → same Web
 ```
 
 capture、publish、install 使用 Python 标准库。serve 使用打包的 FastAPI 服务和前端；仅绑定本机回环地址。安装器复制整个 Skill、server 与已构建 web/dist，目标项目不需要引用源仓库。安装目标已存在时拒绝覆盖。第一版升级需明确选择新的安装位置或备份后替换，不静默改用户文件。
@@ -35,13 +34,13 @@ capture、publish、install 使用 Python 标准库。serve 使用打包的 Fast
 - 环境、标杆、未产出候选及无法确认归属的 Run 进入“项目记录与未关联任务”。此入口不作为树节点，也不参与候选数量；没有候选时保留原文与执行记录入口。
 - 未实现的想法仍在分析原文中查看，不创建虚构候选；后续若需要计划节点，需先引入稳定方向身份。
 
-候选清单和测试结果始终可以打开原文。逐 case 性能聚合、协议可比性判断与最佳候选排名仍属后续能力。浏览器用“记录为运行中”，不从快照推断外部作业仍活跃。
+候选清单和测试结果始终可以打开原文。逐 case 测量、复测选择与协议可比性由程序按[测量契约](../../skills/harness-vis/references/measurements.md)校验；不依赖 Agent。浏览器用“记录为运行中”，不从快照推断外部作业仍活跃。
 
 Agent 只生成附带源路径的 Markdown 注释。发布器校验每条路径确实已复制，并检查快照摘要。来源存在不证明注释内容正确，因此 UI 明确标记“Agent 观察”，旁边提供原始证据入口。说明不能覆盖程序解析的 Run 状态。
 
 ## 同步与界面
 
-- 手动 capture 或显式 watch 自动采集；专用 Agent 在独立上下文处理指定快照并输出 annotations，自动采集不继承旧说明。
+- 手动 capture 或显式 watch 自动采集；需要解读时才由专用 Agent 在独立上下文处理指定快照并输出 annotations，自动采集不继承旧说明。
 - 浏览器每 5 秒读取快照索引与当前展示版本。只在用户选择“跟随最新快照”时切换新快照；固定历史快照保持不变。
 - 刷新索引不执行采集。服务连接状态与“数据截至”时间分别显示。
 - 保留原探索图 / Agent 双视图与右侧文件库，同一选择状态联动；仅在顶部加入快照选择和刷新。原文读取时再次校验 SHA-256，Agent 说明位于原总结入口。
@@ -52,7 +51,7 @@ Agent 只生成附带源路径的 Markdown 注释。发布器校验每条路径�
 
 自动测试覆盖快照隔离、追加历史、大小限制、符号链接与私密文件排除、源变更、哈希损坏、注释引用、只读 API 与安装包完整性。另做干净目标安装、独立 Agent 冷启动、桌面/窄屏浏览检查。
 
-后续优先：逐 case 测量契约 → 节点结束触发增量同步 → 文件监听/结构化事件。开发控制、设备轮询、多协调者与公网部署不属于 v1。
+后续优先：节点结束触发增量同步 → 文件监听/结构化事件。开发控制、设备轮询、多协调者与公网部署不属于 v1。
 
 ## 自动采集实现
 

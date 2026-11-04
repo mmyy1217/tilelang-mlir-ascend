@@ -1,3 +1,4 @@
+import {MeasurementEvidence, MeasurementComparison} from './MeasurementEvidence';
 import {SyntheticDistribution} from './SyntheticDistribution';
 import { recordedStatus, stageStatus } from '../harnessAdapter';
 import { snapshotReference } from '../harnessLinks';
@@ -170,7 +171,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
               onChangeTab('candidates');
             }}
           >
-            {exploration.harness ? 'Agent 观察' : '总结与待冷却候选'}
+            {exploration.harness ? '解读（可选）' : '总结与待冷却候选'}
           </button>
         </div>
       </div>
@@ -647,6 +648,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
                     )}
                   </div>
 
+                  {activeResource.measurementData && <MeasurementEvidence report={activeResource.measurementData}/>}
                   {activeResource.experimentData && (
                     <div className={`structured-exp-box ${exploration.harness?.synthetic ? 'synthetic-exp-box' : ''}`}>
                       <table className="exp-proto-table">
@@ -747,7 +749,7 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
 
                   {activeResource.category === 'summary' || /\.(md|markdown)$/i.test(activeResource.filename)
                     ? <MarkdownContent content={activeResource.content} localLinks={exploration.harness ? {resolve:href=>snapshotReference(href,activeResource.filename,new Set(Object.values(exploration.resources).filter(r=>!r.missingReason&&!r.isBinary).map(r=>r.filename))),open:path=>setSelectedResourceId(path)} : undefined} />
-                    : exploration.harness?.synthetic && activeResource.experimentData ? <details className="synthetic-raw"><summary>查看完整模拟样本与 JSON</summary><pre className="preview-code-box">{activeResource.content}</pre></details> : <pre className="preview-code-box">{activeResource.content}</pre>}
+                    : (exploration.harness?.synthetic && activeResource.experimentData || activeResource.measurementData) ? <details className="synthetic-raw"><summary>{activeResource.measurementData ? '查看完整测量记录与 JSON' : '查看完整模拟样本与 JSON'}</summary><pre className="preview-code-box">{activeResource.content}</pre></details> : <pre className="preview-code-box">{activeResource.content}</pre>}
                 </div>
               )}
             </div>
@@ -755,7 +757,8 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
         </div>
       )}
 
-      {selection.rightTab === 'compare' && exploration.harness && <div className="inspector-scroll"><h2 className="sheet-title">候选记录对比</h2>{exploration.harness.synthetic ? <><p className="capture-note">模拟测量 · 全部数值人工生成，未经设备验证。统一输入、协议和模拟基线；精度失败候选不排名。</p><table className="compare-table"><thead><tr><th>候选与改动</th><th>模拟精度</th><th>中位耗时</th><th>相对基线</th></tr></thead><tbody>{exploration.nodes.filter(n=>n.harness?.kind==='candidate').map(n=><tr key={n.id}><td><button className="toolbar-btn" onClick={()=>{onSelectNode(n.id);onChangeTab('inspector');}}>{n.id} · {n.title}</button></td><td>{n.harness?.synthetic ? n.correctnessPassed?'模拟通过':'模拟失败':'未测'}</td><td>{n.latencyUs?.toFixed(1) || '—'} {n.latencyUs?'μs':''}</td><td>{n.speedupVsBaseline?.toFixed(2) || '—'}{n.speedupVsBaseline?'×':''}</td></tr>)}</tbody></table></> : <p className="capture-note">快照未提供结构化的可比性能结果。选择节点原文核对候选身份、协议和逐 case 结果；不从 completed 推断精度通过。</p>}{exploration.nodes.filter(n=>n.harness?.kind==='candidate').map(n=><button className="graph-relation-row" key={n.id} onClick={()=>{onSelectNode(n.id);onChangeTab('inspector');}}>{n.id} · {n.title}<small>{n.changeSummary}</small></button>)}</div>}
+      {selection.rightTab === 'compare' && exploration.harness?.measurements && <div className="inspector-scroll"><MeasurementComparison exploration={exploration} onOpen={path=>{setSelectedResourceId(path);onChangeTab('inspector');}}/></div>}
+      {selection.rightTab === 'compare' && exploration.harness && !exploration.harness.measurements && <div className="inspector-scroll"><h2 className="sheet-title">候选记录对比</h2>{exploration.harness.synthetic ? <><p className="capture-note">模拟测量 · 全部数值人工生成，未经设备验证。统一输入、协议和模拟基线；精度失败候选不排名。</p><table className="compare-table"><thead><tr><th>候选与改动</th><th>模拟精度</th><th>中位耗时</th><th>相对基线</th></tr></thead><tbody>{exploration.nodes.filter(n=>n.harness?.kind==='candidate').map(n=><tr key={n.id}><td><button className="toolbar-btn" onClick={()=>{onSelectNode(n.id);onChangeTab('inspector');}}>{n.id} · {n.title}</button></td><td>{n.harness?.synthetic ? n.correctnessPassed?'模拟通过':'模拟失败':'未测'}</td><td>{n.latencyUs?.toFixed(1) || '—'} {n.latencyUs?'μs':''}</td><td>{n.speedupVsBaseline?.toFixed(2) || '—'}{n.speedupVsBaseline?'×':''}</td></tr>)}</tbody></table></> : <p className="capture-note">快照未提供结构化的可比性能结果。选择节点原文核对候选身份、协议和逐 case 结果；不从 completed 推断精度通过。</p>}{exploration.nodes.filter(n=>n.harness?.kind==='candidate').map(n=><button className="graph-relation-row" key={n.id} onClick={()=>{onSelectNode(n.id);onChangeTab('inspector');}}>{n.id} · {n.title}<small>{n.changeSummary}</small></button>)}</div>}
       {selection.rightTab === 'compare' && !exploration.harness && (
         <div className="inspector-scroll">
           <section className="compare-sheet">
@@ -863,11 +866,11 @@ export const RightInspector: React.FC<RightInspectorProps> = ({
         </div>
       )}
 
-      {selection.rightTab === 'candidates' && exploration.harness && <div className="inspector-scroll"><h2 className="sheet-title">Agent 观察</h2><p className="capture-note">根据当前快照整理，不替代验收判定。点击依据文件查看原文。</p>{exploration.resources['@agent/observations.md'] ? <MarkdownContent content={exploration.resources['@agent/observations.md'].content} localLinks={{resolve:href=>snapshotReference(href,'',new Set(Object.keys(exploration.resources))),open:path=>{setSelectedResourceId(path);onChangeTab('inspector');}}}/> : <p>尚未发布可视化 Agent 说明。</p>}</div>}
+      {selection.rightTab === 'candidates' && exploration.harness && <div className="inspector-scroll"><h2 className="sheet-title">Agent 观察</h2><p className="capture-note">根据当前快照整理，不替代验收判定。点击依据文件查看原文。</p>{exploration.resources['@agent/observations.md'] ? <MarkdownContent content={exploration.resources['@agent/observations.md'].content} localLinks={{resolve:href=>snapshotReference(href,'',new Set(Object.keys(exploration.resources))),open:path=>{setSelectedResourceId(path);onChangeTab('inspector');}}}/> : <p>当前快照由程序直接解析，无需 Agent。需要解释优化路线时，可按需生成解读。</p>}</div>}
       {selection.rightTab === 'candidates' && !exploration.harness && (
         <div className="inspector-scroll">
           <section className="candidates-sheet">
-            <h2 className="sheet-title">探索图{exploration.harness ? 'Agent 观察' : '总结与待冷却候选'} (ready-for-cool)</h2>
+            <h2 className="sheet-title">探索图{exploration.harness ? '解读（可选）' : '总结与待冷却候选'} (ready-for-cool)</h2>
             <p className="sheet-desc">
               当前原型流程收尾于整理 <strong>ready-for-cool</strong> 候选（仍属于 hot，不代表已审批或已合入远端 cooled 主线）。耗时改善与原因解释分别记录，未经证实的原因保留为假设。
             </p>

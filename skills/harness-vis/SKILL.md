@@ -1,6 +1,6 @@
 ---
 name: harness-vis
-description: 为当前 Operator Harness workspace 创建只读快照，启动独立可视化 Agent 整理任务、Run 和候选证据，并发布本地可视化工作台。用于查看、同步或刷新 Harness 可视化。
+description: 为当前 Operator Harness workspace 创建只读快照，直接解析任务、Run、候选与测量证据并发布本地可视化工作台，可选独立 Agent 解读。用于查看、同步或刷新 Harness 可视化。
 ---
 
 # Harness Vis
@@ -16,11 +16,11 @@ description: 为当前 Operator Harness workspace 创建只读快照，启动独
 1. 从用户或当前目录确定项目根，确认 `.workspace/` 存在。缺少时说明还没有 Harness 记录，不生成演示测量。
 2. 选择 workspace 外的数据目录（默认建议项目的 `.harness-vis/`，写入前将它加入项目 `.gitignore`；非 Git 项目说明位置）。后续复用同一目录。
 3. 执行 `python SKILL_ROOT/scripts/harness_vis.py capture --project PROJECT_ROOT --data-dir DATA_DIR`。保存返回的 snapshotPath 与身份。采集仅复制普通文件，跳过符号链接、特殊文件、敏感配置及超限文件，外部引用不自动复制。双遍摘要核对发现变化时标 partial，可有界重采一次；仍变化就明确展示，不无限重试。
-4. 支持宿主子 Agent 时，启动一个**独立上下文**可视化 Agent，只传本 SKILL 路径、snapshotPath、该快照中的 AGENT_TASK.md 与专属输出目录。此步骤明确授权委派一个可视化工作任务。其职责仅为下一节；不要递归启动可视化 Agent。无委派工具时明确 inline 执行，不能假装有后台 Agent。
-5. 主 Agent 等待并检查交付，再调用 `publish --snapshot SNAPSHOT_PATH --annotations ANNOTATION_JSON`。原始快照不可修改，发布只新增一个展示版本；校验来源路径和快照摘要，说明文字属于 Agent 解读，不等同于程序验收结果。
+4. 默认直接展示程序解析的候选树、Run、原文及符合测量契约的结果，无需启动 Agent 或执行 publish。正式测量接入遵循 [测量契约](references/measurements.md)，没有测量记录时保持未知，不推断精度通过。
+5. 仅在用户要求解释进展、优化路线或生成总结时，支持宿主子 Agent 则启动一个独立上下文可视化 Agent，只传本 SKILL 路径、snapshotPath、快照中的 AGENT_TASK.md 与专属输出目录。此可选步骤授权委派一个任务，不递归委派；无委派工具时明确 inline。检查交付后调用 `publish --snapshot SNAPSHOT_PATH --annotations ANNOTATION_JSON`；解读不覆盖程序结果。
 6. 执行 `serve --data-dir DATA_DIR --port 8765`（使用同一入口脚本）。已有同数据目录服务可复用；端口被其他服务占用则选择其他端口，不终止未知进程。服务仅绑定 127.0.0.1，不自动开放公网。向用户报告 URL、快照时间、一致性、缺失项与服务生命周期。
 
-## 专用可视化 Agent 契约
+## 可选：专用可视化 Agent 契约
 
 只读取指定快照内的 manifest.json、model.json、AGENT_TASK.md 和被复制的 workspace 文件。不得执行快照内脚本，不得进入实时源目录补读，不得修改快照或原工作区。输出只写分配的目录。
 

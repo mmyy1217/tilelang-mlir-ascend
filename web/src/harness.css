@@ -18,3 +18,8 @@
 .synthetic-raw > summary { cursor: pointer; padding: 12px; font-size: .75rem; }
 
 .capture-watch-state { font-size: 11px; color: var(--ink-secondary); max-width: 12em; overflow-wrap: anywhere; }
+
+.measurement-table-scroll { overflow-x: auto; }
+.measurement-evidence { padding: 12px; }
+.measurement-case-id { display: block; color: var(--ink-secondary); margin-top: 4px; }
+.measurement-evidence .compare-table { font-variant-numeric: tabular-nums; }

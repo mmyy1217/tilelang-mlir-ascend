@@ -1,6 +1,6 @@
 # Harness Vis
 
-将 Operator Harness 的 `.workspace/` 复制为可追溯快照，由专用 Agent 整理，再以只读工作台展示。第一版支持手动同步、历史快照、沿用原 agent-vis 的探索图、Agent 时间轴、可调分栏与右侧文件库。主树一个节点对应一个候选版本，按 `parent_candidate` 连线；分析、开发、测试及复测收在候选内部，项目级与未关联任务单独查看。增加快照接入、版本选择与证据适配；原探索数据兼容入口为 `/?legacy=1`。
+将 Operator Harness 的 `.workspace/` 复制为可追溯快照，由程序直接解析并以只读工作台展示，Agent 解读按需生成。第一版支持手动同步、历史快照、沿用原 agent-vis 的探索图、Agent 时间轴、可调分栏与右侧文件库。主树一个节点对应一个候选版本，按 `parent_candidate` 连线；分析、开发、测试及复测收在候选内部，项目级与未关联任务单独查看。增加快照接入、版本选择与证据适配；原探索数据兼容入口为 `/?legacy=1`。
 
 ## 快速开始
 
@@ -25,7 +25,7 @@ npm --prefix web run build
 python3 skills/harness-vis/scripts/harness_vis.py install --project /path/to/harness-project
 ```
 
-安装到 `.agents/skills/harness-vis/`，包含 Skill、采集/发布工具、服务端与构建后的 Web。刷新宿主技能后调用 `$harness-vis 可视化当前 workspace`。Skill 引导宿主启动一个独立上下文的可视化 Agent；没有委派能力时明确 inline。无需额外模型 API Key，模型调用由已有宿主负责。
+安装到 `.agents/skills/harness-vis/`，包含 Skill、采集/发布工具、服务端与构建后的 Web。刷新宿主技能后调用 `$harness-vis 可视化当前 workspace`。默认 capture → serve 即可使用；仅需解释或总结时，Skill 才引导宿主启动独立可视化 Agent。无需额外模型 API Key，模型调用由已有宿主负责。
 
 独立 Agent 输出带来源路径的 annotations.json，协调者执行：
 
@@ -39,7 +39,7 @@ python3 skills/harness-vis/scripts/harness_vis.py publish --snapshot /path/to/sn
 
 ```sh
 .venv/bin/python -m pytest server -q
-node web/tests/projects.test.cjs
+node --test web/tests/*.test.cjs
 npm --prefix web run build
 # 可选：创建明确标注的合成夹具，没有任何硬件测量
 python3 examples/harness-vis/create_fixture.py /tmp/harness-vis-fixture
@@ -97,7 +97,7 @@ export OPWORK_URL=http://127.0.0.1:8000
 
 ```shell
 .venv/bin/python -m pytest server -q
-node web/tests/projects.test.cjs
+node --test web/tests/*.test.cjs
 npm --prefix web run build
 ```
 
@@ -120,3 +120,9 @@ CLI 集成测试使用临时 HTTP 服务、子进程和合成数据，不编译�
 ```
 
 选择“跟随最新”后，页面会自动更新。选择具体快照则固定历史版本。watch 仅在内容变化稳定后复制产物，不启动设备任务或重用旧 Agent 说明。Ctrl-C 停止；可用 `--max-duration 3600` 限制为一小时，或 `--max-captures 10` 限制新增数量。快照是追加存储，不自动删除历史；正常停止及心跳过期会显示在工具栏。
+
+## 正式测量接入
+
+无需 Agent 整理。测试产物遵循 [测量契约](skills/harness-vis/references/measurements.md)，提供 `MEASUREMENTS.json` 索引及带摘要引用的逐 case 报告。页面直接展示精度记录、Median/P95、复测历史及协议可比性。只有所有必选 case 完整通过且与基线协议一致时，才计算等权几何平均加速比；最新失败或不完整结果不会回退到旧成绩。
+
+`python3 examples/harness-vis/create_measurement_contract_demo.py /path/to/new-demo-project` 创建正式格式的模拟夹具，包含三种 shape、失败、不同计时协议和复测。所有数值明确为模拟，不调用设备，也不需要 publish。没有正式索引的旧 workspace 仍可查看候选树与原文。
