@@ -14,9 +14,12 @@ Exit codes are part of the interface:
     3  transport failure (connection, container, upload/fetch)
     4  timeout
     5  job state unknown (must not be resubmitted blindly)
+    6  shared lock not acquired; the workload never started
 """
 
 import argparse
+import base64
+import binascii
 import datetime
 import hashlib
 import io
@@ -40,12 +43,15 @@ EXIT_TIMEOUT = 4
 EXIT_UNKNOWN = 5
 EXIT_LOCK = 6
 
+STATUS_PENDING = 'pending'
 STATUS_COMPLETED = 'completed'
 STATUS_FAILED = 'failed'
 STATUS_TRANSPORT_ERROR = 'transport_error'
 STATUS_TIMEOUT = 'timeout'
 STATUS_UNKNOWN = 'unknown'
 STATUS_LOCKED = 'lock_timeout'
+
+POLL_INTERVAL = 2.0
 
 
 class RunnerError(Exception):
@@ -117,6 +123,8 @@ def load_config(path):
     if exec_kind == 'docker':
         _require(execution, 'container', 'execution')
     _require(execution, 'workdir', 'execution')
+    if execution.get('env') is not None and not isinstance(execution['env'], dict):
+        raise RunnerError('execution.env must be an object')
 
     paths = _require(config, 'paths', 'config')
     _require(paths, 'remote_root', 'paths')
@@ -127,6 +135,11 @@ def load_config(path):
 
     lock = config.setdefault('lock', {})
     lock.setdefault('wait_seconds', 0)
+    if lock.get('dir') and not lock.get('key'):
+        # One lock per shared resource, not per job. The environment id names
+        # the resource; fall back to the workdir when it is absent.
+        lock['key'] = (config.get('environment_id')
+                       or execution.get('workdir') or 'default')
 
     return config
 
@@ -160,17 +173,30 @@ def _ssh_argv(config, remote_command):
     return argv
 
 
+def _env_prefix(execution):
+    env = execution.get('env') or {}
+    if not env:
+        return ''
+    return ' '.join(f'{key}={shlex.quote(str(value))}'
+                    for key, value in env.items()) + ' '
+
+
 def _target_command(config, inner):
-    """Wrap `inner` so it runs inside the configured host/docker target."""
+    """Wrap `inner` so it runs inside the configured host/docker target.
+
+    `execution.env` applies to both host and docker so the two modes do not
+    silently disagree about PYTHONPATH or device selection.
+    """
     execution = config['execution']
+    prefix = _env_prefix(execution)
     if execution['kind'] == 'docker':
         container = execution['container']
         argv = ['docker', 'exec', '-i']
-        for name, value in execution.get('env', {}).items():
+        for name, value in (execution.get('env') or {}).items():
             argv.extend(['-e', f'{name}={value}'])
         argv.extend([container, 'bash', '-c', inner])
         return ' '.join(shlex.quote(part) for part in argv)
-    return f'bash -c {shlex.quote(inner)}'
+    return f'{prefix}bash -c {shlex.quote(inner)}'
 
 
 def run_transport(config, inner, *, stdin=None, timeout=None, binary_stdin=False):
@@ -179,12 +205,9 @@ def run_transport(config, inner, *, stdin=None, timeout=None, binary_stdin=False
     timeout = timeout or config['limits']['timeout_seconds']
     if transport['kind'] == 'ssh':
         argv = _ssh_argv(config, _target_command(config, inner))
-        payload = stdin
-        if binary_stdin and stdin is not None:
-            payload = stdin
         try:
             result = subprocess.run(
-                argv, input=payload, capture_output=True, timeout=timeout,
+                argv, input=stdin, capture_output=True, timeout=timeout,
                 text=not binary_stdin)
         except subprocess.TimeoutExpired:
             raise TimeoutError('transport command timed out')
@@ -192,7 +215,6 @@ def run_transport(config, inner, *, stdin=None, timeout=None, binary_stdin=False
             raise TransportError(f'cannot start ssh: {error}')
         return result.returncode, result.stdout, result.stderr
 
-    # local transport: run the same wrapper through the local shell
     command = _target_command(config, inner)
     try:
         result = subprocess.run(
@@ -207,9 +229,8 @@ def run_transport(config, inner, *, stdin=None, timeout=None, binary_stdin=False
 
 def check_transport(config):
     """Fail fast when the target is unreachable or the container is absent."""
-    inner = 'printf ok'
-    code, out, err = run_transport(config, inner, timeout=60)
-    if code != 0 or 'ok' not in (out or ''):
+    code, out, err = run_transport(config, 'printf ok', timeout=60)
+    if code != 0 or 'ok' not in _as_text(out):
         detail = (err or out or '').strip()[:400]
         raise TransportError(f'target unreachable (rc={code}): {detail}')
 
@@ -232,8 +253,12 @@ def _tar_bytes(entries):
     return buffer.getvalue()
 
 
+def _manifest_lines(manifest):
+    return ''.join(f"{item['sha256']}  {item['path']}\n" for item in manifest)
+
+
 def upload_tree(config, job_id, sources):
-    """Upload {relative_destination: local_path} and return the manifest."""
+    """Upload {relative_destination: local_path} and verify every digest."""
     manifest = []
     entries = []
     for destination, source in sources.items():
@@ -248,8 +273,8 @@ def upload_tree(config, job_id, sources):
                          'bytes': size})
         entries.append((destination, source))
 
-    payload = _tar_bytes(entries)
     destination = shlex.quote(remote_job_dir(config, job_id))
+    payload = _tar_bytes(entries)
     inner = f'mkdir -p {destination} && tar -x -C {destination} -f -'
     code, out, err = run_transport(
         config, inner, stdin=payload, binary_stdin=True,
@@ -258,7 +283,8 @@ def upload_tree(config, job_id, sources):
         raise TransportError(
             f'upload failed (rc={code}): {_as_text(err).strip()[:400]}')
 
-    # write the manifest next to the uploaded files and re-check the digests
+    # Write the manifest (JSON for records, sha256sum format for the fallback)
+    # and re-check the digests on the target.
     manifest_bytes = json.dumps(manifest, indent=2).encode()
     inner = f'cat > {destination}/upload-manifest.json'
     code, out, err = run_transport(
@@ -266,21 +292,30 @@ def upload_tree(config, job_id, sources):
     if code != 0:
         raise TransportError(
             f'manifest upload failed (rc={code}): {_as_text(err).strip()[:400]}')
-    # Prefer python3 (parses the manifest); fall back to sha256sum so a target
-    # without python3 can still verify an upload.
-    checks = ' && '.join(
-        f'echo "{item["sha256"]}  {item["path"]}"' for item in manifest)
+
+    lines = _manifest_lines(manifest).encode()
+    inner = f'cat > {destination}/upload-manifest.sha256'
+    code, out, err = run_transport(
+        config, inner, stdin=lines, binary_stdin=True)
+    if code != 0:
+        raise TransportError(
+            f'checksum list upload failed (rc={code}): '
+            f'{_as_text(err).strip()[:400]}')
+
+    # The verifier must exit non-zero on any mismatch; success is rc == 0.
     verify = (f'cd {destination} && if command -v python3 >/dev/null 2>&1; then '
-              'python3 -c "import json,hashlib;'
+              'python3 -c "import json,hashlib,sys;'
               'm=json.load(open(\'upload-manifest.json\'));'
               'bad=[e[\'path\'] for e in m if '
               'hashlib.sha256(open(e[\'path\'],\'rb\').read()).hexdigest()!=e[\'sha256\']];'
-              'print(\'ok\' if not bad else \'mismatch:\'+\',\'.join(bad))"; '
-              f'else printf \'%s\\n\' {shlex.quote(checks)} | sha256sum -c -; fi')
+              'print(\'ok\' if not bad else \'mismatch:\'+\',\'.join(bad));'
+              'sys.exit(1 if bad else 0)"; '
+              'else sha256sum -c upload-manifest.sha256; fi')
     code, out, err = run_transport(config, verify)
-    if code != 0 or 'ok' not in _as_text(out).lower():
+    text = (_as_text(out) + _as_text(err)).strip()
+    if code != 0:
         raise TransportError(
-            f'upload digest check failed (rc={code}): {_as_text(out).strip()[:400]}')
+            f'upload digest check failed (rc={code}): {text[:400]}')
     return manifest
 
 
@@ -326,12 +361,16 @@ def _interpreter(config, script):
     return 'bash'
 
 
-def _wrapper_script(config, job_id, command_name, *, use_lock, interpreter='bash'):
+def _wrapper_script(config, job_id, command_name, *, use_lock, interpreter):
+    """Build the detached wrapper that owns the terminal record.
+
+    The wrapper runs under `setsid`, so it survives a controller timeout and
+    still writes `exit_code` / `finished_at` and releases the lock.
+    """
     execution = config['execution']
     workdir = execution['workdir']
     job = remote_job_dir(config, job_id)
     lock = config.get('lock') or {}
-    lock_dir = lock.get('dir')
     lines = [
         'set -u',
         f'JOB_DIR={shlex.quote(job)}',
@@ -340,13 +379,14 @@ def _wrapper_script(config, job_id, command_name, *, use_lock, interpreter='bash
         'printf "%s\\n" "$$" > "$JOB_DIR/pid"',
         'printf "%s\\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$JOB_DIR/started_at"',
     ]
-    if use_lock and lock_dir:
-        lock_path = f'{lock_dir.rstrip("/")}/{job_id}.lock'
+    if use_lock and lock.get('dir'):
+        key = lock['key']
+        lock_path = f'{lock["dir"].rstrip("/")}/{key}.lock'
         lines.extend([
             f'LOCK={shlex.quote(lock_path)}',
             'mkdir -p "$(dirname "$LOCK")" || exit 96',
             'waited=0',
-            f'while ! mkdir "$LOCK" 2>/dev/null; do',
+            'while ! mkdir "$LOCK" 2>/dev/null; do',
             '  if [ "$waited" -ge ' + str(int(lock.get('wait_seconds', 0))) + ' ]; then',
             '    printf "%s\\n" "lock_timeout" > "$JOB_DIR/lock_state"',
             '    exit 95',
@@ -354,7 +394,8 @@ def _wrapper_script(config, job_id, command_name, *, use_lock, interpreter='bash
             '  sleep 1; waited=$((waited+1))',
             'done',
             'printf "%s\\n" "acquired" > "$JOB_DIR/lock_state"',
-            'trap \'rmdir "$LOCK" 2>/dev/null || true\' EXIT',
+            'printf "%s\\n" "$JOB_DIR" > "$LOCK/holder"',
+            'trap \'rm -f "$LOCK/holder"; rmdir "$LOCK" 2>/dev/null || true\' EXIT',
         ])
     lines.extend([
         'cd "$WORKDIR" || { printf "%s\\n" "97" > "$JOB_DIR/exit_code"; exit 97; }',
@@ -367,24 +408,75 @@ def _wrapper_script(config, job_id, command_name, *, use_lock, interpreter='bash
     return '\n'.join(lines) + '\n'
 
 
-def read_remote_exit(config, job_id):
-    """Return (workload_exit, stdout, stderr) or None when unavailable."""
-    job = remote_job_dir(config, job_id)
-    inner = (f'cd {shlex.quote(job)} 2>/dev/null || exit 98; '
-             'cat exit_code 2>/dev/null; echo "---"; '
-             'tail -c 400000 stdout.log 2>/dev/null; echo "---"; '
-             'tail -c 400000 stderr.log 2>/dev/null')
+def _launch(config, job_id):
+    """Start the wrapper detached so it outlives the controller's wait."""
+    job = shlex.quote(remote_job_dir(config, job_id))
+    inner = (f'cd {job} || exit 98; '
+             'setsid nohup bash wrapper.sh >/dev/null 2>&1 < /dev/null & '
+             'echo launched')
+    code, out, err = run_transport(config, inner, timeout=60)
+    if code != 0 or 'launched' not in _as_text(out):
+        raise TransportError(
+            f'launch failed (rc={code}): '
+            f'{(_as_text(err) or _as_text(out)).strip()[:400]}')
+
+
+def _observe_state(config, job_id):
+    """Return finished:<rc> / lock_timeout / running / absent / unknown."""
+    job = shlex.quote(remote_job_dir(config, job_id))
+    inner = (f'cd {job} 2>/dev/null || {{ echo absent; exit 0; }}; '
+             'if [ -f exit_code ]; then echo "finished:$(cat exit_code)"; '
+             'elif [ -f lock_state ] && [ "$(cat lock_state)" = lock_timeout ]; '
+             'then echo lock_timeout; '
+             'elif [ -f pid ] && kill -0 "$(cat pid)" 2>/dev/null; then '
+             'echo running; else echo unknown; fi')
+    try:
+        code, out, err = run_transport(config, inner, timeout=60)
+    except (TransportError, TimeoutError):
+        return 'unknown'
+    if code != 0:
+        return 'unknown'
+    return _as_text(out).strip() or 'unknown'
+
+
+def _read_remote_exit(config, job_id):
+    """Return (workload_exit, stdout, stderr) using length-safe encoding.
+
+    Each log is base64-encoded on its own line so workload output containing
+    separator-like text cannot corrupt the split.
+    """
+    job = shlex.quote(remote_job_dir(config, job_id))
+    inner = (f'cd {job} 2>/dev/null || exit 98; '
+             'printf "%s\\n" "$(cat exit_code 2>/dev/null)"; '
+             'base64 stdout.log 2>/dev/null | tr -d "\\n"; echo; '
+             'base64 stderr.log 2>/dev/null | tr -d "\\n"; echo')
     code, out, err = run_transport(config, inner, timeout=120)
-    text = _as_text(out)
     if code != 0:
         return None
-    parts = text.split('---\n', 2)
+    parts = _as_text(out).split('\n')
     if len(parts) < 3:
         return None
     exit_text = parts[0].strip()
     if not exit_text.isdigit():
         return None
-    return int(exit_text), parts[1], parts[2]
+    try:
+        stdout = base64.b64decode(parts[1]).decode('utf-8', 'replace')
+        stderr = base64.b64decode(parts[2]).decode('utf-8', 'replace')
+    except (binascii.Error, ValueError):
+        return None
+    return int(exit_text), stdout, stderr
+
+
+def _remote_job_exists(config, job_id):
+    """True when the target already holds a terminal record for this job id."""
+    job = shlex.quote(remote_job_dir(config, job_id))
+    inner = (f'if [ -f {job}/exit_code ] || [ -f {job}/lock_state ]; '
+             'then echo exists; else echo absent; fi')
+    code, out, err = run_transport(config, inner, timeout=60)
+    if code != 0:
+        raise TransportError(
+            f'cannot check existing job: {_as_text(err).strip()[:400]}')
+    return 'exists' in _as_text(out)
 
 
 def write_receipt(path, receipt):
@@ -421,29 +513,32 @@ def cmd_probe(args):
 
     execution = config['execution']
     workdir = execution['workdir']
+    # The writable marker is only printed after touch and cleanup both succeed.
     inner = ('printf "arch=%s\\n" "$(uname -m)"; '
              'printf "python=%s\\n" "$(command -v python3 || echo missing)"; '
-             f'cd {shlex.quote(workdir)} 2>/dev/null && '
-             'printf "workdir=writable\\n" && touch .runner-probe && '
-             'rm -f .runner-probe || printf "workdir=missing\\n"')
+             f'if cd {shlex.quote(workdir)} 2>/dev/null; then '
+             '  if touch .runner-probe.$$ 2>/dev/null && '
+             '     rm -f .runner-probe.$$ 2>/dev/null; then '
+             '    echo workdir=writable; '
+             '  else echo workdir=readonly; fi; '
+             'else echo workdir=missing; fi')
     code, out, err = run_transport(config, inner)
     text = _as_text(out)
-    record('workdir', 'workdir=writable' in text,
-           f'{workdir}: ' + ('writable' if 'workdir=writable' in text
-                             else _as_text(err).strip()[:200] or 'missing'))
-    record('python3', 'python=missing' not in text,
-           next((line for line in text.splitlines()
-                 if line.startswith('python=')), 'python=unknown'))
-    record('arch', True,
-           next((line for line in text.splitlines()
-                 if line.startswith('arch=')), 'arch=unknown'))
+    lines = text.splitlines()
+
+    def field(name):
+        return next((line.split('=', 1)[1] for line in lines
+                     if line.startswith(f'{name}=')), 'unknown')
+
+    record('workdir', code == 0 and 'workdir=writable' in lines,
+           f'{workdir}: {field("workdir")}')
+    record('python3', 'python=missing' not in text, f'python={field("python")}')
+    record('arch', True, f'arch={field("arch")}')
 
     expected_arch = (config.get('identity') or {}).get('expected_arch')
     if expected_arch:
-        observed = next((line.split('=', 1)[1] for line in text.splitlines()
-                         if line.startswith('arch=')), '')
-        record('arch_expected', observed == expected_arch,
-               f'expected {expected_arch}, observed {observed or "unknown"}')
+        record('arch_expected', field('arch') == expected_arch,
+               f'expected {expected_arch}, observed {field("arch")}')
 
     if execution['kind'] == 'docker':
         record('container', True, f"docker exec {execution['container']}")
@@ -471,91 +566,135 @@ def cmd_exec(args):
         raise RunnerError(f'script not found: {script}')
     job = args.job
     directory = job_dir(config, job)
-    directory.mkdir(parents=True, exist_ok=True)
+    receipt_path = directory / 'receipt.json'
+    if receipt_path.exists():
+        raise RunnerError(
+            f'job id {job!r} already has an execution record at {receipt_path}; '
+            'choose a new job id instead of overwriting evidence')
 
+    directory.mkdir(parents=True, exist_ok=True)
+    interpreter = _interpreter(config, script)
+    timeout = args.timeout or config['limits']['timeout_seconds']
     receipt = {
         'contract': RECEIPT_CONTRACT,
         'job_id': job,
         'environment_id': config.get('environment_id'),
         'created_at': now(),
         'request': {'script': str(script), 'sha256': sha256_file(script),
-                    'timeout_seconds': args.timeout or
-                    config['limits']['timeout_seconds']},
+                    'timeout_seconds': timeout},
         'transport': {'kind': config['transport']['kind'],
                       'host': config['transport'].get('host')},
         'execution': {key: config['execution'].get(key)
                       for key in ('kind', 'container', 'workdir')},
-        'status': STATUS_UNKNOWN,
+        'status': STATUS_PENDING,
         'ssh_exit': None,
         'workload_exit': None,
     }
-    receipt_path = directory / 'receipt.json'
     write_receipt(receipt_path, receipt)
 
     try:
         check_transport(config)
-        interpreter = _interpreter(config, script)
-        command_name = 'command.py' if interpreter.startswith('python') else 'command.sh'
-        upload_tree(config, job,
-                    {command_name: script,
-                     'request.json': _write_request(directory, receipt)})
+        if _remote_job_exists(config, job):
+            raise RunnerError(
+                f'target already holds a terminal record for job {job!r}; '
+                'choose a new job id')
+        command_name = ('command.py' if interpreter.startswith('python')
+                        else 'command.sh')
         wrapper = _wrapper_script(config, job, command_name,
                                   use_lock=not args.no_lock,
                                   interpreter=interpreter)
-        timeout = args.timeout or config['limits']['timeout_seconds']
-        try:
-            code, out, err = run_transport(config, wrapper, timeout=timeout)
-        except TimeoutError:
-            # The controller gave up; the workload may still be running.
-            # Record what the target reports instead of assuming it stopped.
-            observed = _observe_state(config, job)
-            receipt.update(status=STATUS_TIMEOUT, finished_at=now(),
-                           timeout_seconds=timeout, observed_state=observed)
-            if observed in ('running', 'unknown'):
-                receipt['detail'] = ('workload may still be running; '
-                                     'check with `status` before resubmitting')
-            write_receipt(receipt_path, receipt)
-            _save_logs(directory, '', f'timeout after {timeout}s')
-            return _emit(args, receipt, EXIT_TIMEOUT)
-
-        receipt['ssh_exit'] = code
-        if code == 95:
-            # The wrapper exits 95 when the shared lock was not acquired; the
-            # workload never started, so this is not a workload failure.
-            receipt.update(status=STATUS_LOCKED, finished_at=now(),
-                           detail='shared lock not acquired; workload not started')
-            write_receipt(receipt_path, receipt)
-            return _emit(args, receipt, EXIT_LOCK)
-        remote = read_remote_exit(config, job)
-        if remote is None:
-            receipt.update(status=STATUS_TRANSPORT_ERROR, finished_at=now(),
-                           detail=(_as_text(err) or _as_text(out)).strip()[:400])
-            write_receipt(receipt_path, receipt)
-            _save_logs(directory, _as_text(out), _as_text(err))
-            return _emit(args, receipt, EXIT_TRANSPORT)
-
-        workload_exit, stdout, stderr = remote
-        receipt['workload_exit'] = workload_exit
-        receipt['finished_at'] = now()
-        receipt['status'] = (STATUS_COMPLETED if workload_exit == 0
-                             else STATUS_FAILED)
-        write_receipt(receipt_path, receipt)
-        _save_logs(directory, stdout, stderr)
-        try:
-            fetch_tree(config, job, directory / 'remote')
-            receipt['fetched'] = True
-            write_receipt(receipt_path, receipt)
-        except TransportError as error:
-            receipt['fetched'] = False
-            receipt['fetch_error'] = str(error)
-            write_receipt(receipt_path, receipt)
-        return _emit(args, receipt,
-                     EXIT_OK if workload_exit == 0 else EXIT_WORKLOAD)
+        wrapper_path = directory / 'wrapper.sh'
+        # Force LF: the controller may be Windows, and a CRLF wrapper fails
+        # with "set: -: invalid option" on the target.
+        wrapper_path.write_bytes(wrapper.encode())
+        upload_tree(config, job,
+                    {command_name: script,
+                     'wrapper.sh': wrapper_path,
+                     'request.json': _write_request(directory, receipt)})
+        _launch(config, job)
+    except RunnerError:
+        raise
     except (TransportError, TimeoutError) as error:
+        # Nothing was submitted, or submission itself failed: this is terminal.
         receipt.update(status=STATUS_TRANSPORT_ERROR, finished_at=now(),
                        detail=str(error))
         write_receipt(receipt_path, receipt)
         return _emit(args, receipt, EXIT_TRANSPORT)
+
+    return _wait_for_job(args, config, job, receipt, receipt_path, timeout)
+
+
+def _wait_for_job(args, config, job, receipt, receipt_path, timeout):
+    """Poll the detached wrapper; the wrapper owns the terminal record."""
+    deadline = time.monotonic() + timeout
+    state = 'unknown'
+    while True:
+        state = _observe_state(config, job)
+        if state.startswith('finished:') or state == 'lock_timeout' or state == 'absent':
+            break
+        if time.monotonic() >= deadline:
+            receipt.update(status=STATUS_TIMEOUT, finished_at=now(),
+                           timeout_seconds=timeout, observed_state=state)
+            if state in ('running', 'unknown'):
+                receipt['detail'] = ('workload may still be running; '
+                                     'check with `status` before resubmitting')
+            write_receipt(receipt_path, receipt)
+            return _emit(args, receipt, EXIT_TIMEOUT)
+        time.sleep(POLL_INTERVAL)
+
+    if state == 'lock_timeout':
+        receipt.update(status=STATUS_LOCKED, finished_at=now(),
+                       observed_state=state,
+                       detail='shared lock not acquired; workload not started')
+        write_receipt(receipt_path, receipt)
+        return _emit(args, receipt, EXIT_LOCK)
+
+    if not state.startswith('finished:'):
+        # The wrapper is gone without a terminal record.
+        receipt.update(status=STATUS_UNKNOWN, finished_at=now(),
+                       observed_state=state,
+                       detail='wrapper disappeared without writing exit_code')
+        write_receipt(receipt_path, receipt)
+        return _emit(args, receipt, EXIT_UNKNOWN)
+
+    return _collect(args, config, job, receipt, receipt_path, state)
+
+
+def _collect(args, config, job, receipt, receipt_path, state):
+    """Read the terminal record; a read failure stays re-observable."""
+    workload_exit = int(state.split(':', 1)[1])
+    receipt['workload_exit'] = workload_exit
+    receipt['observed_state'] = state
+    receipt['finished_at'] = now()
+    receipt['status'] = (STATUS_COMPLETED if workload_exit == 0
+                         else STATUS_FAILED)
+    write_receipt(receipt_path, receipt)
+
+    remote = _read_remote_exit(config, job)
+    directory = job_dir(config, job)
+    if remote is None:
+        # Submitted but unreadable: keep the record non-terminal so `status`
+        # can recover the real result later.
+        receipt.update(status=STATUS_UNKNOWN,
+                       detail='submitted but result read failed; '
+                              're-observe with `status`')
+        write_receipt(receipt_path, receipt)
+        return _emit(args, receipt, EXIT_UNKNOWN)
+
+    _save_logs(directory, remote[1], remote[2])
+    try:
+        fetch_tree(config, job, directory / 'remote')
+        receipt['fetched'] = True
+    except TransportError as error:
+        receipt['fetched'] = False
+        receipt['fetch_error'] = str(error)
+    write_receipt(receipt_path, receipt)
+
+    if not receipt['fetched']:
+        # Keep the real workload exit but report the missing evidence.
+        return _emit(args, receipt, EXIT_TRANSPORT)
+    return _emit(args, receipt,
+                 EXIT_OK if workload_exit == 0 else EXIT_WORKLOAD)
 
 
 def _write_request(directory, receipt):
@@ -569,22 +708,6 @@ def _save_logs(directory, stdout, stderr):
     (directory / 'stderr.log').write_text(_as_text(stderr))
 
 
-def _observe_state(config, job_id):
-    """Return running / finished / absent / unknown without resubmitting."""
-    job = shlex.quote(remote_job_dir(config, job_id))
-    inner = (f'cd {job} 2>/dev/null || {{ echo absent; exit 0; }}; '
-             'if [ -f exit_code ]; then echo "finished:$(cat exit_code)"; '
-             'elif [ -f pid ] && kill -0 "$(cat pid)" 2>/dev/null; then '
-             'echo running; else echo unknown; fi')
-    try:
-        code, out, err = run_transport(config, inner, timeout=60)
-    except (TransportError, TimeoutError):
-        return 'unknown'
-    if code != 0:
-        return 'unknown'
-    return _as_text(out).strip() or 'unknown'
-
-
 def cmd_fetch(args):
     config = load_config(args.config)
     destination = Path(args.dst) if args.dst else job_dir(config, args.job) / 'remote'
@@ -596,32 +719,29 @@ def cmd_fetch(args):
 def cmd_status(args):
     config = load_config(args.config)
     receipt = read_receipt(config, args.job)
-    # A timeout only says the controller stopped waiting; re-observe the target.
+    # Terminal states that cannot be recovered: pre-submit failures and jobs
+    # that already produced a full record.
     if receipt.get('status') in (STATUS_COMPLETED, STATUS_FAILED,
                                  STATUS_TRANSPORT_ERROR, STATUS_LOCKED):
         return _emit(args, receipt, EXIT_OK)
-    # still running (or unknown): probe the target without resubmitting
+
+    # pending / timeout / unknown: re-observe the target without resubmitting.
     state = _observe_state(config, args.job)
+    if state == 'lock_timeout':
+        receipt.update(status=STATUS_LOCKED, observed_state=state,
+                       detail='shared lock not acquired; workload not started')
+        write_receipt(job_dir(config, args.job) / 'receipt.json', receipt)
+        return _emit(args, receipt, EXIT_OK)
+
     if state.startswith('finished:'):
-        receipt['status'] = (STATUS_COMPLETED
-                             if state.split(':', 1)[1] == '0' else STATUS_FAILED)
-        receipt['workload_exit'] = int(state.split(':', 1)[1])
-        receipt.pop('detail', None)
-        directory = job_dir(config, args.job)
-        remote = read_remote_exit(config, args.job)
-        if remote is not None:
-            _save_logs(directory, remote[1], remote[2])
-        try:
-            fetch_tree(config, args.job, directory / 'remote')
-            receipt['fetched'] = True
-        except TransportError as error:
-            receipt['fetched'] = False
-            receipt['fetch_error'] = str(error)
-    elif state == 'running':
-        receipt['status'] = 'running'
+        return _collect(args, config, args.job, receipt,
+                        job_dir(config, args.job) / 'receipt.json', state)
+
+    if state == 'running':
+        receipt.update(status='running', observed_state=state)
     else:
-        receipt['status'] = STATUS_UNKNOWN
-    receipt['observed_state'] = state
+        receipt.update(status=STATUS_UNKNOWN, observed_state=state)
+    receipt.pop('detail', None)
     write_receipt(job_dir(config, args.job) / 'receipt.json', receipt)
     return _emit(args, receipt,
                  EXIT_UNKNOWN if receipt['status'] == STATUS_UNKNOWN else EXIT_OK)

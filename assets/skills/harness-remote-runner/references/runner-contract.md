@@ -8,7 +8,7 @@
 
 | 组合 | 本版本 |
 | --- | --- |
-| local controller × remote ssh × docker exec | 已实现并有实测（`docker exec fzm`） |
+| local controller × remote ssh × docker exec | 已实现，有实测记录（证据留在项目 `.workspace/`） |
 | local controller × remote ssh × host | 已实现，未在真实机器验收 |
 | local controller × local × host | 已实现并有单测 |
 | local controller × local × docker | 已实现，未在真实机器验收 |
@@ -23,29 +23,31 @@ JSON，`contract` 固定为 `operator-harness/runner@1`。放在项目 `.workspa
 ```json
 {
   "contract": "operator-harness/runner@1",
-  "environment_id": "a5-fzm-docker",
+  "environment_id": "<environment-id>",
   "transport": {
     "kind": "ssh",
-    "host": "tilelang-A5-yellow",
+    "host": "<ssh-alias>",
     "connect_timeout": 20,
     "ssh_options": ["ServerAliveInterval=15"]
   },
   "execution": {
     "kind": "docker",
-    "container": "fzm",
-    "workdir": "/home/f00959234/work/my-operator",
+    "container": "<container-name>",
+    "workdir": "<target-workdir>",
     "interpreter": null,
     "env": {}
   },
   "paths": {
-    "remote_root": "/home/f00959234/work/harness-jobs",
+    "remote_root": "<target-private-job-root>",
     "local_data_dir": ".harness-runner"
   },
   "limits": {"timeout_seconds": 600, "max_upload_mb": 256},
-  "lock": {"dir": "/home/f00959234/work/harness-locks", "wait_seconds": 0},
+  "lock": {"dir": "<shared-lock-dir>", "key": "<resource-id>", "wait_seconds": 0},
   "identity": {"expected_arch": "aarch64"}
 }
 ```
+
+具体 alias、容器名、home 路径和实测记录属于项目私有环境，写在项目 `.workspace/environments/` 下，不随技能分发。
 
 字段语义：
 
@@ -55,10 +57,13 @@ JSON，`contract` 固定为 `operator-harness/runner@1`。放在项目 `.workspa
 | `execution.kind` | `host` 直接执行，`docker` 用 `docker exec -i` 进入指定容器 |
 | `execution.workdir` | 工作负载的 cwd；必须在目标上存在且可写 |
 | `execution.interpreter` | 显式指定解释器；为空时按脚本后缀选（`.py` → `python3`，其余 → `bash`） |
+| `execution.env` | 环境变量；`host` 与 `docker` 两种模式都生效，避免两边 PYTHONPATH/设备选择不一致 |
 | `paths.remote_root` | 每个 job 在目标上的私有目录根，`<remote_root>/<job_id>` |
 | `paths.local_data_dir` | controller 侧 job 记录根，默认 `.harness-runner`，应加入 `.gitignore` |
 | `limits.timeout_seconds` | controller 侧等待上限，覆盖排队与执行 |
-| `lock` | 可选的共享锁目录；`wait_seconds=0` 表示拿不到立即失败（退出码 95） |
+| `lock.dir` | 可选的共享锁目录 |
+| `lock.key` | **共享资源标识**，不是 job ID；同一设备/容器必须用同一个 key。缺省取 `environment_id` |
+| `lock.wait_seconds` | 拿不到锁的等待秒数；0 表示立即失败（退出码 6） |
 | `identity.expected_arch` | 可选；probe 时核对 `uname -m` |
 
 ## 3. 子命令与退出码
@@ -78,15 +83,15 @@ python3 harness_runner.py receipt --config C --job J
 
 | 码 | 含义 |
 | --- | --- |
-| 0 | 作业完成且工作负载退出 0 |
+| 0 | 作业完成且工作负载退出 0，产物已回收 |
 | 1 | 工作负载非零退出（候选/构建/测试失败） |
-| 2 | 用法或配置错误，未接触目标 |
-| 3 | 传输失败（连接、容器、上传、回收） |
-| 4 | controller 超时；作业可能仍在运行 |
+| 2 | 用法或配置错误，未接触目标；或 job ID 已有执行记录 |
+| 3 | 传输失败（连接、容器、上传、回收）。工作负载退出码仍写入 receipt |
+| 4 | controller 超时；wrapper 独立存活，作业可能仍在运行 |
 | 5 | 状态未知，禁止盲目重投 |
 | 6 | 共享锁未取得，工作负载未启动 |
 
-`ssh` 退出码与工作负载退出码分别记录。SSH 成功不等于设备执行成功，因此 `read_remote_exit` 必须从目标上的 `exit_code` 文件读回真实结果。
+`ssh` 退出码与工作负载退出码分别记录。SSH 成功不等于设备执行成功，因此结果必须从目标上的 `exit_code` 文件读回。**锁失败只由本次请求的 `lock_state=lock_timeout` 判定**，不能把工作负载自己返回的 95 当成锁信号。
 
 ## 4. 每次作业的产物
 
@@ -95,8 +100,9 @@ python3 harness_runner.py receipt --config C --job J
 | 文件 | 内容 |
 | --- | --- |
 | `command.py` / `command.sh` | 上传的脚本，摘要记录在 receipt |
+| `wrapper.sh` | 独立于 controller 的 wrapper；由 `setsid` 启动，负责写终态与释放锁 |
 | `request.json` | 提交时的请求快照 |
-| `upload-manifest.json` | 每个上传文件的相对路径、SHA-256、字节数 |
+| `upload-manifest.json` / `.sha256` | 每个上传文件的相对路径、SHA-256、字节数；后者是 `sha256sum -c` 格式 |
 | `pid` / `started_at` / `finished_at` | 进程与时间证据 |
 | `exit_code` | 工作负载真实退出码 |
 | `stdout.log` / `stderr.log` | 完整输出 |
@@ -115,10 +121,23 @@ controller 侧 `<local_data_dir>/jobs/<job_id>/`：
 
 ## 5. 超时、断线与重投
 
-- 超时后 controller 立即调用 `_observe_state` 记录目标实际状态（`running` / `finished:<rc>` / `absent` / `unknown`），不假定作业已停止。
-- `status` 对 `timeout` 记录会重新观察目标；若已结束则补齐 `workload_exit`、日志与 `remote/` 副本，并清除过期的 `detail`。
-- `unknown` 状态禁止重投；先用 `status` 或环境约定中的查询入口确认原作业。
-- 上传后立即做摘要回读校验，不一致直接报传输错误，不进入执行。
+- **wrapper 用 `setsid nohup` 独立启动**，controller 只轮询。controller 超时不会杀死唯一负责写 `exit_code`、`finished_at` 和释放锁的进程。
+- 超时后 controller 记录 `observed_state`（`running` / `finished:<rc>` / `lock_timeout` / `absent` / `unknown`），不假定作业已停止。
+- `status` 对 `pending` / `timeout` / `unknown` 记录会重新观察目标；已结束则补齐 `workload_exit`、日志与 `remote/` 副本。
+- **提交后的读结果失败保持 `unknown`（可恢复）**；只有提交前的确定失败才写 `transport_error`（终态）。
+- job ID 不可复用：controller 侧 receipt 或目标侧 `exit_code`/`lock_state` 任一存在即拒绝（退出码 2），避免旧退出码被归到新请求。
+- 上传后立即做摘要回读校验，校验进程在任何 mismatch 时非零退出；不一致直接报传输错误，不进入执行。
+- 日志按 base64 分行传输，负载输出里出现 `---` 之类分隔符不会破坏拆分。
+
+## 5.1 锁
+
+- 锁键是**共享资源标识**（`lock.key`，缺省 `environment_id`），不是 job ID；同一设备的两个不同作业必须争用同一把锁。
+- 拿不到锁时 wrapper 写 `lock_state=lock_timeout` 并以 95 退出；controller 读该文件判定，返回退出码 6。
+- 锁目录里写 `holder` 记录持有者 job 目录，便于排查。
+
+## 5.2 回收失败
+
+`fetch_tree` 失败时保留真实 `workload_exit` 与 `status`，同时置 `fetched=false` 并让命令以退出码 3 结束——调用方不能因为负载成功就忽略缺失的证据。
 
 ## 6. 与节点的关系
 

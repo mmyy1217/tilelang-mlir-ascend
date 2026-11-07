@@ -24,6 +24,7 @@
   },
   "lock": {
     "dir": "{{共享锁目录；不使用锁时删除}}",
+    "key": "{{共享资源标识，同一设备的所有作业必须相同；缺省取 environment_id}}",
     "wait_seconds": 0
   },
   "identity": {
