@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness Remote Runner"
+  short_description: "在本地 controller 上向远程或本地执行目标提交有界作业，回收证据并原样传播退出码"
+  default_prompt: "使用 $harness-remote-runner 按已绑定的环境约定提交并核对本次执行。"

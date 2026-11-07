@@ -1,0 +1,32 @@
+{
+  "contract": "operator-harness/runner@1",
+  "environment_id": "{{本地唯一 ID，与 environments/<id>.md 一致}}",
+  "transport": {
+    "kind": "{{local / ssh}}",
+    "host": "{{ssh alias；local 时删除}}",
+    "connect_timeout": 20,
+    "ssh_options": []
+  },
+  "execution": {
+    "kind": "{{host / docker}}",
+    "container": "{{docker 时填写实际容器名；host 时删除}}",
+    "workdir": "{{目标上的工作目录，必须存在且可写}}",
+    "interpreter": null,
+    "env": {}
+  },
+  "paths": {
+    "remote_root": "{{目标上的私有作业根，不得与他人共用}}",
+    "local_data_dir": "{{controller 侧私有记录根，加入 .gitignore}}"
+  },
+  "limits": {
+    "timeout_seconds": 600,
+    "max_upload_mb": 256
+  },
+  "lock": {
+    "dir": "{{共享锁目录；不使用锁时删除}}",
+    "wait_seconds": 0
+  },
+  "identity": {
+    "expected_arch": "{{如 aarch64 / x86_64；不核对时删除}}"
+  }
+}

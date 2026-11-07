@@ -19,7 +19,7 @@ description: 使用已绑定的上板环境约定，执行昇腾算子的实卡�
 
 核对完整候选快照、任务/参考/case/协议版本、lowering 与编译链、目标架构、入口和 launch。必要编译在上板约定指定的位置进行；复用已有二进制前检查身份和兼容性。检查本次运行的代码确实来自该候选，不能仅信缓存文件名或 Git HEAD。
 
-优先适配项目已验证的 Onboard/DeepJIT 或现有测试命令；从其实际接口查参数，不臆造统一 CLI。远程模式记录本地 lowering 与远端构建/执行两段信息。检查产物传输摘要、退出状态与输出回收；SSH 请求成功不等于设备执行成功。
+优先适配项目已验证的 Onboard/DeepJIT 或现有测试命令；从其实际接口查参数，不臆造统一 CLI。远程模式记录本地 lowering 与远端构建/执行两段信息；提交与回收优先使用 [harness-remote-runner](../harness-remote-runner/SKILL.md)，按环境约定复用同一 runner 配置，不重复拼接 `ssh`/`docker exec`。检查产物传输摘要、退出状态与输出回收；SSH 请求成功不等于设备执行成功，`ssh_exit=0` 不能替代 `workload_exit`。
 
 ## 性能工具与节点职责
 

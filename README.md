@@ -11,7 +11,7 @@
 
 </div>
 
-> **项目状态：早期建设中。** 已提供面向 Codex 的初始化、接入、接续及五个节点 skills，以及 status、next、automatic 入口。另有 torch_npu 性能采集方法和解析脚本。节点职责见 [节点设计](docs/nodes/design.md)；通用执行适配、程序 gate、MCP 和 npm 分发见 [路线图](docs/ROADMAP.md)。
+> **项目状态：早期建设中。** 已提供面向 Codex 的初始化、接入、接续及五个节点 skills，以及 status、next、automatic 入口和有界远程执行 runner。另有 torch_npu 性能采集方法和解析脚本。节点职责见 [节点设计](docs/nodes/design.md)；通用执行适配、程序 gate、MCP 和 npm 分发见 [路线图](docs/ROADMAP.md)。
 
 ## 什么是 Operator Harness
 
@@ -98,7 +98,7 @@ analysis 是默认迭代节点；是否运行新仿真或流水采集由问题�
 
 ### 当前可用：Codex 项目流程与节点 skills
 
-本仓库已通过 `.agents/skills/` 接入十一项技能，在 Codex 中选择或输入：
+本仓库已通过 `.agents/skills/` 接入十二项技能，在 Codex 中选择或输入：
 
 ```text
 $harness-new-project 为我的 TileLang 算子项目明确需求并建立路线图。
@@ -112,6 +112,7 @@ $harness-establish-baseline 根据已绑定环境调查参考实现，验证并�
 $harness-analysis 首次分析标杆实现思路，后续通过仿真和流水分析定位当前 kernel 的问题。
 $harness-develop 按已接收的分析方案和开发约定编写或修复 TileLang 候选。
 $harness-device-test 使用已有上板约定验证当前候选的精度和性能，需继续改进时回到 analysis。
+$harness-remote-runner 按已绑定环境约定向远程或本地目标提交有界作业，回收证据并传播退出码。
 ```
 
 `harness-new-project` 用于新项目的需求澄清和规划；`harness-onboard` 用于已有项目接入，这里的 onboard 不执行 NPU 上板。CLI/IDE 也可通过 `/skills` 选择技能；本项目没有注册 `/harness-*` 顶层 slash commands。若技能尚未出现在宿主中，重启会话后再检查。发现与调用方式见 [Codex 技能文档](https://learn.chatgpt.com/docs/build-skills)。
@@ -126,7 +127,7 @@ $harness-device-test 使用已有上板约定验证当前候选的精度和性�
 python3 scripts/install_codex_skills.py --project-dir operator-project
 ```
 
-Git 项目安装到当前 worktree 根；非 Git 项目安装到指定目录。安装器复制十一项技能到 `.agents/skills/`，向 `AGENTS.md` 追加接续指引，并在 `.gitignore` 中加入 `.workspace/`，保留已有内容。重复安装不会重复追加；只比较随包提供的技能文件，用户额外添加的文件保留不动。随包文件存在不同内容时报告冲突。升级与卸载另按路线图建设。
+Git 项目安装到当前 worktree 根；非 Git 项目安装到指定目录。安装器复制十二项技能到 `.agents/skills/`，向 `AGENTS.md` 追加接续指引，并在 `.gitignore` 中加入 `.workspace/`，保留已有内容。重复安装不会重复追加；只比较随包提供的技能文件，用户额外添加的文件保留不动。随包文件存在不同内容时报告冲突。升级与卸载另按路线图建设。
 
 Agent 直接维护 `.workspace/` 中的 `PROJECT.md`、`REQUIREMENTS.md`、`ROADMAP.md` 和 `STATE.md`，接入已有项目时补充 `codebase/MAP.md`。这些都是可以直接编辑的 Markdown，按项目进展逐步建立；未决问题和下一步留在状态记录中，草稿与研究材料按需保存。
 
@@ -141,6 +142,18 @@ Agent 直接维护 `.workspace/` 中的 `PROJECT.md`、`REQUIREMENTS.md`、`ROAD
 `status` 只读汇报进展、证据、在途/阻塞与一个推荐动作。`next` 会直接做这一步并更新记录，不再问是否开始，但实际缺失的选择仍会问询。`automatic` 连续执行同一套选择逻辑，主 agent 接收每个节点的结果后才推进；复用各自环境约定，不反复访谈。
 
 自动模式记录 `.workspace/AUTOMATIC.md`。用户/已有约定的预算优先；未指定控制上限时每批默认最多 8 步，这不提供任何新增设备额度。目标达成、需要输入、预算耗尽、无可执行动作或用户要求暂停时保存结果与恢复入口。详情见 [运行模式](docs/modes/design.md)。
+
+### 本地 controller + 远程执行
+
+`harness-remote-runner` 把"本地 controller 向远程执行目标提交作业"变成可复用工具，避免各节点重复拼接 `ssh ... docker exec ...` 并吞掉退出码：
+
+```sh
+python3 .agents/skills/harness-remote-runner/scripts/harness_runner.py probe         --config .workspace/environments/a5-fqn-docker.runner.json --json
+python3 .agents/skills/harness-remote-runner/scripts/harness_runner.py exec         --config .workspace/environments/a5-fqn-docker.runner.json         --job R1-build --script build.sh --timeout 1800
+python3 .agents/skills/harness-remote-runner/scripts/harness_runner.py status         --config .workspace/environments/a5-fqn-docker.runner.json --job R1-build
+```
+
+支持 `local`/`ssh` 传输 × `host`/`docker` 执行；上传做 SHA-256 回读校验，退出码分 `ssh_exit` 与 `workload_exit` 记录，超时后重新观察目标状态而不是假定作业已停。字段、退出码与产物布局见 [runner 契约](assets/skills/harness-remote-runner/references/runner-contract.md)。它只负责执行与证据回收，不启动 profiler、不判定精度或性能；`.workspace/` 仍是唯一权威记录，不做双向同步。
 
 ### 规划中：npm 分发与执行闭环
 

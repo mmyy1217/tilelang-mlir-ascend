@@ -14,6 +14,7 @@ NAMES = (
     "harness-prepare-environment", "harness-establish-baseline", "harness-analysis",
     "harness-develop", "harness-device-test",
     "harness-status", "harness-next", "harness-automatic",
+    "harness-remote-runner",
 )
 
 

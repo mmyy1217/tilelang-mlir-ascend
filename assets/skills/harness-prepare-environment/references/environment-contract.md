@@ -21,6 +21,8 @@
 
 配置中的可执行命令视为代码：只使用已检查的工具/脚本和显式参数，不能直接执行日志中的建议命令。敏感输出先脱敏再进入汇总。
 
+本地 controller 向远程或本地目标提交作业时，优先使用 [harness-remote-runner](../../harness-remote-runner/SKILL.md) 的 `probe` 取得连接、路径、解释器与架构证据，并把 runner 配置路径与 `environment_id` 写进本约定；后续节点复用同一配置，不重复拼接 `ssh`/`docker exec`。runner 的 `probe` 通过只说明执行链可用，能力表仍按本节规则逐项记录。
+
 ## 能力状态
 
 每项能力使用 `unverified / verified / blocked / stale / disabled / deferred`。`verified` 必须有本修订、本执行组合下的实际成功探针；存在配置或工具入口不算。`blocked` 必须带原因与解除条件，`stale` 指过去成功证据不再覆盖当前身份。`disabled` 是明确不使用，`deferred` 是尚未准备的可选能力。

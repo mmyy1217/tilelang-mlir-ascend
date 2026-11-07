@@ -8,5 +8,7 @@
 实验前使用 `harness-prepare-environment` 问清并验证环境。上板与仿真各自保存使用约定，后续从 `.workspace/ENVIRONMENT.md` 读取各自绑定，不重复询问已有设置。环境就绪后，需要建立或更新正确性参考与性能标杆时使用 `harness-establish-baseline`，固定来源、case、协议和实测证据。标杆就绪后先用 `harness-analysis` 分析实现思路，再按 `analysis → develop → device-test → analysis …` 推进；后续 analysis 通过测试反馈、仿真和流水分析定位当前 kernel 问题。`test` 对应 `harness-device-test`；达成目标或遇到停止条件就收尾。只对当前动作必需的环境变化或验证失败补问，离线分析不强制运行仿真。
 允许同一会话连续完成多个节点；项目记录须足以让全新 agent 独立接续。按 `harness-resume` 的节点契约记录 TASK/RESULT；委派时仅传项目根和任务路径，子 agent 写所属产物，主 agent 汇总。单 agent 可自行完成执行与汇总。上下文过长时仅建议新开会话，不强制切换或因没有隔离工具阻塞；automatic 使用当前宿主的主/子 agent 协调能力，无委派工具可明确 inline 执行。
 
+需要在本机 controller 上向远程或本地执行目标提交构建、运行或采集作业时，使用 `harness-remote-runner`：先读已绑定的环境约定，写 runner 配置，用 `probe` 验证执行链，再 `exec` 提交并核对 `workload_exit`。`ssh_exit=0` 不能替代工作负载退出码；超时或状态未知先用 `status` 观察，不盲目重投。
+
 查看进展与建议使用 `harness-status`（只读）；直接推进一个下一步使用 `harness-next`；按目标和预算连续推进使用 `harness-automatic`。automatic 遇到真实缺口时问询、遇到完成或上限时收尾，不重复提交状态未知的作业。
 <!-- /operator-harness -->

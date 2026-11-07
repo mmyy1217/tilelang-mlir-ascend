@@ -19,6 +19,7 @@
 - 已完成：`harness` 分支初始化，建立 `.gitignore` 和 README。
 - 当前阶段：Codex 项目初始化 skills、本地源码安装器及性能采集方法/脚本已有实现；npm CLI、通用执行适配器与自动评测系统仍待建设。
 - 已补充 `harness-resume` 的实验记录与子 agent 交接流程，安装器接入项目 `AGENTS.md`。
+- 已提供 `harness-remote-runner`：本地 controller 向远程/本地 host 或 docker 目标提交有界作业，记录上传摘要、真实退出码、超时观察与产物回收，覆盖 local/remote × host/docker 的传输与执行两维；见 [runner 契约](../assets/skills/harness-remote-runner/references/runner-contract.md)。该 runner 只负责执行与证据回收，候选执行契约、MCP 与程序 gate 仍待建设。
 - 已补充 [五节点设计](nodes/design.md) 与环境准备、标杆建立、分析、算子编写、上板测试 skills；环境问询分别形成上板和仿真约定，后续各自复用。新增 [技能来源评估](nodes/skill-sources.md)。这些技能定义节点方法与交接方式；通用执行适配器、程序 gate 和任务级验收仍待建设。
 - 交接设计支持全新 agent 仅靠记录接续，同时允许同会话连续工作；补充六份节点模板和 [节点契约 v1](../assets/skills/harness-resume/references/node-contract.md)，明确问询中继、共享记录所有权和预算账本。已补充 [status/next/automatic](modes/design.md) 三项 skill 与有界宿主内协调；自动程序 gate、独立后台调度服务仍未实现。
 - 开发仅限 `harness` 及其派生分支，不修改其他分支。
@@ -35,7 +36,7 @@
 | --- | --- | --- |
 | M0 | 建立项目边界和开发文档入口 | 路线图初稿已建立 |
 | M1 | 定义算子任务、环境、标杆和工作流契约 | 五节点方法与模板已提供，程序化契约待建设 |
-| M2 | 跑通 TileLang 首个实卡闭环 | 节点 skills 与采集辅助脚本已提供，执行工具与程序验收待建设 |
+| M2 | 跑通 TileLang 首个实卡闭环 | 节点 skills、采集辅助脚本与有界远程 runner 已提供；候选执行契约与程序验收待建设 |
 | M3 | 支持 CLI 初始化和一个 agent 宿主 | Codex 初始化 skills 与源码安装器已实现；npm CLI 待建设 |
 | M4 | 扩展执行矩阵、仿真 MCP 与可选流水分析，完善恢复 | 待开始 |
 | M5 | 完成升级、卸载和首个独立发布版本 | 待开始 |
@@ -83,7 +84,9 @@
 
 #### 2. 随 harness 交付统一 runner
 
-当前 skill 方法与脚本继续作为验证基础；通用执行工具应通过适配层复用 Onboard/DeepJIT 能力并验证兼容性，覆盖普通内核编译、前台提交、精度/采集、状态查询、退出传播、回执与结果回收。可先提供函数或 CLI，再由 MCP 调用，不要求用户机器预装作者个人的上板 skill。
+已提供第一版 `harness-remote-runner`（`assets/skills/harness-remote-runner/`）：`probe / upload / exec / fetch / status / receipt` 六个子命令，支持 local/ssh 传输 × host/docker 执行，强制上传摘要校验、真实退出码回读、超时后状态观察与产物回收。尚未覆盖：候选执行契约（M2-1）、profiler/guard 内建、MCP 外层、以及除 `ssh + docker` 外各组合的真实验收。
+
+后续工作：当前 skill 方法与脚本继续作为验证基础；通用执行工具应通过适配层复用 Onboard/DeepJIT 能力并验证兼容性，覆盖普通内核编译、前台提交、精度/采集、状态查询、退出传播、回执与结果回收。可先提供函数或 CLI，再由 MCP 调用，不要求用户机器预装作者个人的上板 skill。
 
 - 用户配置连接、设备、路径和使用约定，不继承作者机器配置；本地/远程 × host/docker 分别适配。没有预装个人 skill 的干净项目也能完成最小编译、运行、比较和回收。
 - 运行工具固定私有目录与归档位置，独立保存 SSH/worker/设备作业退出码；避免各节点重复拼接 shell，验证退出码在不同shell中正确传播。

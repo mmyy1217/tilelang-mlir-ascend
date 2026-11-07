@@ -1,5 +1,6 @@
 # Local workspace and intermediate artifacts
 .workspace/
+.harness-runner/
 
 # Editors and IDEs
 .vscode/
