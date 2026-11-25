@@ -189,7 +189,7 @@ export const SearchAndKnowledgeInspector: React.FC<{
 
           <div className="hv-lineage-row">
             <div className="hv-lineage-item">
-              <span>关联搜索节点 (Nodes)：</span>
+              <span>产出节点：</span>
               {activeRev.nodes.map((nId) => {
                 const sn = search.searchNodes.find((x) => x.id === nId);
                 return (
@@ -598,6 +598,13 @@ export const SearchAndKnowledgeInspector: React.FC<{
           </span>
         </div>
 
+        {producedHotItems.map(h => {
+          const refs = h.latest.relatedNodes?.filter(id => id !== activeSearchNode.id);
+          return refs?.length ? <p key={h.id}>{h.id} 的对照与其他引用：{refs.map(id =>
+            <button key={id} className="hv-link-chip" onClick={() => onSelect({kind:'search-node',searchNodeId:id})}>
+              {id} · {search.searchNodes.find(n => n.id === id)?.hypothesis || id}
+            </button>)}</p> : null;
+        })}
         <h3>节点内实验</h3>
         <p>{activeSearchNode.runs.length} 条 Run · {activeSearchNode.loopCount == null ? '优化轮次未记录' : activeSearchNode.loopCount + ' 个已记录轮次'}</p>
         {activeSearchNode.runs.map(run => <button key={run.id} className="hv-link-chip" onClick={() =>

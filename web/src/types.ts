@@ -263,6 +263,7 @@ export interface SearchNodeView {
 }
 
 export interface HotKnowledgeRevisionView {
+  relatedNodes?: string[];
   id: string;
   revision: number;
   path: string;

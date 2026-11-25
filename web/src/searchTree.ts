@@ -336,6 +336,18 @@ export function applySearchTree(
               };
             })
           : [];
+        const relatedNodes: string[] = Array.isArray(obj.nodes) ? obj.nodes.map(String) : [];
+        const owners = new Set<string>();
+        for (const path of evidenceSources) {
+          const match = /^runs\/([^/]+)\/RESULT\.md$/.exec(path);
+          const run = match && rawRuns[match[1]];
+          if (run && recordPath(run.result?.path) === path && matchesReference(run.result) &&
+              evidence.some((ev: {sourcePath:string; sha256:string}) => ev.sourcePath === path && ev.sha256 === run.result.sha256)) {
+            owners.add(run.search_node_id);
+          }
+        }
+        const inferred = owners.size === 1 ? [...owners][0] : relatedNodes.length === 1 ? relatedNodes[0] : undefined;
+        const producer = obj.producer_node_id || inferred;
         revisions.push({
           id: String(obj.id || hotId),
           revision: Number(obj.revision) || revisions.length + 1,
@@ -345,7 +357,8 @@ export function applySearchTree(
           statement: String(obj.statement || ''),
           applicability: String(obj.applicability || ''),
           limitations: String(obj.limitations || ''),
-          nodes: Array.isArray(obj.nodes) ? obj.nodes.map(String) : [],
+          nodes: producer && relatedNodes.includes(producer) && nodesMap.has(producer) ? [producer] : [],
+          relatedNodes,
           evidence,
           evidenceSources,
         });

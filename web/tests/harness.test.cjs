@@ -155,7 +155,7 @@ test('search tree, hot knowledge revisions, cooled knowledge inputs and promotio
   }),
   [evPath]:'maxAbsDiff=0.00051, latency=192.4us',
   [hotPath1]:JSON.stringify({id:'H1',revision:1,kind:'observation',statement:'初版搬运等待占比 50%',applicability:'M=2048',limitations:'仅单核',nodes:['N0'],evidence:[{path:`.workspace/${evPath}`,sha256:'a'.repeat(64)}],evidence_sources:['.workspace/runs/A1/RESULT.md']}),
-  [hotPath2]:JSON.stringify({id:'H1',revision:2,kind:'conclusion',statement:'增大 L1 复用并结合双缓冲可隐藏 MTE2 等待',applicability:'M>=1024',limitations:'需 L1 容量充足',nodes:['N0','N1'],evidence:[{path:`.workspace/${evPath}`,sha256:'a'.repeat(64)}],evidence_sources:['.workspace/runs/T2/RESULT.md']}),
+  [hotPath2]:JSON.stringify({id:'H1',revision:2,producer_node_id:'N1',kind:'conclusion',statement:'增大 L1 复用并结合双缓冲可隐藏 MTE2 等待',applicability:'M>=1024',limitations:'需 L1 容量充足',nodes:['N0','N1'],evidence:[{path:`.workspace/${evPath}`,sha256:'a'.repeat(64)}],evidence_sources:['.workspace/runs/T2/RESULT.md']}),
   [cooledPath1]:JSON.stringify({schema:'operator-harness/cooled@1',id:'K0',version:'v1',status:'needs_revalidation',kind:'conclusion',statement:'Ascend 910B Cube 基本分块对齐约束',applicability:'FP16 Matmul',limitations:'不含动态尾块',evidence_summary:'基线验证',reason:'CANN 升级待复核'}),
   [cooledPath2]:JSON.stringify({schema:'operator-harness/cooled@1',id:'H1',version:'review-1',status:'active',kind:'conclusion',statement:'增大 L1 复用并结合双缓冲可隐藏 MTE2 等待',applicability:'M>=1024',limitations:'需 L1 容量充足',evidence_summary:'T2 实测确认',provenance:{operator:'matmul',task_contract:'req-v1',hot_id:'H1',revision:2,hot_sha256:'a'.repeat(64),nodes:['N0','N1']},review:{id:'review-1',reviewer:'arch-lead',reviewed_at:'2026-11-03T11:00:00Z',delivery:'.workspace/decisions/review-1.md'}}),
  };
@@ -169,6 +169,7 @@ test('search tree, hot knowledge revisions, cooled knowledge inputs and promotio
  assert.deepEqual(n0.childrenIds,['N1']);
  assert.equal(n1.depth,1);
  assert.deepEqual(n1.usedCooledIds,['K0--v1']);
+ assert.deepEqual(n0.hotKnowledgeIds,[]);
  assert.deepEqual(n1.hotKnowledgeIds,['H1']);
  assert.equal(s.hotKnowledge.length,1);
  assert.equal(s.hotKnowledge[0].revisions.length,2);
