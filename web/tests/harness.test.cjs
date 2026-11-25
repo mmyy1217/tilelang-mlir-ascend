@@ -52,13 +52,15 @@ test('candidate tree branches by candidate ancestry; retests do not create nodes
  assert.match(e.resources['@agent/observations.md'].content,/\[STATE.md\]\(STATE.md\)/);
  assert.equal(m.warnings.length,0);
 });
-test('analysis may diagnose a parent and inform two children, while project Runs stay outside the tree',()=>{
- const e=harnessExploration(branching(),{});
- for(const id of ['C1','C2','C3'])assert.ok(e.nodes.find(n=>n.id===id).stages.plan_idea.attempts.some(a=>a.id==='A2'));
+test('proposal analysis binds to the child candidates it produces, while project Runs stay outside the tree',()=>{
+ const m=branching();run(m,'Adiag','analysis',undefined,'C1');
+ const e=harnessExploration(m,{});
+ assert.deepEqual(e.nodes.find(n=>n.id==='C1').stages.plan_idea.attempts.map(a=>a.id),['A1','Adiag']);
+ for(const id of ['C2','C3'])assert.ok(e.nodes.find(n=>n.id===id).stages.plan_idea.attempts.some(a=>a.id==='A2'));
  const project=e.nodes.find(n=>n.harness.kind==='workspace');
  assert.deepEqual(project.harness.runIds,['E1']);
  assert.equal(e.graphRelations.some(r=>r.sourceId===project.id||r.targetId===project.id),false);
- for(const id of ['C1','C2','C3'])assert.ok(e.resourceLinks.some(l=>l.nodeId===id&&l.resourceVersionId==='runs/A2/RESULT.md'));
+ for(const id of ['C2','C3'])assert.ok(e.resourceLinks.some(l=>l.nodeId===id&&l.resourceVersionId==='runs/A2/RESULT.md'));
 });
 test('TASK input table binds a test to a candidate; prose and parent_run cannot invent membership',()=>{
  const m=branching();run(m,'T4','device-test','runs/D2/RESULT.md');run(m,'T5','device-test','runs/D2/RESULT.md');
@@ -107,4 +109,97 @@ test('synthetic measurements require explicit opt-in, preserve failed branches a
  assert.equal(harnessExploration(m,unmarked).bestValidNodeId,'');
  const wrongRun={...contents,[good]:JSON.stringify({...JSON.parse(contents[good]),runId:'T99'})};
  assert.equal(harnessExploration(m,wrongRun).nodes.find(n=>n.id==='C2').latencyUs,undefined);
+});
+
+test('search tree, hot knowledge revisions, cooled knowledge inputs and promotions parse with relational links',()=>{
+ const m=branching();
+ const treePath='search/tree.json';
+ const hotPath1='knowledge/hot/H1/rev1.json';
+ const hotPath2='knowledge/hot/H1/rev2.json';
+ const evPath='knowledge/evidence/ev1.snapshot';
+ const cooledPath1='knowledge/cooled/K0--v1.json';
+ const cooledPath2='knowledge/cooled/H1--review-1.json';
+ for(const path of [treePath,hotPath1,hotPath2,evPath,cooledPath1,cooledPath2]){
+  m.manifest.files.push({path,status:'copied',text:true,sizeBytes:20,sha256:'a'.repeat(64)});
+ }
+ const contents={
+  [treePath]:JSON.stringify({
+   schema:'operator-harness/search@1',
+   operator:'matmul',
+   task_contract:'req-v1',
+   current_node:'N1',
+   nodes:{
+    N0:{parent:null,hypothesis:'初始分块',scope:'建立可比初版',status:'closed'},
+    N1:{parent:'N0',hypothesis:'双缓冲与复用',scope:'L1/L0 流水',status:'open'},
+   },
+   candidates:{
+    C1:{search_node_id:'N0',parent_candidate:null,manifest:{path:'.workspace/runs/D1/CANDIDATE.md',sha256:'C1'}},
+    C2:{search_node_id:'N1',parent_candidate:'C1',manifest:{path:'.workspace/runs/D2/CANDIDATE.md',sha256:'C2'}},
+   },
+   runs:{
+    A1:{search_node_id:'N0',stage:'analysis',candidate_id:null},
+    D1:{search_node_id:'N0',stage:'develop',candidate_id:'C1'},
+    A2:{search_node_id:'N1',stage:'analysis',candidate_id:'C1'},
+    D2:{search_node_id:'N1',stage:'develop',candidate_id:'C2'},
+    T2:{search_node_id:'N1',stage:'device-test',candidate_id:'C2'},
+   },
+   hot:{
+    H1:[{path:`.workspace/${hotPath1}`,sha256:'a'.repeat(64)},{path:`.workspace/${hotPath2}`,sha256:'a'.repeat(64)}],
+   },
+   cooled_inputs:[
+    {search_node_id:'N1',artifact:{path:cooledPath1,sha256:'a'.repeat(64)},reason:'遵循基线分块约束'},
+   ],
+   events:[
+    {at:'2026-11-03T10:00:00Z',operation:{event_id:'ev-1',op:'bootstrap',root_id:'N0',operator:'matmul'}},
+   ],
+  }),
+  [evPath]:'maxAbsDiff=0.00051, latency=192.4us',
+  [hotPath1]:JSON.stringify({id:'H1',revision:1,kind:'observation',statement:'初版搬运等待占比 50%',applicability:'M=2048',limitations:'仅单核',nodes:['N0'],evidence:[{path:`.workspace/${evPath}`,sha256:'a'.repeat(64)}],evidence_sources:['.workspace/runs/A1/RESULT.md']}),
+  [hotPath2]:JSON.stringify({id:'H1',revision:2,kind:'conclusion',statement:'增大 L1 复用并结合双缓冲可隐藏 MTE2 等待',applicability:'M>=1024',limitations:'需 L1 容量充足',nodes:['N0','N1'],evidence:[{path:`.workspace/${evPath}`,sha256:'a'.repeat(64)}],evidence_sources:['.workspace/runs/T2/RESULT.md']}),
+  [cooledPath1]:JSON.stringify({schema:'operator-harness/cooled@1',id:'K0',version:'v1',status:'needs_revalidation',kind:'conclusion',statement:'Ascend 910B Cube 基本分块对齐约束',applicability:'FP16 Matmul',limitations:'不含动态尾块',evidence_summary:'基线验证',reason:'CANN 升级待复核'}),
+  [cooledPath2]:JSON.stringify({schema:'operator-harness/cooled@1',id:'H1',version:'review-1',status:'active',kind:'conclusion',statement:'增大 L1 复用并结合双缓冲可隐藏 MTE2 等待',applicability:'M>=1024',limitations:'需 L1 容量充足',evidence_summary:'T2 实测确认',provenance:{operator:'matmul',task_contract:'req-v1',hot_id:'H1',revision:2,hot_sha256:'a'.repeat(64),nodes:['N0','N1']},review:{id:'review-1',reviewer:'arch-lead',reviewed_at:'2026-11-03T11:00:00Z',delivery:'.workspace/decisions/review-1.md'}}),
+ };
+ const e=harnessExploration(m,contents);
+ const s=e.harness.search;
+ assert.ok(s);
+ assert.equal(s.synthetic,undefined);
+ assert.equal(s.currentNodeId,'N1');
+ assert.equal(s.searchNodes.length,2);
+ const n0=s.searchNodes.find(n=>n.id==='N0'),n1=s.searchNodes.find(n=>n.id==='N1');
+ assert.deepEqual(n0.childrenIds,['N1']);
+ assert.equal(n1.depth,1);
+ assert.deepEqual(n1.usedCooledIds,['K0--v1']);
+ assert.deepEqual(n1.hotKnowledgeIds,['H1']);
+ assert.equal(s.hotKnowledge.length,1);
+ assert.equal(s.hotKnowledge[0].revisions.length,2);
+ assert.equal(s.hotKnowledge[0].latest.revision,2);
+ assert.equal(s.hotKnowledge[0].promotedCooledId,'H1--review-1');
+ assert.equal(s.hotKnowledge[0].latest.evidence[0].content,'maxAbsDiff=0.00051, latency=192.4us');
+ assert.equal(s.cooledKnowledge.length,2);
+ assert.ok(e.harness.warnings.some(w=>w.kind==='cooled_knowledge_status'));
+});
+
+
+
+test('index-only runs remain unknown even when the index claims completion',()=>{
+ const m=model();m.runs=[];
+ const e=harnessExploration(m,{'search/tree.json':JSON.stringify({schema:'operator-harness/search@1',nodes:{N0:{}},runs:{R9:{search_node_id:'N0',stage:'device-test',status:'completed'}}})});
+ assert.equal(e.harness.search.searchNodes[0].runs[0].status,'unknown');
+ assert.ok(e.harness.warnings.some(w=>w.kind==='unarchived_search_run'));
+});
+
+test('cooled references must match the captured version before creating links',()=>{
+ const path='knowledge/cooled/K1.json';
+ for(const digest of ['a'.repeat(64),'b'.repeat(64),'']){
+  const m=model();m.manifest.files.push({path,status:'copied',text:true,sha256:'a'.repeat(64)});
+  const e=harnessExploration(m,{
+   'search/tree.json':JSON.stringify({schema:'operator-harness/search@1',nodes:{N0:{}},cooled_inputs:[{search_node_id:'N0',artifact:{path,sha256:digest}}]}),
+   [path]:JSON.stringify({schema:'operator-harness/cooled@1',id:'K1',version:'v1',status:'active'})
+  });
+  const valid=digest==='a'.repeat(64);
+  assert.equal(e.harness.search.searchNodes[0].usedCooledIds.length,valid?1:0);
+  assert.equal(e.harness.search.cooledKnowledge[0].usedByNodes.length,valid?1:0);
+  assert.equal(e.harness.warnings.some(w=>w.kind==='cooled_input_digest_mismatch'),!valid);
+  assert.ok(e.resources[path]);
+ }
 });

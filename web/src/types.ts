@@ -144,7 +144,7 @@ export interface StageRecord {
 
 export interface NodeRecord {
   stageMetas?: StageMeta[];
-  harness?: {measurementCaseCount?:number; measurementPath?:string; synthetic?:boolean; recordedStatus: string; kind?: 'candidate' | 'workspace'; manifestPath?: string; runIds?: string[]};
+  harness?: {searchNodeId?:string; measurementCaseCount?:number; measurementPath?:string; synthetic?:boolean; recordedStatus: string; kind?: 'candidate' | 'workspace'; manifestPath?: string; runIds?: string[]};
   id: string;
   explorationId: string;
   parentId: string | null; // Legacy snapshot compatibility
@@ -226,8 +226,125 @@ export interface GraphRelation {
   knowledgeVersion?: string;
   evidenceAttemptIds?: string[];
 }
+
+export type SearchNodeStatus = 'open' | 'parked' | 'closed';
+export type KnowledgeItemKind = 'observation' | 'hypothesis' | 'conclusion';
+export type CooledKnowledgeStatus = 'active' | 'needs_revalidation' | 'superseded';
+
+export interface SearchRunEntry {
+  id: string;
+  searchNodeId: string;
+  stage: string;
+  candidateId: string | null;
+  operation: string;
+  status: string;
+  createdAt?: string;
+  parentRun?: string;
+  taskPath?: string;
+  resultPath?: string;
+  measurementPath?: string;
+  files: string[];
+}
+
+export interface SearchNodeView {
+  id: string;
+  parentId: string | null;
+  childrenIds: string[];
+  depth: number;
+  hypothesis: string;
+  scope: string;
+  status: SearchNodeStatus;
+  isCurrent: boolean;
+  runs: SearchRunEntry[];
+  candidateIds: string[];
+  loopCount: number;
+  usedCooledIds: string[];
+  hotKnowledgeIds: string[];
+}
+
+export interface HotKnowledgeRevisionView {
+  id: string;
+  revision: number;
+  path: string;
+  sha256: string;
+  kind: KnowledgeItemKind;
+  statement: string;
+  applicability: string;
+  limitations: string;
+  nodes: string[];
+  evidence: { path: string; sha256: string; sourcePath?: string; content?: string }[];
+  evidenceSources: string[];
+}
+
+export interface HotKnowledgeView {
+  id: string;
+  latest: HotKnowledgeRevisionView;
+  revisions: HotKnowledgeRevisionView[];
+  promotedCooledId?: string;
+}
+
+export interface CooledKnowledgeInputUsage {
+  searchNodeId: string;
+  reason: string;
+  artifactPath: string;
+  sha256: string;
+}
+
+export interface CooledKnowledgeView {
+  documentPath?: string;
+  id: string;
+  version: string;
+  fullKey: string;
+  path: string;
+  sha256: string;
+  status: CooledKnowledgeStatus;
+  kind: KnowledgeItemKind;
+  statement: string;
+  applicability: string;
+  limitations: string;
+  evidenceSummary: string;
+  provenance?: {
+    operator: string;
+    taskContract: string;
+    hotId: string;
+    revision: number;
+    hotSha256: string;
+    nodes: string[];
+  };
+  review?: {
+    id: string;
+    reviewer: string;
+    reviewedAt: string;
+    delivery: string;
+  };
+  supersedesSha256?: string;
+  invalidationReason?: string;
+  usedByNodes: CooledKnowledgeInputUsage[];
+}
+
+export interface SearchEventView {
+  at: string;
+  eventId: string;
+  op: string;
+  summary: string;
+  raw: Record<string, unknown>;
+}
+
+export interface HarnessSearchView {
+  schema: string;
+  synthetic?: boolean;
+  operator: string;
+  taskContract: string;
+  currentNodeId: string | null;
+  searchNodes: SearchNodeView[];
+  crossLinks?: { source: string; target: string }[];
+  hotKnowledge: HotKnowledgeView[];
+  cooledKnowledge: CooledKnowledgeView[];
+  events: SearchEventView[];
+}
+
 export interface Exploration {
-  harness?: {measurements?:MeasurementCollection; synthetic?:boolean; snapshotId:string;capturedAt:string;consistency:string;runCount:number;warnings:{kind:string;message:string;paths:string[]}[]};
+  harness?: {search?:HarnessSearchView; measurements?:MeasurementCollection; synthetic?:boolean; snapshotId:string;capturedAt:string;consistency:string;runCount:number;warnings:{kind:string;message:string;paths:string[]}[]};
   graphRelations?: GraphRelation[];
   forkSource?: { explorationId: string; title: string; eventSeq: number; capturedAt: string };
   id: string;

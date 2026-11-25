@@ -1,0 +1,192 @@
+{
+  "model": {
+    "schema": "harness-vis/model@1",
+    "snapshotId": "20261105T072741-fa76608d",
+    "projectId": "342c906cc77f5132",
+    "projectName": "project",
+    "capturedAt": "2026-11-05T07:27:41.632448+00:00",
+    "consistency": "checked",
+    "records": [
+      {
+        "id": "ENVIRONMENT.md",
+        "path": "ENVIRONMENT.md",
+        "kind": "environment",
+        "runId": null,
+        "title": "节点环境索引",
+        "fields": {
+          "contract": "operator-harness/environment-index@1",
+          "revision": "1"
+        },
+        "sha256": "3ea5e4d0ed90f96b14b1594b5c5c410bbbfb11c0651047e1562b44e0b7902238"
+      },
+      {
+        "id": "PROJECT.md",
+        "path": "PROJECT.md",
+        "kind": "project",
+        "runId": null,
+        "title": "原生 Harness 协议验收",
+        "fields": {},
+        "sha256": "a91eec71d9a0ed6e9615908af6605c32fb25de7971c7f7f41df995446f1fa941"
+      },
+      {
+        "id": "STATE.md",
+        "path": "STATE.md",
+        "kind": "state",
+        "runId": null,
+        "title": "当前状态",
+        "fields": {},
+        "sha256": "250ee9d06cf601f7d450347eaa9bd925448a9903b5bd061c4747b0b7301bc6d0"
+      },
+      {
+        "id": "environments/sim.md",
+        "path": "environments/sim.md",
+        "kind": "environment",
+        "runId": null,
+        "title": "仿真环境",
+        "fields": {
+          "contract": "operator-harness/environment@1",
+          "environment_id": "sim",
+          "role": "simulation",
+          "revision": "1"
+        },
+        "sha256": "7cf58a51a7056c45f9b59d2db414b2d77908170b7217eb40e57a5a15371191a2"
+      },
+      {
+        "id": "runs/R1/RESULT.md",
+        "path": "runs/R1/RESULT.md",
+        "kind": "result",
+        "runId": "R1",
+        "title": "调查检查点",
+        "fields": {
+          "contract": "operator-harness/node-result@1",
+          "run_id": "R1",
+          "node": "analysis",
+          "search_node_id": "N0",
+          "status": "completed",
+          "updated_at": "2026-11-04T00:01:00Z"
+        },
+        "sha256": "0f58e09451ea26d6dd4958f34d0b512f5f740db8300cd7122736db9dcbf89a21"
+      },
+      {
+        "id": "runs/R1/TASK.md",
+        "path": "runs/R1/TASK.md",
+        "kind": "task",
+        "runId": "R1",
+        "title": "仿真接口调查",
+        "fields": {
+          "contract": "operator-harness/node-task@1",
+          "run_id": "R1",
+          "node": "analysis",
+          "search_node_id": "N0",
+          "operation": "读取仿真约定",
+          "created_at": "2026-11-04T00:00:00Z"
+        },
+        "sha256": "73a5ee48ca8f2deda522b6a33b7c6ee2552b069945f134871cbba1040f2e4b49"
+      }
+    ],
+    "runs": [
+      {
+        "id": "R1",
+        "node": "analysis",
+        "operation": "读取仿真约定",
+        "status": "completed",
+        "createdAt": "2026-11-04T00:00:00Z",
+        "parentRun": null,
+        "records": [
+          "runs/R1/RESULT.md",
+          "runs/R1/TASK.md"
+        ],
+        "taskPath": "runs/R1/TASK.md",
+        "resultPath": "runs/R1/RESULT.md"
+      }
+    ],
+    "warnings": [],
+    "annotations": [],
+    "manifest": {
+      "files": [
+        {
+          "path": "ENVIRONMENT.md",
+          "sizeBytes": 216,
+          "modifiedNs": 1793863661619124809,
+          "status": "copied",
+          "sha256": "3ea5e4d0ed90f96b14b1594b5c5c410bbbfb11c0651047e1562b44e0b7902238",
+          "text": true
+        },
+        {
+          "path": "PROJECT.md",
+          "sizeBytes": 92,
+          "modifiedNs": 1793863661618948593,
+          "status": "copied",
+          "sha256": "a91eec71d9a0ed6e9615908af6605c32fb25de7971c7f7f41df995446f1fa941",
+          "text": true
+        },
+        {
+          "path": "STATE.md",
+          "sizeBytes": 59,
+          "modifiedNs": 1793863661619050284,
+          "status": "copied",
+          "sha256": "250ee9d06cf601f7d450347eaa9bd925448a9903b5bd061c4747b0b7301bc6d0",
+          "text": true
+        },
+        {
+          "path": "environments/sim.md",
+          "sizeBytes": 306,
+          "modifiedNs": 1793863661619197693,
+          "status": "copied",
+          "sha256": "7cf58a51a7056c45f9b59d2db414b2d77908170b7217eb40e57a5a15371191a2",
+          "text": true
+        },
+        {
+          "path": "knowledge/hot/H1/c6edde73e368676e2a423e6d2d430ff92e6884ff65f620b8c57291975fd04f41.json",
+          "sizeBytes": 374,
+          "modifiedNs": 1793863628652905344,
+          "status": "copied",
+          "sha256": "c6edde73e368676e2a423e6d2d430ff92e6884ff65f620b8c57291975fd04f41",
+          "text": true
+        },
+        {
+          "path": "runs/R1/RESULT.md",
+          "sizeBytes": 497,
+          "modifiedNs": 1793863661620649186,
+          "status": "copied",
+          "sha256": "0f58e09451ea26d6dd4958f34d0b512f5f740db8300cd7122736db9dcbf89a21",
+          "text": true
+        },
+        {
+          "path": "runs/R1/TASK.md",
+          "sizeBytes": 321,
+          "modifiedNs": 1793863661619268369,
+          "status": "copied",
+          "sha256": "73a5ee48ca8f2deda522b6a33b7c6ee2552b069945f134871cbba1040f2e4b49",
+          "text": true
+        },
+        {
+          "path": "search/.lock",
+          "sizeBytes": 0,
+          "modifiedNs": 1793863628629948277,
+          "status": "copied",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "text": false
+        },
+        {
+          "path": "search/tree.json",
+          "sizeBytes": 2072,
+          "modifiedNs": 1793863628659594467,
+          "status": "copied",
+          "sha256": "fcc74163a1bea1b052cfe665c7485d8172d9e849baa711e8380e75ebb6e11487",
+          "text": true
+        }
+      ]
+    }
+  },
+  "contents": {
+    "ENVIRONMENT.md": "# 节点环境索引\n\n- contract: operator-harness/environment-index@1\n- revision: 1\n\n| 角色 | 约定路径及修订 | 能力 |\n| --- | --- | --- |\n| simulation | .workspace/environments/sim.md rev1 | unverified |\n",
+    "PROJECT.md": "# 原生 Harness 协议验收\n\n没有运行设备或仿真，仅检查原生接口读取。\n",
+    "STATE.md": "# 当前状态\n\n当前搜索节点 N0。无性能结果。\n",
+    "environments/sim.md": "# 仿真环境\n\n- contract: operator-harness/environment@1\n- environment_id: sim\n- role: simulation\n- revision: 1\n\n## 执行链与身份\n\nSKU、CANN、TVM、TileLang 与模拟器版本均未探测，本夹具禁止执行。\n\n## 能力证据\n\n| 能力 | 状态 |\n| --- | --- |\n| 仿真运行 | unverified |\n",
+    "knowledge/hot/H1/c6edde73e368676e2a423e6d2d430ff92e6884ff65f620b8c57291975fd04f41.json": "{\n  \"applicability\": \"协议读取夹具\",\n  \"evidence\": [\n    {\n      \"path\": \".workspace/runs/R1/RESULT.md\",\n      \"sha256\": \"0f58e09451ea26d6dd4958f34d0b512f5f740db8300cd7122736db9dcbf89a21\"\n    }\n  ],\n  \"id\": \"H1\",\n  \"kind\": \"observation\",\n  \"limitations\": \"不能推断性能\",\n  \"nodes\": [\n    \"N0\"\n  ],\n  \"revision\": 1,\n  \"statement\": \"当前仿真能力未验证\"\n}\n",
+    "runs/R1/RESULT.md": "# 调查检查点\n\n- contract: operator-harness/node-result@1\n- run_id: R1\n- node: analysis\n- search_node_id: N0\n- status: completed\n- updated_at: 2026-11-04T00:01:00Z\n\n## 结果与证据\n\n| 项目 | 判定 | 证据 |\n| --- | --- | --- |\n| 编译 | not_run | 未执行 |\n| 精度 | not_run | 未执行 |\n| 性能目标 | not_run | 仿真输出格式由环境约定指定，未测量 |\n| 采集完整性 | passed | 调查记录完整 |\n\n## 作业、资源与预算\n\nnone；未提交任何作业。\n",
+    "runs/R1/TASK.md": "# 仿真接口调查\n\n- contract: operator-harness/node-task@1\n- run_id: R1\n- node: analysis\n- search_node_id: N0\n- operation: 读取仿真约定\n- created_at: 2026-11-04T00:00:00Z\n\n## 权限、预算与归属\n\n- 本节点环境绑定及快照：simulation sim rev1 .workspace/environments/sim.md\n- 允许操作：只读\n",
+    "search/tree.json": "{\n  \"candidates\": {},\n  \"cooled_inputs\": [],\n  \"current_node\": \"N0\",\n  \"events\": [\n    {\n      \"at\": \"2026-11-05T07:27:08.638627+00:00\",\n      \"operation\": {\n        \"candidate_id\": null,\n        \"event_id\": \"run-1\",\n        \"id\": \"R1\",\n        \"op\": \"run\",\n        \"search_node_id\": \"N0\",\n        \"stage\": \"analysis\",\n        \"task\": \".workspace/runs/R1/TASK.md\"\n      }\n    },\n    {\n      \"at\": \"2026-11-05T07:27:08.645791+00:00\",\n      \"operation\": {\n        \"event_id\": \"accept-1\",\n        \"id\": \"R1\",\n        \"op\": \"accept\",\n        \"result\": \".workspace/runs/R1/RESULT.md\"\n      }\n    },\n    {\n      \"at\": \"2026-11-05T07:27:08.659427+00:00\",\n      \"operation\": {\n        \"applicability\": \"协议读取夹具\",\n        \"base_revision\": 0,\n        \"event_id\": \"hot-1\",\n        \"evidence\": [\n          \".workspace/runs/R1/RESULT.md\"\n        ],\n        \"id\": \"H1\",\n        \"kind\": \"observation\",\n        \"limitations\": \"不能推断性能\",\n        \"nodes\": [\n          \"N0\"\n        ],\n        \"op\": \"hot\",\n        \"statement\": \"当前仿真能力未验证\"\n      }\n    }\n  ],\n  \"hot\": {\n    \"H1\": [\n      {\n        \"path\": \".workspace/knowledge/hot/H1/c6edde73e368676e2a423e6d2d430ff92e6884ff65f620b8c57291975fd04f41.json\",\n        \"sha256\": \"c6edde73e368676e2a423e6d2d430ff92e6884ff65f620b8c57291975fd04f41\"\n      }\n    ]\n  },\n  \"nodes\": {\n    \"N0\": {\n      \"hypothesis\": \"检查仿真记录展示\",\n      \"parent\": null,\n      \"scope\": \"无硬件执行\",\n      \"status\": \"open\"\n    }\n  },\n  \"operator\": \"原生协议验收夹具（非设备实验）\",\n  \"runs\": {\n    \"R1\": {\n      \"candidate_id\": null,\n      \"result\": {\n        \"path\": \".workspace/runs/R1/RESULT.md\",\n        \"sha256\": \"0f58e09451ea26d6dd4958f34d0b512f5f740db8300cd7122736db9dcbf89a21\"\n      },\n      \"search_node_id\": \"N0\",\n      \"stage\": \"analysis\",\n      \"task\": {\n        \"path\": \".workspace/runs/R1/TASK.md\",\n        \"sha256\": \"73a5ee48ca8f2deda522b6a33b7c6ee2552b069945f134871cbba1040f2e4b49\"\n      }\n    }\n  },\n  \"schema\": \"operator-harness/search@1\",\n  \"task_contract\": \"requirements-v1\"\n}\n"
+  }
+}

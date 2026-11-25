@@ -93,7 +93,8 @@ export function applyMeasurements(exp:Exploration,contents:Record<string,string>
    view.correctnessPassed=view.cases.every(c=>c.accuracy==='passed');
    view.complete=view.correctnessPassed&&view.cases.every(c=>c.samplesUs.length===protocolData.repeatRuns);
    view.group=JSON.stringify([report.synthetic,environment.sha256,referenceImpl.sha256,caseSet.sha256,protocol.sha256]);
-   view.valid=true;view.comparisonReason=view.complete?'尚未选择可比基线':'必选 case 未全部通过或未完成采样';
+   const failedCases=view.cases.filter(c=>c.accuracy==='failed');
+   view.valid=true;view.comparisonReason=view.complete?'尚未选择可比基线':failedCases.length?`精度未通过（${failedCases.map(c=>c.id).join(', ')} 误差超限）`:'必选 case 未完成全部采样';
   }catch(error){view.issues.push(String(error));view.comparisonReason='记录校验失败';}
   if(exp.resources[view.path]){exp.resources[view.path].measurementData=view;exp.resources[view.path].category='experiment';}
  }
@@ -108,7 +109,7 @@ export function applyMeasurements(exp:Exploration,contents:Record<string,string>
  for(const report of collection.reports){
   if(!report.valid)continue;
   if(!baseline){report.comparisonReason='未配置有效基线';continue;}
-  if(report.group!==baseline.group){report.comparisonReason='与基线的模拟标记、环境、参考、case 集或计时协议不一致';continue;}
+  if(report.group!==baseline.group){report.comparisonReason='计时边界或测试协议与基线不一致，不参与排名';continue;}
   if(!report.complete)continue;
   for(const c of report.cases)c.speedup=baseline.cases.find(b=>b.id===c.id)!.medianUs!/c.medianUs!;
   const speedup=Math.exp(report.cases.reduce((sum,c)=>sum+Math.log(c.speedup!),0)/report.cases.length);

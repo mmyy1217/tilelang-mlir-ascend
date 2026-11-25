@@ -20,7 +20,7 @@ import uuid
 from datetime import datetime, timezone
 
 SCHEMA = 'harness-vis/snapshot@1'
-TEXT_EXTENSIONS = {'.md', '.txt', '.json', '.yaml', '.yml', '.py', '.csv', '.log', '.toml', '.sh', '.mlir'}
+TEXT_EXTENSIONS = {'.md', '.txt', '.json', '.yaml', '.yml', '.py', '.csv', '.log', '.toml', '.sh', '.mlir', '.snapshot'}
 EXCLUDED = {'.git', '.venv', 'node_modules', '__pycache__', '.env', '.aws', '.ssh'}
 
 def now():
@@ -43,27 +43,42 @@ def safe_path(root, relative):
 
 def inventory(root):
     result = {}
-    for directory, dirs, files in os.walk(root, followlinks=False):
-        dirs[:] = sorted(d for d in dirs if d not in EXCLUDED and not d.startswith('.env'))
-        # Record symlink directories, but never traverse them.
-        for name in list(dirs):
-            path = Path(directory) / name
-            if path.is_symlink():
-                files.append(name)
-                dirs.remove(name)
-        for name in sorted(files):
-            path = Path(directory) / name
-            rel = path.relative_to(root).as_posix()
-            try:
-                info = path.lstat()
-                result[rel] = (info.st_size, info.st_mtime_ns, info.st_mode)
-            except FileNotFoundError:
-                continue
+    roots = [(root, root)]
+    if root.name == '.workspace':
+        cooled_root = root.parent / 'knowledge' / 'cooled'
+        if (
+            (root.parent / 'knowledge').exists()
+            and not (root.parent / 'knowledge').is_symlink()
+            and cooled_root.is_dir()
+            and not cooled_root.is_symlink()
+        ):
+            roots.append((cooled_root, root.parent))
+    for scan_root, base_root in roots:
+        for directory, dirs, files in os.walk(scan_root, followlinks=False):
+            skip = EXCLUDED
+            if root.parent.name == '.workspace' and Path(directory) == root:
+                skip = EXCLUDED | {'repos', 'sources', 'builds'}
+            dirs[:] = sorted(d for d in dirs if d not in skip and not d.startswith('.env'))
+            # Record symlink directories, but never traverse them.
+            for name in list(dirs):
+                path = Path(directory) / name
+                if path.is_symlink():
+                    files.append(name)
+                    dirs.remove(name)
+            for name in sorted(files):
+                path = Path(directory) / name
+                rel = path.relative_to(base_root).as_posix()
+                try:
+                    info = path.lstat()
+                    result[rel] = (info.st_size, info.st_mtime_ns, info.st_mode)
+                except FileNotFoundError:
+                    continue
     return result
 
 def read_regular(root, relative, limit):
     # Reject symlink ancestors as well as final components, including during capture races.
-    fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    open_root = root.parent if (root.name == '.workspace' and relative.startswith('knowledge/cooled/') and not (root / relative).exists()) else root
+    fd = os.open(open_root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
         parts = Path(relative).parts
         for part in parts[:-1]:
@@ -91,6 +106,7 @@ def fields(text):
 
 def make_model(snapshot, manifest):
     records = []
+    warnings = list(manifest['warnings'])
     for file in manifest['files']:
         if file['status'] != 'copied' or not file.get('text'):
             continue
@@ -99,6 +115,23 @@ def make_model(snapshot, manifest):
             continue
         content = (snapshot / 'workspace' / path).read_text(encoding='utf-8')
         meta = fields(content)
+        contract = meta.get('contract', '')
+        if contract.startswith('operator-harness/'):
+            header = content.split('\n## ', 1)[0]
+            meta = fields(header)
+            supported = {'node-task', 'node-result', 'candidate', 'baseline', 'environment', 'environment-index'}
+            known = {f'operator-harness/{name}@1' for name in supported}
+            if manifest.get('harnessProjectKey') and meta.get('project_id') == manifest['harnessProjectKey']:
+                known.update(f'operator-harness/{name}@4' for name in ('node-task', 'node-result'))
+                known.add('operator-harness/candidate@2')
+            if contract not in known:
+                warnings.append({'kind': 'unsupported_contract', 'message': f'不支持的记录版本：{contract}；仅保留原文', 'paths': [path]})
+                meta = {'contract': contract}
+            else:
+                for key in ('run_id', 'node', 'search_node_id', 'status', 'candidate_id'):
+                    if len(re.findall(rf'^- {key}:', content, re.M)) > 1:
+                        meta.pop(key, None)
+                        warnings.append({'kind': 'ambiguous_field', 'message': f'{path} 重复字段 {key}，未猜测取值', 'paths': [path]})
         name = Path(path).stem.upper()
         parts = Path(path).parts
         run_id = parts[1] if len(parts) > 2 and parts[0] == 'runs' else None
@@ -113,16 +146,23 @@ def make_model(snapshot, manifest):
         task = next((r for r in group if r['kind'] == 'task' and len(Path(r['path']).parts) == 3), None)
         result = next((r for r in group if r['kind'] == 'result' and len(Path(r['path']).parts) == 3), None)
         tm, rm = (task or {}).get('fields', {}), (result or {}).get('fields', {})
+        status = rm.get('status', rm.get('状态', 'unknown'))
+        if any(m.get('contract', '').startswith('operator-harness/') for m in (tm, rm)):
+            if tm.get('run_id') != run_id or (rm and (rm.get('run_id') != run_id or rm.get('node') != tm.get('node'))):
+                status = 'unknown'
+                warnings.append({'kind': 'run_identity', 'message': f'Run {run_id} 的 TASK/RESULT 身份不一致或缺失', 'paths': [r['path'] for r in (task, result) if r]})
+            if status not in {'running', 'needs_input', 'blocked', 'completed', 'failed', 'interrupted', 'unknown'}:
+                status = 'unknown'
         runs.append({'id': run_id, 'node': tm.get('node', 'unknown'), 'operation': tm.get('operation', ''),
-                     'status': rm.get('status', rm.get('状态', 'unknown')), 'createdAt': tm.get('created_at'),
+                     'status': status, 'createdAt': tm.get('created_at'),
                      'parentRun': tm.get('parent_run'), 'records': [r['id'] for r in group],
                      'taskPath': (task or {}).get('path'), 'resultPath': (result or {}).get('path')})
     return {'schema': 'harness-vis/model@1', 'snapshotId': manifest['id'], 'projectId': manifest['projectId'],
             'projectName': manifest['projectName'], 'capturedAt': manifest['capturedAt'],
             'consistency': manifest['consistency'], 'records': records, 'runs': runs,
-            'warnings': manifest['warnings'], 'annotations': []}
+            'warnings': warnings, 'annotations': []}
 
-def capture(project, data_dir, max_file_bytes=2_000_000, max_total_bytes=50_000_000):
+def capture(project, data_dir, max_file_bytes=2_000_000, max_total_bytes=50_000_000, *, project_key=None):
     project = Path(project).expanduser().resolve()
     workspace = project / '.workspace'
     if not workspace.is_dir() or workspace.is_symlink():
@@ -130,6 +170,16 @@ def capture(project, data_dir, max_file_bytes=2_000_000, max_total_bytes=50_000_
     data_dir = Path(data_dir).expanduser().resolve()
     if data_dir.is_relative_to(workspace):
         raise ValueError('Snapshot storage must be outside the source .workspace')
+    if project_key is not None:
+        if not re.fullmatch(r'[A-Za-z0-9_-]+', project_key):
+            raise ValueError('Invalid Harness project ID')
+        workspace = workspace / project_key
+        metadata = workspace / 'project.json'
+        if workspace.is_symlink() or metadata.is_symlink() or not metadata.is_file():
+            raise ValueError('Missing named Harness project')
+        if json.loads(metadata.read_text()).get('id') != project_key:
+            raise ValueError('Harness project identity mismatch')
+        project = workspace
     if max_file_bytes <= 0 or max_total_bytes <= 0:
         raise ValueError('Capture limits must be positive')
     project_id = digest(str(project).encode())[:16]
@@ -183,6 +233,8 @@ def capture(project, data_dir, max_file_bytes=2_000_000, max_total_bytes=50_000_
                     'sourceProject': str(project), 'capturedAt': now(), 'consistency': 'partial' if changed else 'checked',
                     'consistencyMeaning': 'Two-pass file and digest comparison; not an atomic filesystem snapshot.',
                     'externalReferences': 'not_captured', 'totalBytes': total, 'files': files, 'warnings': warnings}
+        if project_key is not None:
+            manifest['harnessProjectKey'] = project_key
         write_json(staging / 'manifest.json', manifest)
         write_json(staging / 'model.json', make_model(staging, manifest))
         (staging / 'AGENT_TASK.md').write_text(
@@ -417,6 +469,7 @@ def main():
     cap = sub.add_parser('capture')
     cap.add_argument('--project', required=True)
     cap.add_argument('--data-dir', required=True)
+    cap.add_argument('--project-id', help='Capture records of one named Harness project')
     cap.add_argument('--max-file-bytes', type=int, default=2_000_000)
     cap.add_argument('--max-total-bytes', type=int, default=50_000_000)
     watching = sub.add_parser('watch', help='Capture changed workspace files after a quiet period')
@@ -439,7 +492,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == 'capture':
-            result = capture(args.project, args.data_dir, args.max_file_bytes, args.max_total_bytes)
+            result = capture(args.project, args.data_dir, args.max_file_bytes, args.max_total_bytes, project_key=args.project_id)
         elif args.command == 'watch':
             watch(args.project, args.data_dir, args.interval, args.settle, args.max_captures,
                   args.max_duration, args.max_file_bytes, args.max_total_bytes)

@@ -1,6 +1,6 @@
 import { recordedStatus, stageStatus } from '../harnessAdapter';
 import { graphRelations, graphDepths, graphId, relationLabels } from '../graph';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   MarkerType,
   Background,
@@ -16,6 +16,8 @@ import {
   NodeProps,
   Position,
   ReactFlow,
+  useNodesInitialized,
+  useReactFlow,
   useNodesState,
   useNodes,
   useEdgesState,
@@ -330,7 +332,7 @@ const ReferenceEdge: React.FC<EdgeProps<Edge<RefEdgeData>>> = ({
             : '#1C1917',
           strokeWidth: isSelected ? 2.8 : isCrossBranch ? 2 : 1.7,
           strokeDasharray: isCrossBranch ? '6 4' : undefined,
-          opacity: isDimmed ? 0.25 : 1,
+          opacity: isDimmed ? 0.65 : 1,
         }}
       />
       <EdgeLabelRenderer>
@@ -370,6 +372,23 @@ const ReferenceEdge: React.FC<EdgeProps<Edge<RefEdgeData>>> = ({
 
 const nodeTypes = { stratigraphic: StratigraphicNode };
 const edgeTypes = { referenceEdge: ReferenceEdge };
+
+function FitSettledGraph({ revision }: { revision: string }) {
+  const initialized = useNodesInitialized();
+  const nodes = useNodes();
+  const { fitView } = useReactFlow();
+  const fitted = useRef('');
+  const geometry = nodes.map(n => `${n.id}:${n.position.x}:${n.position.y}:${n.measured?.width}:${n.measured?.height}`).join('|');
+  useEffect(() => {
+    if (!initialized || !nodes.length || fitted.current === revision) return;
+    const timer = window.setTimeout(() => {
+      void fitView({ padding: 0.1, minZoom: 0.2, maxZoom: 1 });
+      fitted.current = revision;
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [initialized, geometry, revision, fitView, nodes.length]);
+  return null;
+}
 
 interface GraphCanvasProps {
   exploration: Exploration;
@@ -498,7 +517,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
           source: ref.sourceNodeId,
           target: ref.targetNodeId,
           type: 'referenceEdge',
-          markerEnd: {type: MarkerType.ArrowClosed},
+          markerEnd: {type: MarkerType.ArrowClosed, color: isSelected ? '#9A3412' : '#57534e', width: 18, height: 18},
           animated: false,
           data: {
             reference: ref,
@@ -510,6 +529,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
       });
   }, [exploration, selection, activeRelatedNodeIds, onSelectEdge]);
 
+  const [layoutRevision, setLayoutRevision] = useState(0);
   const [nodes, setNodes, onNodesChange] = useNodesState(computedNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(computedEdges);
 
@@ -534,6 +554,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   }, [dimensionKey, selection.expandedNodeIds.join('|'), setNodes]);
 
   const handleResetLayout = useCallback(() => {
+    setLayoutRevision(value => value + 1);
     setNodes(prev => layoutGraphNodes(computedNodes.map(n => ({ ...n, measured: prev.find(p => p.id === n.id)?.measured }))));
   }, [computedNodes, setNodes]);
 
@@ -582,12 +603,11 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.06, minZoom: 0.2 }}
           minZoom={0.2}
           maxZoom={1.5}
           proOptions={{ hideAttribution: true }}
         >
+          <FitSettledGraph revision={`${exploration.harness ? exploration.id.split(':').slice(0,2).join(':') : exploration.id}:${computedNodes.map(n => n.id).join(',')}:${layoutRevision}`} />
           <Background
             variant={BackgroundVariant.Lines}
             gap={32}

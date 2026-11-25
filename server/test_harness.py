@@ -256,3 +256,66 @@ def test_api_watch_state_expires_without_claiming_liveness(source, tmp_path, mon
         status['state'] = 'stopped'
         vis.write_json(path, status)
         assert client.get('/api/harness/snapshots').json()['watchers'][0]['state'] == 'stopped'
+
+
+def test_capture_includes_search_tree_and_cooled_knowledge(source, tmp_path, monkeypatch):
+    workspace = source / '.workspace'
+    (workspace / 'search').mkdir(parents=True)
+    (workspace / 'knowledge/hot/H1').mkdir(parents=True)
+    (workspace / 'knowledge/evidence').mkdir(parents=True)
+    (source / 'knowledge/cooled').mkdir(parents=True)
+
+    (workspace / 'search/tree.json').write_text('{"schema":"operator-harness/search@1","nodes":{}}\n')
+    (workspace / 'knowledge/hot/H1/rev1.json').write_text('{"id":"H1","revision":1}\n')
+    (workspace / 'knowledge/evidence/ev1.snapshot').write_text('snapshot evidence text\n')
+    (source / 'knowledge/cooled/K1--v1.json').write_text('{"schema":"operator-harness/cooled@1","id":"K1"}\n')
+
+    data = tmp_path / 'vis'
+    captured = vis.capture(source, data)
+    snap = Path(captured['snapshotPath'])
+    manifest = json.loads((snap / 'manifest.json').read_text())
+    files = {f['path']: f for f in manifest['files']}
+    for expected in [
+        'search/tree.json',
+        'knowledge/hot/H1/rev1.json',
+        'knowledge/evidence/ev1.snapshot',
+        'knowledge/cooled/K1--v1.json',
+    ]:
+        assert expected in files
+        assert files[expected]['status'] == 'copied'
+        assert files[expected]['text'] is True
+
+    monkeypatch.setenv('HARNESS_VIS_DATA_DIR', str(data))
+    from server.app import create_app
+    with TestClient(create_app(tmp_path / 'service', auto_seed=False)) as client:
+        base = f"/api/harness/projects/{captured['projectId']}/snapshots/{captured['snapshotId']}"
+        res = client.get(base + '/file', params={'path': 'knowledge/cooled/K1--v1.json'})
+        assert res.status_code == 200
+        assert '"operator-harness/cooled@1"' in res.json()['content']
+        ev_res = client.get(base + '/file', params={'path': 'knowledge/evidence/ev1.snapshot'})
+        assert ev_res.status_code == 200
+        assert ev_res.json()['content'].startswith('snapshot evidence text')
+
+
+@pytest.mark.parametrize('result_header,body,expected,warning', [
+    ('- run_id: R1\n- node: analysis\n- status: completed\n', '## Notes\nstatus: failed\n', 'completed', None),
+    ('- run_id: R1\n- node: analysis\n- status: completed\n- status: failed\n', '', 'unknown', 'ambiguous_field'),
+    ('- run_id: WRONG\n- node: analysis\n- status: completed\n', '', 'unknown', 'run_identity'),
+])
+def test_native_metadata_identity(source, tmp_path, result_header, body, expected, warning):
+    run = source / '.workspace/runs/R1'
+    (run / 'TASK.md').write_text('# Task\n- contract: operator-harness/node-task@1\n- run_id: R1\n- node: analysis\n')
+    (run / 'RESULT.md').write_text('# Result\n- contract: operator-harness/node-result@1\n' + result_header + body)
+    captured = vis.capture(source, tmp_path / 'native-vis')
+    model = json.loads((Path(captured['snapshotPath']) / 'model.json').read_text())
+    assert model['runs'][0]['status'] == expected
+    if warning:
+        assert any(w['kind'] == warning for w in model['warnings'])
+
+
+def test_future_native_contract_is_raw_only(source, tmp_path):
+    (source / '.workspace/runs/R1/RESULT.md').write_text('# Result\n- contract: operator-harness/node-result@2\n- run_id: R1\n- node: analysis\n- status: completed\n')
+    captured = vis.capture(source, tmp_path / 'native-vis')
+    model = json.loads((Path(captured['snapshotPath']) / 'model.json').read_text())
+    assert model['runs'][0]['status'] == 'unknown'
+    assert any(w['kind'] == 'unsupported_contract' for w in model['warnings'])

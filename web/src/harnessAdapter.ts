@@ -1,4 +1,6 @@
+import {isNativeHarness} from './nativeRecords';
 import {applyMeasurements} from './measurements';
+import {applySearchTree} from './searchTree';
 import {applySyntheticDemo} from './syntheticDemo';
 import { Exploration, ExecutionStatus, NodeRecord, ResourceCategory, StageMeta, StageRecord, StageType, STAGE_METAS } from './types';
 export type Capture = {id:string;projectId:string;projectName:string;capturedAt:string;consistency:string;totalBytes:number};
@@ -26,6 +28,17 @@ type Run=HarnessModel['runs'][number];
 const cleanRef=(value:string)=>value.trim().replace(/^\[[^\]]*\]\(([^)]+)\)$/, '$1').replace(/^[`<]|[`>]$/g,'').replace(/^\.workspace\//,'').replace(/^\.\//,'');
 const none=(value:string)=>/^(?:not_applicable|none|null|unknown|未记录)(?:\s|$)/i.test(value);
 const execStatus=(value:string):ExecutionStatus=>['completed','running','failed'].includes(value)?value as ExecutionStatus:value==='interrupted'?'stopped':'pending';
+function extractCandidateSummary(markdown?:string):string {
+ if(!markdown)return '';
+ const preferred=markdown.match(/^##\s+(?:修改与假设|改动说明|优化思路|核心改动|方案)[^\n]*\n([\s\S]*?)(?=^##\s|$(?![\s\S]))/m)?.[1]||markdown;
+ for(const raw of preferred.split('\n')){
+  const line=raw.trim();
+  if(!line||line.startsWith('#')||line.startsWith('-')||line.startsWith('|')||line.startsWith('>'))continue;
+  if(/^此(?:清单|候选)用于/.test(line))continue;
+  return line;
+ }
+ return '';
+}
 
 /** Candidate identity defines graph nodes. Execution order never defines candidate lineage. */
 export function harnessExploration(model:HarnessModel, contents:Record<string,string>):Exploration {
@@ -53,10 +66,18 @@ export function harnessExploration(model:HarnessModel, contents:Record<string,st
   const copy=manifests.find(c=>c.path===ref);
   return copy?candidates.find(c=>c.fields.candidate_id===copy.fields.candidate_id&&c.sha256===copy.sha256):undefined;
  };
- const nodes:NodeRecord[]=candidates.map(c=>({id:c.fields.candidate_id,explorationId:id,parentId:null,depth:0,branchLabel:'候选',title:c.title==='候选清单' ? resolveRun(c.fields.producer_run)?.operation || c.fields.candidate_id : c.title,hypothesis:'见候选清单与分析原文',changeSummary:'以候选清单固定版本；关联任务完成不代表精度或性能通过。',derivationNote:c.fields.parent_candidate||'父候选未记录',agentIds:[],executionStatus:'pending',contentStatus:'hot',currentStage:'gen_kernel',correctnessPassed:false,stopOrFailReason:'精度与性能：见测试原文',stages:stages(),harness:{recordedStatus:'registered',kind:'candidate',manifestPath:c.path,runIds:[]},stageMetas:candidateStages.map(m=>({...m}))}));
+ const nodes:NodeRecord[]=candidates.map(c=>{
+  const summary=extractCandidateSummary(contents[c.path]);
+  return {id:c.fields.candidate_id,explorationId:id,parentId:null,depth:0,branchLabel:'候选',title:c.title==='候选清单' ? resolveRun(c.fields.producer_run)?.operation || c.fields.candidate_id : c.title,hypothesis:summary||'见候选清单与分析原文',changeSummary:summary,derivationNote:c.fields.parent_candidate||'父候选未记录',agentIds:[],executionStatus:'pending',contentStatus:'hot',currentStage:'gen_kernel',correctnessPassed:false,stopOrFailReason:'待验证',stages:stages(),harness:{recordedStatus:'registered',kind:'candidate',manifestPath:c.path,runIds:[]},stageMetas:candidateStages.map(m=>({...m}))};
+ });
  let workspaceId='@workspace';while(nodes.some(n=>n.id===workspaceId))workspaceId+='-records';
- const workspace:NodeRecord={id:workspaceId,explorationId:id,parentId:null,depth:0,branchLabel:'项目记录',title:'项目记录与未关联任务',hypothesis:'未归入候选树',changeSummary:'环境、标杆、未产出候选及缺少明确候选引用的任务保留在这里，不推断分支。',derivationNote:'',agentIds:[],executionStatus:'pending',contentStatus:'hot',currentStage:'read_info',correctnessPassed:false,stages:stages(),stageMetas:[],harness:{recordedStatus:'workspace',kind:'workspace',runIds:[]}};
- const exp:Exploration={id,title:model.projectName,operatorName:model.projectName,targetGoal:'以 REQUIREMENTS / STATE 原文为准',inputDomain:'',environment:'以 ENVIRONMENT 原文为准',baselineRef:{id:'',version:'',latencyUs:0,description:'未从文档推断测量'},budget:{usedEvaluations:0,reservedEvaluations:0,maxEvaluations:0,elapsedMinutes:0,maxMinutes:0,noGainWindow:0,minGainPct:0},coordinatorStatus:'stopped',bestValidNodeId:'',unfinishedDirections:[],nodes,agents:[],references:[],resources:{},resourceLinks:[],knowledgeItems:[],graphRelations:[],harness:{snapshotId:model.snapshotId,capturedAt:model.capturedAt,consistency:model.consistency,runCount:model.runs.length,warnings}};
+ const workspace:NodeRecord={id:workspaceId,explorationId:id,parentId:null,depth:0,branchLabel:'项目记录',title:'项目背景与基线任务',hypothesis:'项目级文档与未归入候选的任务',changeSummary:'包含项目契约、运行环境、基准线以及尚未关联到具体候选的任务记录。',derivationNote:'',agentIds:[],executionStatus:'pending',contentStatus:'hot',currentStage:'read_info',correctnessPassed:false,stages:stages(),stageMetas:[],harness:{recordedStatus:'workspace',kind:'workspace',runIds:[]}};
+ const projectRec=model.records.find(r=>r.kind==='project');
+ const reqRec=model.records.find(r=>r.kind==='requirements');
+ const envRec=model.records.find(r=>r.kind==='environment');
+ const baseRec=model.records.find(r=>r.kind==='baseline');
+ const displayTitle=projectRec?.title&&!/^project(?:\.md)?$/i.test(projectRec.title)?projectRec.title:model.projectName;
+ const exp:Exploration={id,title:displayTitle,operatorName:displayTitle,targetGoal:reqRec?.fields.target||reqRec?.fields.operation||'',inputDomain:[reqRec?.fields.shape,reqRec?.fields.dtype].filter(Boolean).join(' · '),environment:envRec?.fields.target||'',baselineRef:{id:baseRec?.fields.baseline_id||'',version:baseRec?.path||'',latencyUs:Number(baseRec?.fields.median_us)||0,description:baseRec?.title||'未从文档推断测量'},budget:{usedEvaluations:0,reservedEvaluations:0,maxEvaluations:0,elapsedMinutes:0,maxMinutes:0,noGainWindow:0,minGainPct:0},coordinatorStatus:'stopped',bestValidNodeId:'',unfinishedDirections:[],nodes,agents:[],references:[],resources:{},resourceLinks:[],knowledgeItems:[],graphRelations:[],harness:{snapshotId:model.snapshotId,capturedAt:model.capturedAt,consistency:model.consistency,runCount:model.runs.length,warnings}};
  for(const c of candidates){
   const node=nodes.find(n=>n.id===c.fields.candidate_id)!;
   const raw=c.fields.parent_candidate;
@@ -72,18 +93,21 @@ export function harnessExploration(model:HarnessModel, contents:Record<string,st
  }
  const associations=new Map<string,Set<string>>();
  const associate=(run:Run,nodeId:string)=>{const set=associations.get(run.id)||new Set<string>();set.add(nodeId);associations.set(run.id,set);};
+ const claimedProposalAnalyses=new Set<string>();
  for(const c of candidates){
   const producer=resolveRun(c.fields.producer_run);
   if(!producer){warn('missing_producer_run','候选的生成任务未归档或未记录',[c.path]);continue;}
   associate(producer,c.fields.candidate_id);
   // Only an explicitly referenced analysis can serve as the producer's proposal.
   const analysis=resolveRun(producer.parentRun);
-  if(analysis?.node==='analysis')associate(analysis,c.fields.candidate_id);
+  if(analysis?.node==='analysis'){associate(analysis,c.fields.candidate_id);claimedProposalAnalyses.add(analysis.id);}
  }
  // Candidate inputs come from explicit fields or the TASK input table, never prose mentions.
+ // Proposal analyses that already produced a child candidate stay on that child candidate instead of polluting the parent.
  for(const run of model.runs){
   const task=record(run.taskPath);
   if(!task||run.node==='develop'||!['analysis','device-test'].includes(run.node))continue;
+  if(run.node==='analysis'&&claimedProposalAnalyses.has(run.id))continue;
   const refs=[task.fields.candidate_id,task.fields.candidate,task.fields.candidate_path].filter(Boolean);
   const text=contents[task.path]||'';
   const inputSection=text.match(/^##\s+输入与读取顺序\s*\n([\s\S]*?)(?=^##\s|$(?![\s\S]))/m)?.[1]||'';
@@ -98,7 +122,7 @@ export function harnessExploration(model:HarnessModel, contents:Record<string,st
  for(const run of orderedRuns){
   const targetIds=associations.get(run.id);
   const targets=targetIds?nodes.filter(n=>targetIds.has(n.id)):[workspace];
-  if(!targetIds&&['analysis','develop','device-test'].includes(run.node))warn('unlinked_run','任务缺少可确认的候选关联，保留在项目记录',[run.taskPath||run.id]);
+  if(!isNativeHarness(model,contents)&&!targetIds&&['analysis','develop','device-test'].includes(run.node))warn('unlinked_run','任务缺少可确认的候选关联，保留在项目记录',[run.taskPath||run.id]);
   const fields=record(run.taskPath)?.fields||{},resultFields=record(run.resultPath)?.fields||{};
   const agent=fields.agent_id||fields.executor_id||resultFields.agent_id||'unrecorded-executor';
   const stage=stageTypes[run.node]||'profiling';
@@ -114,8 +138,12 @@ export function harnessExploration(model:HarnessModel, contents:Record<string,st
  nodes.push(workspace);
  for(const node of nodes.filter(n=>n.harness?.kind==='candidate')){
   const tests=node.stages.verify_correctness.attempts;
-  node.stopOrFailReason=tests.length?`${tests.length} 次测试记录 · 精度与性能见原文`:'尚无关联测试记录';
-  node.changeSummary=`${node.harness!.runIds!.length} 个关联 Run；测试记录 ${tests.length} 次。候选身份及派生依据见清单。`;
+  node.stopOrFailReason=tests.length?`已记录 ${tests.length} 次测试`:'尚未测试';
+  if(!node.changeSummary){
+   const ideaAttempt=node.stages.plan_idea.attempts[0];
+   const ideaResult=ideaAttempt?.outputResourceVersionIds[0]?extractCandidateSummary(contents[ideaAttempt.outputResourceVersionIds[0]]):'';
+   node.changeSummary=ideaResult||ideaAttempt?.summary||node.stages.gen_kernel.attempts[0]?.summary||'详见候选清单与执行记录';
+  }
  }
  const category=(path:string):ResourceCategory=>/\.(py|mlir|cpp|cc|h)$/.test(path)?'kernel':/RESULT\.md$/.test(path)?'summary':/TASK\.md$/.test(path)?'idea':/\.(csv|json)$/.test(path)?'experiment':'artifact';
  for(const file of model.manifest.files){
@@ -130,6 +158,9 @@ export function harnessExploration(model:HarnessModel, contents:Record<string,st
  }
  if(model.annotations.length){const path='@agent/observations.md';exp.resources[path]={id:path,resourceId:path,version:model.viewRevision||model.snapshotId,title:'Agent 观察（非验收判定）',filename:path,category:'summary',sha256:'',ownerNodeId:workspace.id,contentStatus:'hot',createdAt:model.capturedAt,sizeBytes:0,content:model.annotations.map(a=>`## ${a.title}\n\n${a.body}\n\n依据：${a.sources.map(s=>`[${s}](${s})`).join(' · ')}`).join('\n\n')};for(const node of nodes)exp.resourceLinks.push({id:`notes:${node.id}`,nodeId:node.id,resourceVersionId:path,role:'input',sourceNodeId:workspace.id,isSharedReference:true});}
  exp.agents=[...new Set(nodes.flatMap(n=>n.agentIds))].map(agent=>({id:agent,name:agent==='unrecorded-executor'?'未记录执行者':agent,role:'快照中的执行身份；非实时存活状态',status:'stopped',historicalOnly:true,lastHeartbeat:'未采集'}));
- if(!applyMeasurements(exp,contents,model))applySyntheticDemo(exp,contents);
+ if(isNativeHarness(model,contents)){
+  if(contents['MEASUREMENTS.json']||contents['SYNTHETIC_DEMO.json'])exp.harness!.warnings.push({kind:'legacy_measurements',message:'忽略 Vis 自定义测量汇总；原生 Harness 的精度、性能与仿真结论请查看 RESULT、BASELINE 及协议原文。',paths:['MEASUREMENTS.json','SYNTHETIC_DEMO.json'].filter(p=>Boolean(contents[p]))});
+ }else if(!applyMeasurements(exp,contents,model))applySyntheticDemo(exp,contents);
+ applySearchTree(exp,contents,model);
  return exp;
 }

@@ -121,8 +121,10 @@ CLI 集成测试使用临时 HTTP 服务、子进程和合成数据，不编译�
 
 选择“跟随最新”后，页面会自动更新。选择具体快照则固定历史版本。watch 仅在内容变化稳定后复制产物，不启动设备任务或重用旧 Agent 说明。Ctrl-C 停止；可用 `--max-duration 3600` 限制为一小时，或 `--max-captures 10` 限制新增数量。快照是追加存储，不自动删除历史；正常停止及心跳过期会显示在工具栏。
 
-## 正式测量接入
+## Harness 原生接口
 
-无需 Agent 整理。测试产物遵循 [测量契约](skills/harness-vis/references/measurements.md)，提供 `MEASUREMENTS.json` 索引及带摘要引用的逐 case 报告。页面直接展示精度记录、Median/P95、复测历史及协议可比性。只有所有必选 case 完整通过且与基线协议一致时，才计算等权几何平均加速比；最新失败或不完整结果不会回退到旧成绩。
+直接捕获 Harness 的搜索索引、TASK/RESULT、环境约定和 hot/cooled 证据。onboard、simulator、探测、测量和调度全部由 Harness 负责；Vis 仅观察。已完成、精度通过、协调者接收及外部作业状态分别展示。
 
-`python3 examples/harness-vis/create_measurement_contract_demo.py /path/to/new-demo-project` 创建正式格式的模拟夹具，包含三种 shape、失败、不同计时协议和复测。所有数值明确为模拟，不调用设备，也不需要 publish。没有正式索引的旧 workspace 仍可查看候选树与原文。
+原生项目不需要额外测量 JSON 或心跳上报；仿真指标以原文为准，不猜测单位和排名。支持范围与限制见 [原生接口适配](docs/harness-vis/native-adaptation.md)。
+
+旧 [Vis 测量格式](skills/harness-vis/references/measurements.md) 和演示生成器仅供历史非原生快照使用，不是 Harness 的接口要求。
