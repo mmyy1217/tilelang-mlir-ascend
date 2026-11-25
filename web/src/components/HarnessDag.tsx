@@ -31,14 +31,7 @@ export function HarnessDag({ search, selection, onSelect, onMove, register }: {
   for (const node of search.searchNodes) {
     const status = node.status === 'parked' ? '搁置' : node.status === 'closed' ? '关闭' : node.isCurrent ? '当前' : '开放';
     items.push({ id: 'node/'+node.id, title: node.id, meta: [node.candidateIds.join(' · '), status].filter(Boolean).join(' · '),
-      text: node.hypothesis, level: node.depth * 2, selection: { kind: 'search-node', searchNodeId: node.id } });
-    for (const run of node.runs) {
-      const runKey = 'run/' + run.id;
-      items.push({ id: runKey, title: run.id, meta: '实验记录',
-        text: run.operation || run.stage, level: node.depth * 2 + 1,
-        selection: { kind: 'search-node', searchNodeId: node.id, runId: run.id } });
-      connect('node/' + node.id, runKey);
-    }
+      text: node.hypothesis, level: node.depth, selection: { kind: 'search-node', searchNodeId: node.id } });
     if (node.parentId && known.has(node.parentId)) connect('node/'+node.parentId, 'node/'+node.id);
   }
   for (const link of search.crossLinks || []) connect('node/'+link.source, 'node/'+link.target, true);
@@ -49,7 +42,7 @@ export function HarnessDag({ search, selection, onSelect, onMove, register }: {
     rows.get(item.level)!.push(item);
   }
   const selected = selection.kind === 'hot' ? 'hot/'+selection.hotId :
-    selection.kind === 'cooled' ? 'cold/'+selection.cooledKey : selection.runId ? 'run/'+selection.runId : 'node/'+selection.searchNodeId;
+    selection.kind === 'cooled' ? 'cold/'+selection.cooledKey : 'node/'+selection.searchNodeId;
   const nodes: Node[] = Array.from(rows).flatMap(([level,row]) => row.map((item,index) => ({
     id: item.id, type: 'default',
     position: { x: (index-(row.length-1)/2)*265, y: level*166 },
@@ -63,6 +56,6 @@ export function HarnessDag({ search, selection, onSelect, onMove, register }: {
       minZoom={0.08} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false}>
       <Background gap={18} size={1} color="#c9c7be" /><Controls showInteractive={false} />
     </ReactFlow>
-    <div className="hv-dag-key"><span>{search.searchNodes.length} 个策略 · {items.length - search.searchNodes.length} 条实验记录</span>{Boolean(search.crossLinks?.length) && <span>跨分支引用</span>}</div>
+    <div className="hv-dag-key"><span>{search.searchNodes.length} 个策略 · {search.searchNodes.reduce((total, node) => total + node.runs.length, 0)} 条实验记录</span>{Boolean(search.crossLinks?.length) && <span>跨分支引用</span>}</div>
   </div>;
 }

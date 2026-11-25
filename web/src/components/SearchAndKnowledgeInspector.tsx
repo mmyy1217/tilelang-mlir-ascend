@@ -112,6 +112,7 @@ export const SearchAndKnowledgeInspector: React.FC<{
     }
     const activeRev =
       hot.revisions.find((r) => r.revision === selectedHotRevision) || hot.latest;
+    const activities = (hot.activities || []).filter(a => a.revision === activeRev.revision);
     const activeEvidence = activeRev.evidence[selectedEvidenceIdx] || activeRev.evidence[0];
     const rawResource = exploration.resources[activeRev.path];
 
@@ -124,6 +125,15 @@ export const SearchAndKnowledgeInspector: React.FC<{
               <h2 className="hv-dossier-title">
                 工作区热知识 · {KIND_LABELS[activeRev.kind] || activeRev.kind}
               </h2>
+              <p>产出依据：{activeRev.evidenceSources.join(' · ') || '未记录'}</p>
+              {(['use-hot', 'nominate-cooled'] as const).map(kind => <div key={kind}>
+                <strong>{kind === 'use-hot' ? '使用此修订' : 'Cooled 候选提名'}</strong>
+                {activities.filter(a => a.kind === kind).length === 0 ? ' · 未记录' :
+                  activities.filter(a => a.kind === kind).map(a => <p key={a.path}>
+                    <button className="hv-link-chip" onClick={() => onSelect({kind:'search-node',searchNodeId:a.node,runId:a.run})}>{a.node} / {a.run}</button> {a.reason}
+                  </p>)}
+              </div>)}
+
             </div>
             {hot.promotedCooledId ? (
               <button
@@ -588,6 +598,17 @@ export const SearchAndKnowledgeInspector: React.FC<{
           </span>
         </div>
 
+        <h3>节点内实验</h3>
+        <p>{activeSearchNode.runs.length} 条 Run · {activeSearchNode.loopCount == null ? '优化轮次未记录' : activeSearchNode.loopCount + ' 个已记录轮次'}</p>
+        {activeSearchNode.runs.map(run => <button key={run.id} className="hv-link-chip" onClick={() =>
+          onSelect({kind:run.resultPath ? 'file' : 'search-node',filePath:run.resultPath,searchNodeId:activeSearchNode.id,runId:run.id})}>{run.id} · {run.operation || run.stage}</button>)}
+        {search.hotKnowledge.flatMap(h => (h.activities || []).filter(a => a.node === activeSearchNode.id).map(a =>
+          <p key={a.path}><button className="hv-link-chip" onClick={() => onSelect({kind:'hot',hotId:h.id})}>{a.kind === 'use-hot' ? '使用 hot' : '提名 cooled 候选'} · {h.id} rev.{a.revision}</button> {a.run} · {a.reason}</p>))}
+        <details open><summary>方向切换 · 账本登记顺序</summary>
+          <ol>{search.events.filter(e => e.op === 'select' || e.op === 'node-status').map(e =>
+            <li key={e.eventId}><time>{e.at}</time> · {e.op === 'select' ? '转入' : String(e.raw.status)} {String(e.raw.id)} · {String(e.raw.reason || '原因未记录')}</li>)}</ol>
+          {!search.events.some(e => e.op === 'select' || e.op === 'node-status') && <p>切换记录缺失</p>}
+        </details>
         {activeSearchNode.scope && (
           <p className="hv-summary-prose">验证范围 (Scope)：{activeSearchNode.scope}</p>
         )}

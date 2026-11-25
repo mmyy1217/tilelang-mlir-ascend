@@ -163,7 +163,7 @@ export function applySearchTree(
       isCurrent: nodeId === currentNodeId,
       runs: [],
       candidateIds: [],
-      loopCount: 0,
+      loopCount: null,
       usedCooledIds: [],
       hotKnowledgeIds: [],
     });
@@ -278,7 +278,8 @@ export function applySearchTree(
   }
 
   for (const sNode of nodesMap.values()) {
-    sNode.loopCount = 0;
+    const loops = sNode.runs.map(run => recordByPath(run.taskPath)?.fields.loop_id);
+    if (loops.length && loops.every(Boolean)) sNode.loopCount = new Set(loops).size;
   }
 
   // Parse Hot Knowledge
@@ -493,13 +494,32 @@ export function applySearchTree(
 
   const cooledKnowledge = [...cooledByPath.values()].sort((a, b) => a.fullKey.localeCompare(b.fullKey));
 
+  for (const file of model.manifest.files) {
+    if (!/^knowledge\/activities\/[^/]+\.json$/.test(file.path)) continue;
+    try {
+      const entry = JSON.parse(contents[file.path]);
+      const hot = hotKnowledge.find(h => h.id === entry.hot_id);
+      const run = nodesMap.get(entry.search_node_id)?.runs.find(r => r.id === entry.run_id);
+      if (entry.schema !== 'harness-vis/knowledge-activity@1' ||
+          !['use-hot', 'nominate-cooled'].includes(entry.kind) || !run ||
+          typeof entry.reason !== 'string' || !entry.reason.trim() ||
+          !hot?.revisions.some(r => r.revision === entry.revision && r.sha256 === entry.hot_sha256)) {
+        throw new Error('invalid binding');
+      }
+      (hot.activities ||= []).push({kind:entry.kind, revision:entry.revision, node:entry.search_node_id,
+        run:run.id, reason:entry.reason, path:file.path});
+    } catch {
+      warn('invalid_knowledge_activity', '知识活动缺少有效的 Run 或修订引用', [file.path]);
+    }
+  }
+
   // Connect hot knowledge promotions to cooled knowledge
   for (const cooled of cooledKnowledge) {
     const hotId = cooled.provenance?.hotId;
     if (!hotId) continue;
     const hot = hotKnowledge.find((h) => h.id === hotId);
     const revision = hot?.revisions.find(r => r.revision === cooled.provenance?.revision && r.sha256 === cooled.provenance?.hotSha256);
-    if (hot && revision && revision.revision === hot.latest.revision && (!hot.promotedCooledId || cooled.status === 'active')) {
+    if (cooled.review?.reviewer && cooled.review?.id && cooled.review?.reviewedAt && hot && revision && revision.revision === hot.latest.revision && (!hot.promotedCooledId || cooled.status === 'active')) {
       hot.promotedCooledId = cooled.fullKey;
     }
   }

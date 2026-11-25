@@ -57,3 +57,15 @@ watch 是前台进程，使用宿主进程管理能力保存 session/PID 并报�
 以 Harness 的 onboard、环境约定、simulator 和节点交接协议为准；可视化不执行这些流程，也不增加生产者协议。读取 RESULT 检查点、结果判定表、作业记录，以及 TASK 的环境绑定。`running` 只表示记录为运行中，`completed` 不等于精度通过、接收或作业结束。无原生心跳时不显示执行器存活状态。
 
 型号、工具链版本、模拟器输出按原文展示；不从自由文本猜测指标单位或自动计算排名。不要求生成 MEASUREMENTS.json 或进度文件。未知协议、摘要不符、未捕获引用均报告给用户。默认捕获 `.workspace/` 和项目 `knowledge/cooled/`；自定义冷却输出目录不自动追踪，需明确报告缺失。
+
+## 策略、实验轮次和知识活动
+
+主图的搜索节点表示优化方向。将同一策略下的精度检查、shape 测试和复测登记到该节点的 Run；需要标记迭代时，在冻结 TASK 前写入 `- loop_id: L1`。同轮多个 Run 复用该 ID。所有 Run 都有标识时，节点详情才汇总不同轮次。策略切换由协调者在切换时登记 select 并说明依据。
+
+采集器只读。执行者采用某条 hot，或提出 cooled 候选时，可在当前项目的 knowledge/activities/ 下为每次活动写入独立 JSON（不可覆盖旧事件）。此文件是 Vis 可选输入。捕获时须同时包含原生搜索账本、Run 和 hot 修订。示例模板：
+
+```json
+{"schema":"harness-vis/knowledge-activity@1","kind":"use-hot","hot_id":"H1","revision":1,"hot_sha256":"对应 hot 修订文件的实际 SHA256","search_node_id":"N1","run_id":"实际登记的 Run ID","reason":"这条知识具体改变了本轮哪项决定"}
+```
+
+提名使用 `nominate-cooled`，reason 记录提名依据和适用限制。Agent 仅写候选；正式晋升使用 Harness 的人工审批记录与 promote 流程。实际采用时才登记 use-hot；事后关联应在 reason 明示补录。历史记录中缺少使用或提名事件时，保持未知。

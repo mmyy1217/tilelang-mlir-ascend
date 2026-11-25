@@ -257,7 +257,7 @@ export interface SearchNodeView {
   isCurrent: boolean;
   runs: SearchRunEntry[];
   candidateIds: string[];
-  loopCount: number;
+  loopCount: number | null;
   usedCooledIds: string[];
   hotKnowledgeIds: string[];
 }
@@ -280,6 +280,7 @@ export interface HotKnowledgeView {
   id: string;
   latest: HotKnowledgeRevisionView;
   revisions: HotKnowledgeRevisionView[];
+  activities?: { kind: 'use-hot' | 'nominate-cooled'; revision: number; node: string; run: string; reason: string; path: string }[];
   promotedCooledId?: string;
 }
 

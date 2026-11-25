@@ -1061,7 +1061,7 @@ export const TrajectoryWorkbench: React.FC<{
                           已冷却 → {hot.promotedCooledId}
                         </button>
                       ) : (
-                        <span className="traj-k-status tone-hot">HOT</span>
+                        <span className="traj-k-status tone-hot">{hot.activities?.some(a => a.kind === 'nominate-cooled' && a.revision === hot.latest.revision) ? 'Cooled 候选 · 待人工评审' : 'HOT'}</span>
                       )}
                     </div>
 

@@ -7,7 +7,7 @@ test('native searchctl outputs bind runs, accepted results and original hot evid
  const e=harnessExploration(fixture.model,fixture.contents);
  assert.equal(e.harness.search.searchNodes.length,1);
  assert.equal(e.harness.search.searchNodes[0].runs[0].status,'completed');
- assert.equal(e.harness.search.searchNodes[0].loopCount,0);
+ assert.equal(e.harness.search.searchNodes[0].loopCount,null);
  assert.equal(e.harness.search.hotKnowledge[0].latest.evidence[0].content,fixture.contents['runs/R1/RESULT.md']);
  assert.equal(e.bestValidNodeId,'');
  assert.match(acceptedRun(fixture.contents['search/tree.json'],'R1',fixture.model.manifest.files),/已登记接收/);
@@ -43,4 +43,22 @@ test('cross-branch arrows come from verified search plans and omit tree edges', 
   assert.deepEqual(harnessExploration(model,contents).harness.search.crossLinks,[{source:'N1',target:'N2'}]);
   file.sha256 = '0'.repeat(64);
   assert.deepEqual(harnessExploration(model,contents).harness.search.crossLinks,[]);
+});
+
+test('a nomination is bound to a run and hot revision and cannot promote it', () => {
+  const model = structuredClone(fixture.model);
+  const contents = {...fixture.contents};
+  const before = harnessExploration(model,contents).harness.search;
+  const hot = before.hotKnowledge[0];
+  const node = before.searchNodes[0];
+  const path = 'knowledge/activities/nomination.json';
+  const activity = {schema:'harness-vis/knowledge-activity@1',kind:'nominate-cooled',hot_id:hot.id,
+    revision:hot.latest.revision,hot_sha256:hot.latest.sha256,search_node_id:node.id,run_id:node.runs[0].id,reason:'review evidence'};
+  model.manifest.files.push({path,status:'copied',text:true});
+  contents[path] = JSON.stringify(activity);
+  const after = harnessExploration(model,contents).harness.search;
+  assert.equal(after.hotKnowledge[0].activities[0].kind,'nominate-cooled');
+  assert.equal(after.cooledKnowledge.length,before.cooledKnowledge.length);
+  contents[path] = JSON.stringify({...activity,hot_sha256:'bad'});
+  assert.equal(harnessExploration(model,contents).harness.search.hotKnowledge[0].activities,undefined);
 });
