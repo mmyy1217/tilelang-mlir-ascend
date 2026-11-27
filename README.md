@@ -42,7 +42,7 @@ python3 scripts/install_codex_skills.py --workspace /path/to/your-operator-works
 3. 在 `.gitignore` 中加入 `.workspace/`；
 4. 在 `.agents/.harness/manifest.json` 记录受管文件摘要，供后续安全升级与回滚。
 
-> 重复安装具有幂等性；检测到冲突或用户本地修改时会提前拒绝并保留原文件。升级、中断恢复与回滚命令见 [安装与升级说明](docs/installation-upgrades.md)。若直接在本仓库内开发，`.agents/skills/` 已通过软链接指向 `assets/skills/`，无需再运行安装器。
+> 重复安装具有幂等性；检测到冲突或用户本地修改时会提前拒绝并保留原文件。升级、中断恢复与回滚命令见 [安装与升级说明](docs/installation-upgrades.md)。若直接在本仓库内开发，`.agents/skills/` 已通过软链接指向 `assets/skills/`，无需再运行安装器。受管技能中包含可选的白盒追踪入口 `$harness-tracing`（对接独立安装的 `agent-trace` CLI，未启用项目零依赖）。
 
 ### 2. 开启第一个算子任务
 
@@ -57,6 +57,8 @@ python3 scripts/install_codex_skills.py --workspace /path/to/your-operator-works
   $harness-onboard 梳理当前仓库里的算子代码与测试入口，建立后续优化计划。
   ```
 
+> 在 `$harness-new-project` / `$harness-onboard` 的初期追问收敛阶段，Agent 会顺带询问是否开启 `agent-tracing` 白盒 DAG 与时间线追踪（默认推荐开启；经用户确认且 CLI 已安装时立即按项目开启，未确认/未安装时保持零依赖）。你也可以在任意阶段直接调用 `$harness-tracing` 手动安装/开启、查看离线页面路径、启动实时预览、升级或关闭。
+
 ### 3. 日常推进与接续
 
 初始化完成后，按下面的常用入口日常推进与接续即可：
@@ -67,6 +69,7 @@ python3 scripts/install_codex_skills.py --workspace /path/to/your-operator-works
 | 稳妥推进一个节点 | `$harness-next` | 直接执行当前推荐的一个节点并更新记录，完成后返回 |
 | 在预算内连续自动迭代 | `$harness-automatic` | 在既有目标与步数/预算上限内连续协调 `analysis → develop` 循环 |
 | 新会话接续或人工切入 | `$harness-resume` | 恢复 `STATE.md`、当前 TASK 与优化历史后继续工作 |
+| 管理白盒 DAG 与时间线追踪 | `$harness-tracing` | 检查/安装外部 `agent-trace` CLI、按项目开关追踪、手动同步、预览页面与独立升级 |
 
 ---
 
@@ -112,6 +115,7 @@ flowchart TD
 | `$harness-next` | 直接推进当前推荐的一个节点并更新状态 |
 | `$harness-automatic` | 在目标与预算内连续协调推进（默认每批最多 8 步，可随时暂停恢复） |
 | `$harness-resume` | 跨会话恢复上下文、交接检查点与任务状态 |
+| `$harness-tracing` | 按项目开启/关闭可选的 `agent-tracing` 白盒 DAG 与时间线追踪、查看离线页面、实时预览与独立升级 |
 | `$harness-archive-project` / `$harness-restore-project` | 冻结/归档项目现场，以及后续检查恢复 |
 
 ### 2. 五个核心执行节点

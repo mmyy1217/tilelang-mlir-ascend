@@ -23,6 +23,7 @@ from records import metadata
 import evidence
 import control
 import scheduler
+import tracing_hook
 from evidence import Invalid
 
 
@@ -287,19 +288,31 @@ class Store:
 
     def apply(self, operation):
         """One idempotent, serialized operation; immutable blobs precede its index."""
+        applied = False
         with self.write(closing=operation.get("op") in ("accept", "close-run", "control-job", "control-settle", "control-pause", "release-workspace", "queue-cancel")):
             tree = self.load()
             event_id = identifier(operation["event_id"])
             for event in tree["events"]:
                 if event["operation"]["event_id"] == event_id:
                     require(event["operation"] == operation, "event ID reused with different content")
-                    return tree
-            self.mutate(tree, operation)
-            control.admission(tree, operation)
-            self.validate(tree)
-            tree["events"].append({"at": now(), "operation": deepcopy(operation)})
-            atomic(self.path, tree)
-            return tree
+                    break
+            else:
+                self.mutate(tree, operation)
+                control.admission(tree, operation)
+                self.validate(tree)
+                tree["events"].append({"at": now(), "operation": deepcopy(operation)})
+                atomic(self.path, tree)
+                applied = True
+        if not self.legacy and operation.get("op") in tracing_hook.TRIGGER_OPS:
+            if applied or tracing_hook.needs_sync(self, tree):
+                hook = tracing_hook.sync_after_commit(self, operation, tree)
+                if hook and hook.get("status") == "error":
+                    retry = f"; retry: {hook['retry_command']}" if hook.get("retry_command") else ""
+                    print(
+                        f"searchctl: tracing sync failed (ledger committed{retry}): {hook['error']}",
+                        file=sys.stderr,
+                    )
+        return tree
 
     def mutate(self, tree, op):
         action = op["op"]
@@ -812,6 +825,7 @@ class Store:
                 "closed_runs": [key for key, run in tree["runs"].items() if run.get("closure")],
                 "legacy_acceptances": [key for key, run in tree["runs"].items()
                                        if run.get("result") and not run.get("acceptance", {}).get("validation")],
+                "tracing": tracing_hook.read_status(self, tree),
                 "limitations": ["job observations and authority records are supplied by the host; Markdown STATE is not parsed"]}
 
     def review(self):
@@ -944,6 +958,7 @@ def main():
     commands.add_parser("check")
     commands.add_parser("review")
     commands.add_parser("reconcile")
+    commands.add_parser("tracing-status")
     commands.add_parser("mechanisms")
     commands.add_parser("ready")
     commands.add_parser("freeze").add_argument("path")
@@ -960,7 +975,7 @@ def main():
     invalidate.add_argument("--reason", required=True)
     args = parser.parse_args()
     try:
-        require(not args.legacy or args.command in ("show", "check", "review", "reconcile", "mechanisms", "reference"), "legacy mode is read-only")
+        require(not args.legacy or args.command in ("show", "check", "review", "reconcile", "tracing-status", "mechanisms", "reference"), "legacy mode is read-only")
         store = Store(args.workspace, args.project, args.owner, args.legacy)
         if args.command == "init":
             result = store.init(args.operator, args.task_contract, args.hypothesis, args.scope)
@@ -979,6 +994,8 @@ def main():
             result = store.mechanisms()
         elif args.command == "reconcile":
             result = store.reconcile()
+        elif args.command == "tracing-status":
+            result = tracing_hook.read_status(store)
         elif args.command == "review":
             result = store.review()
         elif args.command == "invalidate-cooled":

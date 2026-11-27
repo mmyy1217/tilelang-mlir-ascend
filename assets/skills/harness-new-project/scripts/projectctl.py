@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 
@@ -37,6 +38,98 @@ def name(value):
 def nonempty(value):
     require(isinstance(value, str) and bool(value.strip()), "nonempty string required")
     return value
+
+
+TRACING_SCHEMA = "operator-harness/tracing-config@1"
+
+
+def default_tracing_store_dir(project_id):
+    return f".workspace/{name(project_id)}/tracing"
+
+
+def tracing_trace_id(value):
+    require(isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,95}", value),
+            "invalid tracing trace_id")
+    return value
+
+
+def tracing_command(value):
+    nonempty(value)
+    require("\x00" not in value and "\n" not in value and "\r" not in value,
+            "invalid tracing command")
+    return value.strip()
+
+
+def validate_tracing_schema(project_id, config):
+    """Pure structural validation of tracing config (no live filesystem checks)."""
+    require(isinstance(config, dict), "invalid tracing config")
+    require(config.get("schema") == TRACING_SCHEMA, "unsupported tracing config schema")
+    require(type(config.get("enabled")) is bool, "tracing enabled must be a boolean")
+    cmd = tracing_command(config.get("command", "agent-trace"))
+    tid = tracing_trace_id(config.get("trace_id", f"harness-{project_id}"))
+    store_dir = config.get("store_dir", default_tracing_store_dir(project_id))
+    require(isinstance(store_dir, str) and bool(store_dir.strip()),
+            "tracing store_dir must be a non-empty relative path")
+    require("\x00" not in store_dir and "\n" not in store_dir and "\r" not in store_dir,
+            "invalid tracing store_dir")
+    rel = Path(store_dir.strip())
+    require(not rel.is_absolute() and ".." not in rel.parts and rel.parts not in ((), (".",)),
+            "tracing store_dir must be workspace-relative")
+    return {
+        "schema": TRACING_SCHEMA,
+        "enabled": config["enabled"],
+        "command": cmd,
+        "trace_id": tid,
+        "store_dir": rel.as_posix(),
+    }
+
+
+def validate_tracing_store_dir(workspace_root, project_id, store_dir):
+    """Validate live filesystem containment and symlink safety under `.workspace/<project>/tracing`."""
+    rel = Path(store_dir)
+    require(not rel.is_absolute() and ".." not in rel.parts and rel.parts not in ((), (".",)),
+            "tracing store_dir must be workspace-relative")
+    root = Path(workspace_root).resolve()
+    raw_target = root / rel
+    for part in [raw_target, *raw_target.parents]:
+        if part == root:
+            break
+        require(not part.is_symlink(), "tracing store_dir must not traverse symlinks")
+    resolved = raw_target.resolve()
+    require(resolved.is_relative_to(root) and resolved != root, "tracing store_dir escapes workspace")
+    ws_dir = root / ".workspace"
+    require(not ws_dir.is_symlink(), ".workspace must not be a symlink")
+    private_root = (ws_dir.resolve() / name(project_id) / "tracing").resolve()
+    require(resolved == private_root or resolved.is_relative_to(private_root),
+            f"tracing store_dir must stay under .workspace/{project_id}/tracing")
+    return resolved
+
+
+def validate_tracing_config(workspace_root, project_id, config):
+    cfg = validate_tracing_schema(project_id, config)
+    validate_tracing_store_dir(workspace_root, project_id, cfg["store_dir"])
+    return cfg
+
+
+def resolve_tracing_command(workspace_root, command):
+    """Return `(invocation_executable, resolved_existing_path_or_none)` consistently across callers.
+
+    Bare executable names stay bare for invocation and are searched on PATH.
+    Path-valued commands expand `~`, resolve relative paths against `workspace_root`,
+    and reuse the exact resolved path for status checks, execution, and retry commands.
+    """
+    has_sep = os.sep in command or (os.altsep is not None and os.altsep in command)
+    if not has_sep:
+        return command, shutil.which(command)
+    try:
+        raw = Path(command).expanduser()
+    except RuntimeError as exc:
+        raise Invalid(f"invalid tracing command path: {exc}") from exc
+    if not raw.is_absolute():
+        raw = Path(workspace_root).resolve() / raw
+    resolved = raw.resolve()
+    found = str(resolved) if (resolved.is_file() and os.access(resolved, os.X_OK)) else None
+    return str(resolved), found
 
 
 def read(path):
@@ -102,6 +195,8 @@ class Workspace:
         require(data["status"] in {"active", "freezing", "frozen", "archived"}, "invalid lifecycle state")
         require(isinstance(data["repositories"], dict) and isinstance(data["events"], list), "invalid metadata")
         require(data["owner"] is None or isinstance(data["owner"], str), "invalid owner")
+        if "tracing" in data and data["tracing"] is not None:
+            validate_tracing_schema(project_id, data["tracing"])
         return data
 
     def list(self, all_projects=False):
@@ -298,6 +393,74 @@ class Workspace:
                                         "repositories": inventory})
             return data
 
+    def tracing_status(self, project_id):
+        data = self.load(project_id)
+        raw = data.get("tracing")
+        if not raw:
+            _, cli_path = resolve_tracing_command(self.root, "agent-trace")
+            return {
+                "project_id": project_id,
+                "enabled": False,
+                "config": None,
+                "cli_found": bool(cli_path),
+                "cli_path": cli_path,
+                "cli_error": None,
+                "store_dir_error": None,
+            }
+        cfg = validate_tracing_schema(project_id, raw)
+        cli_path = None
+        cli_error = None
+        try:
+            _, cli_path = resolve_tracing_command(self.root, cfg["command"])
+        except (Invalid, OSError, RuntimeError, ValueError) as exc:
+            cli_error = str(exc)
+        store_dir_error = None
+        if cfg["enabled"]:
+            try:
+                validate_tracing_store_dir(self.root, project_id, cfg["store_dir"])
+            except (Invalid, OSError, ValueError) as exc:
+                store_dir_error = str(exc)
+        return {
+            "project_id": project_id,
+            "enabled": cfg["enabled"],
+            "config": cfg,
+            "cli_found": bool(cli_path),
+            "cli_path": cli_path,
+            "cli_error": cli_error,
+            "store_dir_error": store_dir_error,
+        }
+
+    def set_tracing(self, project_id, owner, enabled, command=None, trace_id=None, store_dir=None):
+        require(type(enabled) is bool, "enabled must be a boolean")
+        with self.edit(project_id, owner) as data:
+            prior = data.get("tracing") if isinstance(data.get("tracing"), dict) else {}
+            candidate = {
+                "schema": TRACING_SCHEMA,
+                "enabled": enabled,
+                "command": command if command is not None else prior.get("command", "agent-trace"),
+                "trace_id": trace_id if trace_id is not None else prior.get("trace_id", f"harness-{project_id}"),
+                "store_dir": store_dir if store_dir is not None else prior.get("store_dir", default_tracing_store_dir(project_id)),
+            }
+            cfg = validate_tracing_schema(project_id, candidate)
+            cli_path = None
+            if enabled:
+                validate_tracing_store_dir(self.root, project_id, cfg["store_dir"])
+                _, cli_path = resolve_tracing_command(self.root, cfg["command"])
+            else:
+                try:
+                    _, cli_path = resolve_tracing_command(self.root, cfg["command"])
+                except (Invalid, OSError, RuntimeError, ValueError):
+                    cli_path = None
+            data["tracing"] = cfg
+            self.save(data, "tracing-enable" if enabled else "tracing-disable", cfg)
+            return {
+                "project_id": project_id,
+                "enabled": cfg["enabled"],
+                "config": cfg,
+                "cli_found": bool(cli_path),
+                "cli_path": cli_path,
+            }
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -323,6 +486,14 @@ def main():
     close.add_argument("--target", choices=("frozen", "archived"), required=True)
     for command in ("finish-close", "restore"):
         commands.add_parser(command).add_argument("--checkpoint", required=True)
+    tracing = commands.add_parser("tracing")
+    tracing_sub = tracing.add_subparsers(dest="tracing_command", required=True)
+    tr_enable = tracing_sub.add_parser("enable")
+    tr_enable.add_argument("--command", dest="tracing_cli", help="agent-trace executable name or path (default: agent-trace)")
+    tr_enable.add_argument("--trace-id", help="destination trace ID (default: harness-<project>)")
+    tr_enable.add_argument("--store-dir", help="workspace-relative trace store dir (default: .workspace/<project>/tracing)")
+    tracing_sub.add_parser("disable")
+    tracing_sub.add_parser("status")
     args = parser.parse_args()
     try:
         workspace = Workspace(args.workspace)
@@ -346,6 +517,18 @@ def main():
                 result = workspace.begin_close(project, args.owner, args.target)
             elif args.command == "finish-close":
                 result = workspace.finish_close(project, args.owner, args.checkpoint)
+            elif args.command == "tracing":
+                if args.tracing_command == "status":
+                    result = workspace.tracing_status(project)
+                elif args.tracing_command == "enable":
+                    result = workspace.set_tracing(
+                        project, args.owner, True,
+                        command=args.tracing_cli,
+                        trace_id=args.trace_id,
+                        store_dir=args.store_dir,
+                    )
+                else:
+                    result = workspace.set_tracing(project, args.owner, False)
             else:
                 result = workspace.restore(project, args.owner, args.checkpoint)
         print(json.dumps(result, ensure_ascii=False, indent=2))

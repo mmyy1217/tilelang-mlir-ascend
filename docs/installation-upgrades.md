@@ -26,3 +26,7 @@ upgrade-plan 只读输出受管文件前后摘要和稳定计划 ID。执行前�
 升级前核对活跃任务。@4 run 固定评测 Python 代码身份；仅修改技能文档可继续接收，更改评测代码时使用原包完成在途任务，或安全关闭后重新登记。项目记录与外部作业保持原状。
 
 源码仓库的 `.agents/skills/*` 软链接属于开发模式，直接随 assets/skills 和 Git 更新。安装器在写清单前明确拒绝这种目录，upgrade-plan 同样给出开发模式提示；受管安装使用独立目录中的文件副本。旧清单中已移除的文件由升级计划列出并删除；未登记的额外文件继续保留，无法根据文件名判断其是否为旧版残留。
+
+## 可选外部追踪工具（安装与启用分离）
+
+薄技能入口 `assets/skills/harness-tracing/`（`$harness-tracing`）随 Harness 受管技能一起安装、升级与回滚；而外部白盒追踪 CLI 与渲染引擎（`agent-trace`）仍独立安装与升级，不打包进 `assets/skills/` 或 `third_party/`。安装或检查 CLI 时只使用只读自检（例如 `agent-trace doctor`），不得自动运行会修改历史 trace 的 `--repair`。工作区安装一次 CLI 后，由各项目在初期追问时或通过 `$harness-tracing` / `projectctl.py tracing enable|disable|status` 独立决定是否启用及绑定的 `trace_id` / `store_dir`（固定位于私有目录 `.workspace/<project>/tracing` 下）。

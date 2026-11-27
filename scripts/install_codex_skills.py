@@ -15,7 +15,7 @@ NAMES = (
     "harness-new-project", "harness-onboard", "harness-resume",
     "harness-prepare-environment", "harness-establish-baseline", "harness-port-baseline", "harness-analysis",
     "harness-develop",
-    "harness-status", "harness-next", "harness-automatic",
+    "harness-status", "harness-next", "harness-automatic", "harness-tracing",
     "harness-archive-project", "harness-restore-project",
     "tilelang-ascend-generation", "tilelang-ascend-knowledge", "ascend-roofline",
 )

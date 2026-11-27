@@ -32,7 +32,17 @@ workspace/
       knowledge/hot/
 ```
 
-按需创建内容，不预填整套空文档。project.json 只放发现、归属和生命周期信息，STATE 保存开发进展，不在两处维护当前最佳候选。
+project.json 管理项目归属、生命周期及可选外部集成配置；STATE 保存开发进展，不在两处维护当前最佳候选。需要为单个项目接入独立安装的 `agent-trace`（如 `harness-agent-tracing` 的 `operator-harness` 适配）时，显式按项目开关，不因工作区已安装 CLI 而自动启用：
+
+```bash
+python3 .agents/skills/harness-new-project/scripts/projectctl.py \
+  --workspace . --project example --owner SESSION tracing enable \
+  [--command agent-trace] [--trace-id harness-example] [--store-dir .workspace/example/tracing]
+python3 .agents/skills/harness-new-project/scripts/projectctl.py --workspace . --project example tracing status
+python3 .agents/skills/harness-new-project/scripts/projectctl.py --workspace . --project example --owner SESSION tracing disable
+```
+
+trace 存储目录必须位于项目私有目录 `.workspace/<project>/tracing`（或其子目录）下，保证生成产物留在 `.gitignore` 覆盖的私有区而不污染产品目录或项目权威账本；含路径分隔符的 `--command`（如相对路径或 `~/...`）统一按 `--workspace`（或 `~` 展开后）解析并用于状态检查、自动同步与重试命令。
 
 PROJECT 使用 [项目契约](project-contract.md) 与 [模板](../assets/templates/project.md)，定义开发与交付约定。其 draft/ready 表示计划完整性，与 project.json 的生命周期、环境可用性、测试结论及发布权限分别判断。
 

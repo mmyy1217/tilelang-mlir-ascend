@@ -71,3 +71,16 @@ project.json 管理项目归属；search/tree.json 管理 run/candidate/接收/b
 ## 搜索纪律
 
 较大实验前使用 `searchctl mechanisms`。add-node 的 plan 可指向 search-plan@1，记录 mechanism_id、expected、falsifier、keep、discard、simplification、prior_nodes、new_evidence 及 changed_conditions。相同机制必须覆盖已有历史并给出新依据。旧历史无需补造字段；语义归一与有价值的消融由分析者判断。
+
+## 可选白盒追踪集成（`agent-trace`）
+
+安装外部 CLI 与单项目启用相互独立。未显式启用的项目不依赖外部工具，行为保持不变。项目需要白盒 DAG 与时间线可视化时，由当前 owner 显式启用：
+
+```bash
+python3 .agents/skills/harness-new-project/scripts/projectctl.py \
+  --workspace . --project example --owner SESSION tracing enable
+```
+
+- 仅在 `searchctl apply` 成功落盘 `accept` 或 `promote-candidate` 后，由协调脚本自动调用 `agent-trace --dir <store_dir> --trace <trace_id> --json sync-harness --project-dir <workspace>/.workspace/<project>`（默认 `<store_dir>` 为私有目录 `.workspace/<project>/tracing`）。两处都触发，以保证无新 benchmark 的再次晋升也能及时更新视图。
+- 同步失败绝不回滚已提交的 Harness 账本，也不以 `|| true` 静默吞错：失败信息写入 `search/tracing-status.json` 并在 stderr 与 `searchctl reconcile` / `searchctl tracing-status` 中暴露，后续可直接重试 `sync-harness` 而无需重跑 NPU 作业。
+- `harness-status`、`searchctl reconcile` 与 `searchctl tracing-status` 保持严格只读，只读取 `harness_sync_state.json` 与 `search/tree.json` 水位，不执行同步或修复。

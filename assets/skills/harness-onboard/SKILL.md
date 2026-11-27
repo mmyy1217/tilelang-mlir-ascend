@@ -29,7 +29,7 @@ description: 将已有算子仓库接入 Operator Harness：理解代码与文�
 
 ## 更新计划
 
-首次接入时按项目管理契约调用 projectctl create，建立项目身份和 owner；继续已有项目时核对状态和会话归属。准备独立 worktree 后才开始代码修改，不直接改只读调查的源仓库。
+首次接入时按项目管理契约调用 projectctl create，建立项目身份和 owner；继续已有项目时核对状态和会话归属。准备独立 worktree 后才开始代码修改，不直接改只读调查的源仓库。根据追问阶段用户对白盒追踪的确认（默认推荐开启），按同级 [harness-tracing](../harness-tracing/SKILL.md) 检查 CLI 并在就绪时启用 `projectctl.py tracing enable`（未安装 CLI 时不阻塞接入，用户选择关闭则保持零依赖，随时可用 `$harness-tracing` 手动开关）。
 
 理解收敛后，按共享的 [项目记录](../harness-new-project/references/project-records.md) 直接更新 Markdown。沿用已有决定和人工修改，补充本次的新发现；缺失的记录按需补齐，过时的路径直接修正。
 

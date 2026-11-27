@@ -25,6 +25,8 @@ description: 通过连续追问帮助用户明确新的昇腾 TileLang 算子项
 
 与用户敲定稳定 project_id 和展示名称，核对重名与保留名。用项目管理契约的 projectctl create 建立元数据和本会话 owner；按需使用 add-repo 为每个可写源码仓库创建项目独立分支/worktree，依赖与构建归项目所有。已有源仓库的未提交改动不会自动带入，先明确需要导入的范围。
 
+根据追问阶段用户对白盒追踪的确认（默认推荐开启）：若用户同意开启，按同级 [harness-tracing](../harness-tracing/SKILL.md) 先只读检查 `projectctl.py tracing status`——`agent-trace` CLI 已就绪时立即执行 `projectctl.py tracing enable`，CLI 未安装时提示安装方式（或经用户确认后安装）且不阻塞项目建档；若用户选择暂不开启，保持关闭零依赖，后续可随时用 `$harness-tracing` 手动开启。
+
 按 [项目契约](references/project-contract.md) 使用 [PROJECT 模板](assets/templates/project.md) 建立 `.workspace/<project>/PROJECT.md`：记录目标、仓库规范来源、依赖能力、早期检查、必需/诊断证据与发布授权引用。能从目标仓库读取的规则自行核实，不让用户填写固定问卷。模板按实际范围填写，不适用说明原因，未知项写影响与下一步；ready 只表示计划契约完整，不代表环境或算子已验证。
 
 按 [项目记录](references/project-records.md) 补充需求、路线图和当前状态，与 PROJECT 通过确切条目引用，避免重复维护阈值、仓库 HEAD 和进度。项目契约变更保留旧快照，下游 TASK 固定确切修订。
